@@ -7,3 +7,4 @@
 *.blg
 *.bcf
 *.bbl
+/doc/sections/
