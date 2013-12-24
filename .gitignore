@@ -8,3 +8,4 @@
 *.bcf
 *.bbl
 /doc/sections/
+/src/smp.py
