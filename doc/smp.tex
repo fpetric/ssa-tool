@@ -1,9 +1,11 @@
-\documentclass{cs-smp}[2013/12/23]
+\documentclass[minp=25,maxp=30]{cs-smp}[2013/12/23]
 
-\usepackage[autocite=footnote]{biblatex}
+\usepackage[backend=biber,
+            autocite=footnote]
+            {biblatex}
 \addbibresource{refs.bib}
 
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \hypersetup{
   pdfauthor={Sean Allred},
   pdftitle={SSA-Tool: A Utility for the Creation and Evaluation of Self-Stabilizing Algorithms},
@@ -11,6 +13,13 @@
   pdfkeywords={Graph,Algorithm,Distributed},
   pdfcreator={XeTeX}
 }
+
+\usepackage{makeidx}
+\makeindex
+
+\usepackage[xindy]{glossaries}
+\input{glossary}
+\makeglossaries
 
                                 \title
                          {\texttt{ssa-tool}}%
@@ -22,14 +31,13 @@
                            [Alan Jamieson]
 
                                 \date
-                            {25 May 2013}
+                            {14 April 2013}
 
-\CSSMPSetup{
-  minp = 25,
-  maxp = 30,
-}
+% \CSSMPSetup{
+%   minp = 25,
+%   maxp = 30,
+% }
 
-\usepackage{mwe}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -37,7 +45,9 @@
 \end{abstract}
 
 \input{sections/introduction}
-\lipsum[1-10]
+\input{sections/mathematical-representation}
+
+\printglossaries
 
 \printbibliography
 \appendix

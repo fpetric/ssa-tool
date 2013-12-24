@@ -3,14 +3,19 @@
     (LaTeX-add-bibliographies
      "refs")
     (TeX-run-style-hooks
-     "mwe"
+     "glossaries"
+     "xindy"
+     "makeidx"
+     ""
      "hyperref"
-     "biblatex"
-     "autocite=footnote"
+     "hidelinks"
      "latex2e"
      "cs-smp10"
      "cs-smp"
-     ""
+     "maxp=30"
+     "minp=25"
+     "glossary"
      "abstract"
-     "sections/introduction")))
+     "sections/introduction"
+     "sections/mathematical-representation")))
 
