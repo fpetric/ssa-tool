@@ -1,0 +1,6 @@
+#+Title: SSA-Tool
+#+Author: Sean Allred
+#+Date: [2013-12-23 Mon]
+
+This is a set of tools for the representation, creation, and
+evaluation of self-stabilizing algorithms.
