@@ -28,11 +28,7 @@ class SelfStabilizingAlgorithm:
     -------
     The new graph.
 
-    (TODO: the `inspect` module can provide some safety)
-
-    Notes
-    -----
-    This class currently uses 
+    (TODO: the `inspect` module can provide some safety) # against what??
 """
     def __init__(self, rules=dict()):
         self.rules = dict()
