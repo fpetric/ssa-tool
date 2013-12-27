@@ -4,3 +4,8 @@
 
 This is a set of tools for the representation, creation, and
 evaluation of self-stabilizing algorithms.
+
+I will create a =makefile= for this shortly.  Unfortunately, I have
+other obligations I must attend to first.
+
+The biology department is weird and jumpy.
