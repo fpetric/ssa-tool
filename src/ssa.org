@@ -14,50 +14,93 @@
 Since this is all math and this research uses TeX almost exclusively,
 it is worthwhile to include auto-generation of TeX documentation for
 the algorithm.
+
+A =TeXableEntity= is an object that has both human-readable
+documentation and a TeX representation.  The documentation is what is
+returned when the object is interpreted as a string, and the TeX
+representation is the first part of the returned tuple when the object
+is asked for its own representation.
 #+BEGIN_SRC python :tangle "ssa/core/TeXableEntity.py"
   class TeXableEntity:
-      def __init__(self, representation=None, documentation=None):
-          self.set_TeX(TeXdoc)
+      def __init__(self, TeX=None, doc=None):
+          self._TeX = TeX
+          self._doc = doc
   
-      def set_TeX(self, TeXdoc):
-          if TeXdoc is None:
-              raise Exception('TeXdoc cannot be None!')
-          else:
-              self._TeXdoc = str(TeXdoc)
+      def __repr__(self):
+          return str((str(self._TeX), str(self._doc)))
   
-      def as_TeX(self):
-          if self.TeXdoc is None:
-              raise Exception('This entity has no TeX documentation.')
-          else:
-              return self._TeXdoc
+      def __str__(self):
+          return str(self._doc)
 #+END_SRC
-** [#A] Predicates and Actions
-Predicates and Actions are very similar to each other.
+** [#A] Privileges and Actions
+Privileges and Actions are very similar to each other.
 *** TODO TeX-enabled predicates/actions
 Create a class for =Predicate= and =Action= that both inherit from
 =TeXableEntity=.  We should be able to attach TeX documentation to
 rules and predicates so that we can have a nice display of the entity.
 
 This could also be useful in export.
-*** Predicates
-#+BEGIN_SRC python :tangle "ssa/core/Predicate.py"
-  class Predicate(TeXableEntity):
-      def __init__(self, predicate = lambda graph, node: True)
+*** Privileges
+#+BEGIN_SRC python :tangle "ssa/core/Privilege.py"
+  class Privilege(TeXableEntity):
+      """A function from G, v -> {True, False}
   
-      def __call__
+      >>> pred = Privilege(lambda G, v: v in G,
+                           'G, v \mapsto v \in G',
+                           'Returns true when $v$ is a node in $G$')
+      >>> doc(pred)
+      'Returns true when $v$ is a node in $G$'
+      >>> repr(pred)
+      'G, v \mapsto v \in G'
+      """
+      def __init__(self, predicate = lambda graph, node: True,
+                         as_TeX    = None,
+                         doc       = None):
+          TeXableEntity.__init__(self, as_TeX, doc)
+          self.predicate = predicate
+  
+      def __call__(self, graph, node):
+          return self.predicate(graph, node)
+  
+      def __bool__(self, graph, node):
+          return self()
 #+END_SRC
+**** TODO doctest callable
+requires making a graph... ugh
+*** Actions
+#+BEGIN_SRC python :tangle "ssa/core/Action.py"
+  class Action(TeXableEntity):
+      """A function from G, v -> G'
+  
+      >>> action = Action(lambda G, v: v['marked'] = True,
+                          'v.marked \gets True',
+                          'Marks $v$')
+      >>> doc(action)
+      'Mark $v$'
+      >>> repr(action)
+      'v.marked \gets True'
+      """
+      def __init__(self, action = lambda graph, node: graph,
+                         as_TeX = None,
+                         doc    = None):
+          TeXableEntity.__init__(self, as_TeX, doc)
+          self.action = action
+  
+      def __call__(self, graph, node):
+          return self.action(graph, node)
+#+END_SRC
+**** TODO doctest callable
 ** [#A] Self-Stabilizing Algorithm
-- a dictionary from =Rule= objects to sets of =Predicate= objects.
+- a dictionary from =Rule= objects to sets of =Privilege= objects.
 - also a =TeXableEntity=
 
 old code
 #+BEGIN_SRC python
   """
   Base class for self-stabilizing algorithms.
-  
   """
   
-  __author__ = "\n".join(["Sean Allred (seallred@smcm.edu)"])
+  __author__ = "Sean Allred (seallred@smcm.edu)"
   
   import networkx as nx
   import random
@@ -66,29 +109,16 @@ old code
       """Base class for self-stabilizing algorithms.
   
       The SelfStabilizingAlgorithm class represents its namesake as a set
-      of predicate-action pairs.  Both predicates and actions must be
-      pure functions that take exactly two arguments:
-      
-  
-      Parameters
-      ----------
-      graph : the graph
-          The graph that you're working with.  Useful for getting
-          information about neighbors, etc.
-      privileged_node : acting node
-          The node that triggered this action.
-  
-      Returns
-      -------
-      The new graph.
-  
-      (TODO: the `inspect` module can provide some safety) # against what??
-  """
+      of predicate-action pairs.
+      """
       def __init__(self, rules=dict()):
-          self.rules = dict()
+          self.rules = rules
   
-          for predicate in rules.keys():
-              self.add_rule(predicate, rules[predicate])
+          for predicates in rules.keys():
+              if not hasattr(predicates, '__getitem__'):
+                  predicates = [predicates]
+              for p in predicates:
+                  self.add_rule(predicate, rules[predicate])
   
       def add_rule(self, predicate=lambda graph, privileged_node: True,
                          action=lambda graph, privileged_node: graph):
