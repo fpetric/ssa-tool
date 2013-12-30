@@ -1,0 +1,14 @@
+This work in its entirety is copyright (c) 2013 by Sean Allred.
+
+The paper that accompanies this work is logically split:
+
+    All information under /doc/sections/ is content of my own creation
+    and will remain my own creation.  It is released under the license
+    
+			     CC BY-NC-ND
+     (http://creativecommons.org/licenses/by-nc-nd/4.0/legalcode)
+
+    All styles found under /doc/ (but not including /doc/sections) is
+    released under the LPPL v3.0 or later.
+    
+Everything under /src/ is covered under the MIT license.    
