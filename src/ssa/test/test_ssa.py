@@ -1,27 +1,14 @@
-"""
-Base class for self-stabilizing algorithms.
+__author__ = "Sean Allred (seallred@smcm.edu)"
 
-"""
-
-__author__ = "\n".join(["Sean Allred (seallred@smcm.edu)"])
-
-from networkx import SelfStabilizingAlgorithm as SSA
-
-#class SelfStabilizingAlgorithm:
-#    def __init__(self, rules=dict()):
-#        pass
-#    def add_rule(self, predicate=lambda graph, privileged_node: True,
-#                       action=lambda graph, privileged_node: graph):
-#        pass
-#    def apply_to(graph, count=1, keep_history=False):
-#        pass
+import networkx as nx
+from ssa import SelfStabilizingAlgorithm
 
 class SelfStabilizingAlgorithmTest:
     def __init__(self):
         self.randomly_marked = Graph()
 
-    def ind_set(self):
-        independent_set = SSA()
+    def ind_set(self, num_applications=15):
+        independent_set = SelfStabilizingAlgorithm()
 
         def any_marked(graph, node):
             return any(lambda n: n.marked, graph.neighbors(node)) and not node.marked
@@ -33,8 +20,18 @@ class SelfStabilizingAlgorithmTest:
         def unmark_node(graph, node):
             node.marked = False
             return graph
-        
+
         independent_set.add_rule(any_marked, unmark_node)
         independent_set.add_rule(none_marked, mark_node)
-        
-        
+
+        random_graph = nx.Graph()
+
+        for i in range(num_applications):
+            independent_set.apply_to(random_graph)
+            print(random_graph, data=True)
+
+if __name__ == "__main__":
+    test = SelfStabilizingAlgorithmTest()
+    print('Testing independent set algorithm...')
+    test.ind_set()
+    print('Done test.')
