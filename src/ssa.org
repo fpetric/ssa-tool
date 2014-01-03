@@ -284,7 +284,7 @@ old code
 ** [#C] Step-by-Step TeX printouts
 * [#B] Testing
 ** Generating a Random Graph
-#+BEGIN_SRC python :tangle "ssa/testing/GraphGeneratorUtil.py"
+#+BEGIN_SRC python :tangle "ssa/testing/generators/GraphGeneratorUtil.py"
   import networkx
   import random
   
