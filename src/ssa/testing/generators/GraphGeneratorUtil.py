@@ -14,6 +14,9 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     """Generates a random graph of `degree` nodes, a specified
     probability for edges, and a number of random properties.
 
+    If `degree` is a tuple, it is assumed to be a (min, max) tuple
+    defining an inclusive range of possible degrees.
+
     Each `properties` value can be a function of a random number
     generator.  If the value does not have __call__ defined, it will
     be assumed a string unless, as a string, it is one of the following:
@@ -25,9 +28,37 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
 
     If the property value is neither callable nor a string of this
     form, then the value is simply set raw.
+
+    >>> G = random_graph(50)
+    >>> len(G.nodes())
+    50
+    >>> G = random_graph((40, 60))
+    >>> len(G.nodes()) in range(40, 60 + 1)
+    True
+
+    Be careful about the arguments you pass.  If you want a range of
+    possible values for the degree, ensure you pass an iterable of
+    exactly two elements:
+
+    >>> random_graph((1,2,3))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in ?
+    Exception: Wrong number of values for (min, max) degree
+
+    Mind the arguments for the keywords 'bool', 'int', and 'float'.
+
+    >>> random_graph(5, marked='int(3,4,5)')
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in ?
+    Exception: Wrong number of arguments for int.
     """
     r = random.Random()
     G = networkx.Graph()
+
+    if hasattr(degree, '__getitem__'):
+        if len(degree) is not 2:
+            raise Exception('Wrong number of values for (min, max) degree')
+        degree = r.randint(degree[0], degree[1])
 
     for n in range(degree):
         new_node = base_class()
@@ -73,6 +104,9 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     return G
 
 if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
+
     from collections import Counter
     import  sys
     print 'Running unit test on `random_graph`:'
