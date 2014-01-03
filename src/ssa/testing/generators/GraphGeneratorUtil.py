@@ -7,6 +7,8 @@ from itertools import combinations
 class BasicNode:
     def __init__(self):
         pass
+    def __repr__(self):
+        return '{}::{}'.format(id(self), self.__dict__)
 
 def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **properties):
     """Generates a random graph of `degree` nodes, a specified
@@ -69,3 +71,31 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
             G.add_edge(src, dst)
     
     return G
+
+if __name__ == '__main__':
+    from collections import Counter
+    print 'Running unit test on `random_graph`:'
+    print '  Creating a random graph with attributes:'
+    print '              degree = 1000'
+    print '    edge probability = 0.7'
+    print '          base class = BasicNode'
+    print '              marked = bool(.3)'
+    print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
+    print '                 age = int(18,65)'
+    print '              weight = float()'
+    G = random_graph(1000, .7, marked='bool(.3)',
+                              answer=lambda r: r.choice(['yes', 'no', 'maybe']),
+                              weight='float()',
+                              age='int(18,65)')
+    print '  Graph created.'
+    #for n in G.nodes(): print '    {i}= {0.marked!s:<6} {0.answer:<6} {0.age:>3} {0.weight}'.format(n,i=id(n))
+    print '  Stats:'
+
+    ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
+
+    print '    Probability of truth:', float(sum(ll('marked')))/len(G.nodes())
+    print '            Answer stats: yes={0[yes]:>3} no={0[no]:>3} maybe={0[maybe]:>3}'.format(Counter(ll('answer')))
+    print '             Average age:', float(sum(ll('age')))/len(G.nodes())
+    print '          Average weight:', float(sum(ll('weight')))/len(G.nodes())
+    # TODO: make sure the results are within bounds
+    print 'Unit test of `random_graph` complete.'
