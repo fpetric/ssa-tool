@@ -469,17 +469,44 @@ old code
   
       - 'int(n,m)': a random integer in [n, m]
       - 'float()' : a random floating point number in [0, 1)
-      - 'bool(n)': a random boolean with a probability of truth between
-                   0 and 1 inclusive.
+      - 'bool(n)' : a random boolean with a probability of truth between
+                    0 and 1 inclusive (where 1 is True).
   
       If the property value is neither callable nor a string of this
       form, then the value is simply set raw.
   
+      Pass in a single argument, the degree of the graph, to get the
+      bare-minimum graph (with a certain edge probability):
+  
       >>> G = random_graph(50)
       >>> len(G.nodes())
       50
+  
+      Pass in a tuple to get a range of values:
+  
       >>> G = random_graph((40, 60))
       >>> len(G.nodes()) in range(40, 60 + 1)
+      True
+  
+      You can also use a few intelligent arguments, such as bool(n):
+  
+      >>> all(map(lambda n: n.marked,
+      ...         random_graph(1000, marked='bool(1)')))
+      True
+      >>> any(map(lambda n: n.marked,
+      ...         random_graph(1000, marked='bool(0)')))
+      False
+  
+      float():
+  
+      >>> .45 < sum(map(lambda n: n.weight,
+      ...         random_graph(1000, weight='float()')))/1000 < .55
+      True
+  
+      and int(min, max):
+  
+      >>> all(map(lambda n: n.age in range(40, 50 + 1),
+      ...         random_graph(1000, age='int(40, 50)')))
       True
   
       Be careful about the arguments you pass.  If you want a range of
@@ -504,7 +531,7 @@ old code
       if hasattr(degree, '__getitem__'):
           if len(degree) is not 2:
               raise Exception('Wrong number of values for (min, max) degree')
-          degree = r.randint(degree[0], degree[1])
+          degree = r.randint(*degree)
   
       for n in range(degree):
           new_node = base_class()
@@ -514,7 +541,7 @@ old code
               new_value = properties[key]
               # Avoid overwriting properties.  This could happen if the
               # user passes in something that is a dictionary rather
-              # than a tradition KV list.  We'll accept anything that
+              # than a traditional KV list.  We'll accept anything that
               # has __str__, but __str__ is not meant to be unique.
               if hasattr(new_node, new_prop): 
                   raise Exception('Did not overwrite duplicate property')
@@ -553,38 +580,41 @@ old code
       import doctest
       doctest.testmod()
   
-      from collections import Counter
-      import  sys
-      print 'Running unit test on `random_graph`:'
-      print '  Creating a random graph with attributes:'
-      print '              degree = 1000'
-      print '    edge probability = 0.7'
-      print '          base class = BasicNode'
-      print '              marked = bool(.3)'
-      print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
-      print '                 age = int(18, 65)'
-      print '              weight = float()'
-      print '  please be patient...',
-      sys.stdout.flush()
-      G = random_graph(1000, .7, marked='bool(.3)',
-                                answer=lambda r: r.choice(['yes', 'no', 'maybe']),
-                                weight='float()',
-                                age='int(18, 65)')
-      print 'Graph created.  Calculating statistics...'
-      sys.stdout.flush()
+      import sys
   
-      ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
-      stats = {}
-      stats['marked'] = float(sum(ll('marked')))/len(G.nodes())
-      stats['answer'] = Counter(ll('answer'))
-      stats['weight'] = float(sum(ll('weight')))/len(G.nodes())
-      stats['age']    = float(sum(ll('age')))/len(G.nodes())
+      if 'unittests' in sys.argv:
+          from collections import Counter
+          import  sys
+          print 'Running unit test on `random_graph`:'
+          print '  Creating a random graph with attributes:'
+          print '              degree = 1000'
+          print '    edge probability = 0.7'
+          print '          base class = BasicNode'
+          print '              marked = bool(.3)'
+          print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
+          print '                 age = int(18, 65)'
+          print '              weight = float()'
+          print '  please be patient...',
+          sys.stdout.flush()
+          G = random_graph(1000, .7, marked='bool(.3)',
+                                    answer=lambda r: r.choice(['yes', 'no', 'maybe']),
+                                    weight='float()',
+                                    age='int(18, 65)')
+          print 'Graph created.  Calculating statistics...'
+          sys.stdout.flush()
   
-      print '  Stats:'
-      print '    Probability of truth: {marked}'.format(**stats)
-      print '            Answer stats: yes={answer[yes]:>3} no={answer[no]:>3} maybe={answer[maybe]:>3}'.format(**stats)
-      print '             Average age: {age}'.format(**stats)
-      print '          Average weight: {weight}'.format(**stats)
-      # TODO: make sure the results are within bounds
-      print 'Unit test of `random_graph` complete.'
+          ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
+          stats = {}
+          stats['marked'] = float(sum(ll('marked')))/len(G.nodes())
+          stats['answer'] = Counter(ll('answer'))
+          stats['weight'] = float(sum(ll('weight')))/len(G.nodes())
+          stats['age']    = float(sum(ll('age')))/len(G.nodes())
+  
+          print '  Stats:'
+          print '    Probability of truth: {marked}'.format(**stats)
+          print '            Answer stats: yes={answer[yes]:>3} no={answer[no]:>3} maybe={answer[maybe]:>3}'.format(**stats)
+          print '             Average age: {age}'.format(**stats)
+          print '          Average weight: {weight}'.format(**stats)
+          # TODO: make sure the results are within bounds
+          print 'Unit test of `random_graph` complete.'
 #+END_SRC
