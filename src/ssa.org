@@ -6,12 +6,22 @@
 
 * Notes
 ** Dijkstra 1974
+A self-stabilizing network is seen as a graph of state machines.  Each
+privilege is realized as a transition from the current state to
+another state.  The state of the graph is passed as input to this
+state machine.  When the input graph matches some predicate, this
+privilege is set---there is some transition out of this state.  This
+is why the choice of predicate to act upon is arbitrary: you can only
+move to one other state!
+
+When every node of the graph is in an accepting state with no set
+predicates, then the graph has stabilized.
+
 *** privilege
 - we consider graphs of finite state machines
 - privileges are boolean functions of the FSM's state and the states
   of its neighbors
 - when these functions are true, the privilege is 'present'
-**** TODO What in the world is the FSM's input??
 *** system state
 - each legitimate state must have at least one privilege present
   - even if the action is 'do nothing'
