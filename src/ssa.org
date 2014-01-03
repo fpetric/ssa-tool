@@ -11,6 +11,7 @@
 - privileges are boolean functions of the FSM's state and the states
   of its neighbors
 - when these functions are true, the privilege is 'present'
+**** TODO What in the world is the FSM's input??
 *** system state
 - each legitimate state must have at least one privilege present
   - even if the action is 'do nothing'
@@ -60,7 +61,6 @@ function") that returns the identifications of all privileges that are
 active---all those privileges of the node that return =True=---and
 these identifications are then linked by a mapping within the node to
 actions that they apply to.
-
 
 ** [#A] Dependencies
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
