@@ -47,7 +47,7 @@ class BasicNode:
             if color        is None: color      = BasicNode.default_color
             if radius       is None: radius     = BasicNode.default_radius
             if position     is None: position   = BasicNode.default_position
-        
+
         if any(map(lambda c: not (0 <= c <= 1), position)):
             raise Exception('Woah there buddy.')
 
@@ -87,7 +87,7 @@ class Visualizer:
             layout_algorithm = random.Random().choice(self.layout_algorithms)
 
         p = layout_algorithm(self.graph)
-        
+
         for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
             node.position = ((position[0] + 1) / 2, (position[1] + 1) / 2)
 

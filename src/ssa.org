@@ -520,6 +520,7 @@ old code
   
   if __name__ == '__main__':
       from collections import Counter
+      import  sys
       print 'Running unit test on `random_graph`:'
       print '  Creating a random graph with attributes:'
       print '              degree = 1000'
@@ -527,22 +528,29 @@ old code
       print '          base class = BasicNode'
       print '              marked = bool(.3)'
       print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
-      print '                 age = int(18,65)'
+      print '                 age = int(18, 65)'
       print '              weight = float()'
+      print '  please be patient...',
+      sys.stdout.flush()
       G = random_graph(1000, .7, marked='bool(.3)',
                                 answer=lambda r: r.choice(['yes', 'no', 'maybe']),
                                 weight='float()',
-                                age='int(18,65)')
-      print '  Graph created.'
-      #for n in G.nodes(): print '    {i}= {0.marked!s:<6} {0.answer:<6} {0.age:>3} {0.weight}'.format(n,i=id(n))
-      print '  Stats:'
+                                age='int(18, 65)')
+      print 'Graph created.  Calculating statistics...'
+      sys.stdout.flush()
   
       ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
+      stats = {}
+      stats['marked'] = float(sum(ll('marked')))/len(G.nodes())
+      stats['answer'] = Counter(ll('answer'))
+      stats['weight'] = float(sum(ll('weight')))/len(G.nodes())
+      stats['age']    = float(sum(ll('age')))/len(G.nodes())
   
-      print '    Probability of truth:', float(sum(ll('marked')))/len(G.nodes())
-      print '            Answer stats: yes={0[yes]:>3} no={0[no]:>3} maybe={0[maybe]:>3}'.format(Counter(ll('answer')))
-      print '             Average age:', float(sum(ll('age')))/len(G.nodes())
-      print '          Average weight:', float(sum(ll('weight')))/len(G.nodes())
+      print '  Stats:'
+      print '    Probability of truth: {marked}'.format(**stats)
+      print '            Answer stats: yes={answer[yes]:>3} no={answer[no]:>3} maybe={answer[maybe]:>3}'.format(**stats)
+      print '             Average age: {age}'.format(**stats)
+      print '          Average weight: {weight}'.format(**stats)
       # TODO: make sure the results are within bounds
       print 'Unit test of `random_graph` complete.'
 #+END_SRC
