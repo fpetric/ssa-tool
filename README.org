@@ -1,11 +1,10 @@
 #+Title: SSA-Tool
 #+Author: Sean Allred
-#+Date: [2013-12-23 Mon]
+#+Date: [2014-01-04 Sat]
 
 This is a set of tools for the representation, creation, and
 evaluation of self-stabilizing algorithms.
 
-I will create a =makefile= for this shortly.  Unfortunately, I have
-other obligations I must attend to first.
-
-The biology department is weird and jumpy.
+I will add more content here soon, but please do see the documentation
+for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with
+[[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text editor.
