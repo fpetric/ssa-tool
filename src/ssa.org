@@ -83,9 +83,9 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
   import simulation
 #+END_SRC
 * [#A] Core Classes
-  #+BEGIN_SRC python "ssa/core/__init__.py"
+#+BEGIN_SRC python "ssa/core/__init__.py"
   
-  #+END_SRC
+#+END_SRC
 In Dijkstra's 1974 paper, he describes a self-stabilizing algorithm as
 a graph of state-machines:
 #+BEGIN_QUOTE
@@ -121,7 +121,21 @@ actions that they apply to.
 
 ** [#A] Dependencies
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
-  <<import-libraries>>
+  from Action import Action
+  from Privilege import Privilege
+  from SelfStabilizingAlgorithm import SelfStabilizingAlgorithm
+  from TeXableEntity import TeXableEntity
+#+END_SRC
+** Finite State Machine
+#+BEGIN_SRC python 
+  from ssa.core import TeXableEntity
+  
+  class FiniteStateMachine(TeXableEntity):
+      <<initialization code>>
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "initialization code"
+  pass
 #+END_SRC
 ** [#C] TeXable Entity
 Since this is all math and this research uses TeX almost exclusively,
@@ -472,30 +486,31 @@ import generators
                       pygame.quit()
                       ingame = False
   
-  import random
-  r = random.Random()
+  if __name__ == '__main__':
+      import random
+      r = random.Random()
   
-  screen_size = (640, 480)
+      screen_size = (640, 480)
   
-  g = nx.Graph()
+      g = nx.Graph()
   
-  for i in range(5):
-      g.add_node(BasicNode(data=i, randomize=r))
+      for i in range(5):
+          g.add_node(BasicNode(data=i, randomize=r))
   
-  get_node=lambda i: filter(lambda n: n.data == i, g)
+      get_node=lambda i: filter(lambda n: n.data == i, g)
   
-  import itertools
-  for src, dst in itertools.combinations(g.nodes(), 2):
-      if r.random() < .75:
-          g.add_edge(src, dst)
+      import itertools
+      for src, dst in itertools.combinations(g.nodes(), 2):
+          if r.random() < .75:
+              g.add_edge(src, dst)
   
-  vis = Visualizer(size=screen_size, graph=g)
-  vis.do_layout()
+      vis = Visualizer(size=screen_size, graph=g)
+      vis.do_layout()
   
-  vis.loop()
+      vis.loop()
 #+END_SRC
 ** Generating a Random Graph
-   #+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
+#+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
   import networkx
   import random
   
@@ -630,10 +645,15 @@ import generators
   if __name__ == '__main__':
       import doctest
       doctest.testmod()
-   #+END_SRC
+#+END_SRC
 ** [#B] On-screen animation
 ** [#C] Step-by-Step TeX printouts
 * [#B] Tests
+We will be using the Nose toolset for automated testing.
+#+BEGIN_SRC python :noweb-ref "common imports for testing"
+  import unittest
+  from nose.tools import *
+#+END_SRC
 ** Core
 #+BEGIN_SRC python :tangle "tests/core_tests.py"
 
@@ -643,42 +663,88 @@ import generators
 
 #+END_SRC
 ** Simulation
+This test is structured as those above, with a few specializations.
+Since the random graph generator does not (and should not) create
+predictable or reproducible results, we must create a very large
+random graph (1000 nodes) and then perform some analysis on that same
+graph multiple times.  (Otherwise, the tests would hang on this
+portion for some time.)
+
+We import all those classes that we need to and define a testing class
+to contain the random graph in the correct scope.  After we define a
+few helper functions to look at only one attribute at a time, we then
+make our assertions on what the results /should/ look like.
 #+BEGIN_SRC python :tangle "tests/simulation_tests.py"
-  import unittest
-  from nose.tools import *
+  <<common imports for testing>>
+
   from ssa.simulation import *
   
   class RandomGraphTest(unittest.TestCase):
       @classmethod
       def setupClass(cls):
-          cls.G = generators.random_graph(\
-              1000, .7,
-              marked='bool(.3)',
-              answer=lambda r: r.choice(['yes', 'no', 'maybe']),
-              weight='float()',
-              age='int(18, 65)')
+          cls.G = \
+          <<create random graph>>
   
-      def ll(self, attr):
-          return map(lambda n: getattr(n, attr), self.G.nodes())
+      <<define helper functions>>
   
-      def avg(self, attr):
-          return float(sum(self.ll(attr)))/len(self.G.nodes())
-  
-      def test_bool(self):
-          assert_almost_equal(self.avg('marked'), .3, 1)
-  
-      def test_float(self):
-          assert_almost_equal(self.avg('weight'), .5, 1)
-  
-      def test_int(self):
-          g = self.avg('age')
-          e = (18.0 + 65)/2
-  
-          assert_almost_equal(g/100, e/100, 1)
-  
-      def test_func(self):
-          g = sum([abs(self.ll('answer').count(c) - 333.0) / 1000.0
-                   for c in ['yes', 'no', 'maybe']])
-  
-          assert_less(g, .1)
+      <<test randomness>>
 #+END_SRC
+
+We create a random graph with the following properties:
+- degree :: 1000
+- edge probability :: 70%
+- marked :: 30% chance of being marked
+- answer :: equal chances of being 'yes', 'no', or 'maybe'
+- weight :: a random real in [0, 1)
+- age :: a random number between 18 and 65
+#+BEGIN_SRC python :noweb-ref "create random graph"
+  generators.random_graph(\
+      1000, .7,
+      marked='bool(.3)',
+      answer=lambda r: r.choice(['yes', 'no', 'maybe']),
+      weight='float()',
+      age='int(18, 65)')
+#+END_SRC
+
+Now that we have a graph of a bunch of objects with randomized
+attributes, we need a way to extract these attributes out of the
+entire collection of nodes in the graph.  We define
+=get_attribute(attr)= to construct a list of values:
+#+BEGIN_LaTeX
+  \[
+  \text{$n$.attribute} \forall n \in G
+  \]
+#+END_LaTeX
+and an averaging function to average numerical values:
+#+BEGIN_LaTeX
+  \[
+  \frac{\sum_{n \in G}{\text{$n$.attribute}}}{|G|}
+  \]
+#+END_LaTeX
+#+BEGIN_SRC python :noweb-ref "define helper functions"
+  def get_attribute(self, attr):
+      return map(lambda n: getattr(n, attr), self.G.nodes())
+
+  def avg(self, attr):
+      return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
+#+END_SRC
+#+BEGIN_SRC python :noweb-ref "test randomness"
+  def test_bool(self):
+      assert_almost_equal(self.avg('marked'), .3, 1)
+    
+  def test_float(self):
+      assert_almost_equal(self.avg('weight'), .5, 1)
+    
+  def test_int(self):
+      g = self.avg('age')
+      e = (18.0 + 65)/2
+    
+      assert_almost_equal(g/100, e/100, 1)
+    
+  def test_func(self):
+      g = sum([abs(self.get_attribute('answer').count(c) - 333.0) / 1000.0
+               for c in ['yes', 'no', 'maybe']])
+    
+      assert_less(g, .1)
+#+END_SRC
+

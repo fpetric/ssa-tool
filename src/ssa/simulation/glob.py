@@ -124,24 +124,25 @@ class Visualizer:
                     pygame.quit()
                     ingame = False
 
-import random
-r = random.Random()
+if __name__ == '__main__':
+    import random
+    r = random.Random()
 
-screen_size = (640, 480)
+    screen_size = (640, 480)
 
-g = nx.Graph()
+    g = nx.Graph()
 
-for i in range(5):
-    g.add_node(BasicNode(data=i, randomize=r))
+    for i in range(5):
+        g.add_node(BasicNode(data=i, randomize=r))
 
-get_node=lambda i: filter(lambda n: n.data == i, g)
+    get_node=lambda i: filter(lambda n: n.data == i, g)
 
-import itertools
-for src, dst in itertools.combinations(g.nodes(), 2):
-    if r.random() < .75:
-        g.add_edge(src, dst)
+    import itertools
+    for src, dst in itertools.combinations(g.nodes(), 2):
+        if r.random() < .75:
+            g.add_edge(src, dst)
 
-vis = Visualizer(size=screen_size, graph=g)
-vis.do_layout()
+    vis = Visualizer(size=screen_size, graph=g)
+    vis.do_layout()
 
-vis.loop()
+    vis.loop()
