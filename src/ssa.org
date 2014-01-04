@@ -728,6 +728,16 @@ and an averaging function to average numerical values:
   def avg(self, attr):
       return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
 #+END_SRC
+
+We are ready to implement our tests.  For =bool=, =float=, and =int=,
+we test to make sure the average values we collect from the generated
+graph match the theoretical averages (the ones we gave to target). For
+the special =func= case, we do something a little fancier.
+
+To test the =func= case, we count the occurances of each possible
+=answer= and find its absolute variance from the theoretical value it
+should have ($1000/3=333.\bar3$).  We then sum those variances and
+ensure it is less than some (generous) threshold value.
 #+BEGIN_SRC python :noweb-ref "test randomness"
   def test_bool(self):
       assert_almost_equal(self.avg('marked'), .3, 1)
@@ -742,7 +752,7 @@ and an averaging function to average numerical values:
       assert_almost_equal(g/100, e/100, 1)
     
   def test_func(self):
-      g = sum([abs(self.get_attribute('answer').count(c) - 333.0) / 1000.0
+      g = sum([abs(self.get_attribute('answer').count(c) - 333.33) / 1000.0
                for c in ['yes', 'no', 'maybe']])
     
       assert_less(g, .1)
