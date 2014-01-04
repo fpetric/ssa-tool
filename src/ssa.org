@@ -1,4 +1,4 @@
-#+Title: Working with Self-Stabilizing Algorithms with Python
+#+Title: Working with Self-Stabilizing Algorithms in Python
 #+Author: Sean Allred
 #+Date: [2013-12-24 Tue]
 
