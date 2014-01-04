@@ -34,7 +34,7 @@ class RandomGraphTest(unittest.TestCase):
         assert_almost_equal(g/100, e/100, 1)
       
     def test_func(self):
-        g = sum([abs(self.get_attribute('answer').count(c) - 333.0) / 1000.0
+        g = sum([abs(self.get_attribute('answer').count(c) - 333.33) / 1000.0
                  for c in ['yes', 'no', 'maybe']])
       
         assert_less(g, .1)
