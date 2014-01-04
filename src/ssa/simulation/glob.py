@@ -1,6 +1,5 @@
 
 import pygame
-# import pygame.gfxdraw
 import networkx as nx
 
 pygame.init()

@@ -3,6 +3,7 @@
 #+Date: [2013-12-24 Tue]
 
 #+PROPERTY: noweb tangle
+#+PROPERTY: mkdirp yes
 
 * Notes
 ** Dijkstra 1974
@@ -38,7 +39,53 @@ legitimate state after a finite number of moves.
 
 
 * Introduction
+The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
+#+BEGIN_EXAMPLE
+  setup.py
+  ssa/
+      __init__.py
+      core/
+          __init__.py
+      creation/
+          __init__.py
+      simulation/
+          __init__.py
+  bin/
+  docs/
+  tests/
+      __init__.py
+      core_tests.py
+      creation_tests.py
+      simulation_tests.py
+#+END_EXAMPLE
+#+BEGIN_SRC python :tangle "./setup.py"
+  try:
+      from setuptools import setup
+  except ImportError:
+      from distutils.core import setup
+  
+  config = {
+      'description': 'A utility for the creation and evaluation of self-stabilizing algorithms',
+      'author': 'Sean Allred',
+      'url': 'http://github.com/vermiculus/smp',
+      'download_url': 'http://github.com/vermiculus/smp',
+      'author_email': 'seallred@smcm.edu',
+      'version': '0.1',
+      'install_requires': ['networkx', 'pygame'],
+      'packages': ['ssa'],
+      'scripts': [],
+      'name': 'ssa'
+  }
+  
+  setup(**config)
+#+END_SRC
+#+BEGIN_SRC python :tangle "ssa/__init__.py"
+  import simulation
+#+END_SRC
 * [#A] Core Classes
+  #+BEGIN_SRC python "ssa/core/__init__.py"
+  
+  #+END_SRC
 In Dijkstra's 1974 paper, he describes a self-stabilizing algorithm as
 a graph of state-machines:
 #+BEGIN_QUOTE
@@ -161,7 +208,7 @@ requires making a graph... ugh
 - also a =TeXableEntity=
 
 old code
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle "ssa/core/SelfStabilizingAlgorithm.py"
   """
   Base class for self-stabilizing algorithms.
   """
@@ -289,11 +336,18 @@ old code
           else:
               return graph
 #+END_SRC
-* [#B] Visualization
-** displaying a graph
-#+BEGIN_SRC python :tangle "ssa/visualization/glob.py"
+* [#B] Creation
+  A graphical tool for the creation of self-stabilizing algorithms
+#+BEGIN_SRC python :tangle "ssa/creation/__init__.py"
+
+#+END_SRC
+* [#B] Simulation
+#+BEGIN_SRC python :tangle "ssa/simulation/__init__.py"
+import generators
+#+END_SRC
+** Displaying a Graph
+#+BEGIN_SRC python :tangle "ssa/simulation/glob.py"
   import pygame
-  # import pygame.gfxdraw
   import networkx as nx
   
   pygame.init()
@@ -440,11 +494,8 @@ old code
   
   vis.loop()
 #+END_SRC
-** [#B] On-screen animation
-** [#C] Step-by-Step TeX printouts
-* [#B] Testing
 ** Generating a Random Graph
-#+BEGIN_SRC python :tangle "ssa/testing/generators/GraphGeneratorUtil.py"
+   #+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
   import networkx
   import random
   
@@ -516,21 +567,21 @@ old code
       >>> random_graph((1,2,3))
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      Exception: Wrong number of values for (min, max) degree
+      ValueError: Wrong number of values for (min, max) degree
   
       Mind the arguments for the keywords 'bool', 'int', and 'float'.
   
       >>> random_graph(5, marked='int(3,4,5)')
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
-      Exception: Wrong number of arguments for int.
+      ValueError: Wrong number of arguments for int.
       """
       r = random.Random()
       G = networkx.Graph()
   
       if hasattr(degree, '__getitem__'):
           if len(degree) is not 2:
-              raise Exception('Wrong number of values for (min, max) degree')
+              raise ValueError('Wrong number of values for (min, max) degree')
           degree = r.randint(*degree)
   
       for n in range(degree):
@@ -554,7 +605,7 @@ old code
                       # TODO: make this safe, i.e. destroy `eval`
                       func = new_value[:new_value.index('(')]
                       args = eval(new_value[new_value.index('('):])
-                      ex = lambda t: Exception('Wrong number of arguments for {}.'.format(t))
+                      ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
   
                       if func == 'float':
                           if len(args) is not 0: raise ex('float')
@@ -579,42 +630,55 @@ old code
   if __name__ == '__main__':
       import doctest
       doctest.testmod()
+   #+END_SRC
+** [#B] On-screen animation
+** [#C] Step-by-Step TeX printouts
+* [#B] Tests
+** Core
+#+BEGIN_SRC python :tangle "tests/core_tests.py"
+
+#+END_SRC
+** Creation
+#+BEGIN_SRC python :tangle "tests/creation_tests.py"
+
+#+END_SRC
+** Simulation
+#+BEGIN_SRC python :tangle "tests/simulation_tests.py"
+  import unittest
+  from nose.tools import *
+  from ssa.simulation import *
   
-      import sys
+  class RandomGraphTest(unittest.TestCase):
+      @classmethod
+      def setupClass(cls):
+          cls.G = generators.random_graph(\
+              1000, .7,
+              marked='bool(.3)',
+              answer=lambda r: r.choice(['yes', 'no', 'maybe']),
+              weight='float()',
+              age='int(18, 65)')
   
-      if 'unittests' in sys.argv:
-          from collections import Counter
-          import  sys
-          print 'Running unit test on `random_graph`:'
-          print '  Creating a random graph with attributes:'
-          print '              degree = 1000'
-          print '    edge probability = 0.7'
-          print '          base class = BasicNode'
-          print '              marked = bool(.3)'
-          print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
-          print '                 age = int(18, 65)'
-          print '              weight = float()'
-          print '  please be patient...',
-          sys.stdout.flush()
-          G = random_graph(1000, .7, marked='bool(.3)',
-                                    answer=lambda r: r.choice(['yes', 'no', 'maybe']),
-                                    weight='float()',
-                                    age='int(18, 65)')
-          print 'Graph created.  Calculating statistics...'
-          sys.stdout.flush()
+      def ll(self, attr):
+          return map(lambda n: getattr(n, attr), self.G.nodes())
   
-          ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
-          stats = {}
-          stats['marked'] = float(sum(ll('marked')))/len(G.nodes())
-          stats['answer'] = Counter(ll('answer'))
-          stats['weight'] = float(sum(ll('weight')))/len(G.nodes())
-          stats['age']    = float(sum(ll('age')))/len(G.nodes())
+      def avg(self, attr):
+          return float(sum(self.ll(attr)))/len(self.G.nodes())
   
-          print '  Stats:'
-          print '    Probability of truth: {marked}'.format(**stats)
-          print '            Answer stats: yes={answer[yes]:>3} no={answer[no]:>3} maybe={answer[maybe]:>3}'.format(**stats)
-          print '             Average age: {age}'.format(**stats)
-          print '          Average weight: {weight}'.format(**stats)
-          # TODO: make sure the results are within bounds
-          print 'Unit test of `random_graph` complete.'
+      def test_bool(self):
+          assert_almost_equal(self.avg('marked'), .3, 1)
+  
+      def test_float(self):
+          assert_almost_equal(self.avg('weight'), .5, 1)
+  
+      def test_int(self):
+          g = self.avg('age')
+          e = (18.0 + 65)/2
+  
+          assert_almost_equal(g/100, e/100, 1)
+  
+      def test_func(self):
+          g = sum([abs(self.ll('answer').count(c) - 333.0) / 1000.0
+                   for c in ['yes', 'no', 'maybe']])
+  
+          assert_less(g, .1)
 #+END_SRC

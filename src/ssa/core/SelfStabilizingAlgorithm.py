@@ -1,9 +1,9 @@
+
 """
 Base class for self-stabilizing algorithms.
-
 """
 
-__author__ = "\n".join(["Sean Allred (seallred@smcm.edu)"])
+__author__ = "Sean Allred (seallred@smcm.edu)"
 
 import networkx as nx
 import random
@@ -12,29 +12,16 @@ class SelfStabilizingAlgorithm:
     """Base class for self-stabilizing algorithms.
 
     The SelfStabilizingAlgorithm class represents its namesake as a set
-    of predicate-action pairs.  Both predicates and actions must be
-    pure functions that take exactly two arguments:
-    
-
-    Parameters
-    ----------
-    graph : the graph
-        The graph that you're working with.  Useful for getting
-        information about neighbors, etc.
-    privileged_node : acting node
-        The node that triggered this action.
-
-    Returns
-    -------
-    The new graph.
-
-    (TODO: the `inspect` module can provide some safety) # against what??
-"""
+    of predicate-action pairs.
+    """
     def __init__(self, rules=dict()):
-        self.rules = dict()
+        self.rules = rules
 
-        for predicate in rules.keys():
-            self.add_rule(predicate, rules[predicate])
+        for predicates in rules.keys():
+            if not hasattr(predicates, '__getitem__'):
+                predicates = [predicates]
+            for p in predicates:
+                self.add_rule(predicate, rules[predicate])
 
     def add_rule(self, predicate=lambda graph, privileged_node: True,
                        action=lambda graph, privileged_node: graph):
@@ -60,7 +47,7 @@ class SelfStabilizingAlgorithm:
 
            1. Create a set of nodes that we need to check in this round,
               initialized to the complete set of nodes currently in the
-              graph. 
+              graph.
            2. While we have nodes to check,
               2.1 Randomly choose a privileged node from the set of
                   unchecked nodes.

@@ -70,21 +70,21 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     >>> random_graph((1,2,3))
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-    Exception: Wrong number of values for (min, max) degree
+    ValueError: Wrong number of values for (min, max) degree
 
     Mind the arguments for the keywords 'bool', 'int', and 'float'.
 
     >>> random_graph(5, marked='int(3,4,5)')
     Traceback (most recent call last):
       File "<stdin>", line 1, in ?
-    Exception: Wrong number of arguments for int.
+    ValueError: Wrong number of arguments for int.
     """
     r = random.Random()
     G = networkx.Graph()
 
     if hasattr(degree, '__getitem__'):
         if len(degree) is not 2:
-            raise Exception('Wrong number of values for (min, max) degree')
+            raise ValueError('Wrong number of values for (min, max) degree')
         degree = r.randint(*degree)
 
     for n in range(degree):
@@ -108,7 +108,7 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
                     # TODO: make this safe, i.e. destroy `eval`
                     func = new_value[:new_value.index('(')]
                     args = eval(new_value[new_value.index('('):])
-                    ex = lambda t: Exception('Wrong number of arguments for {}.'.format(t))
+                    ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
 
                     if func == 'float':
                         if len(args) is not 0: raise ex('float')
@@ -133,41 +133,3 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
-    import sys
-
-    if 'unittests' in sys.argv:
-        from collections import Counter
-        import  sys
-        print 'Running unit test on `random_graph`:'
-        print '  Creating a random graph with attributes:'
-        print '              degree = 1000'
-        print '    edge probability = 0.7'
-        print '          base class = BasicNode'
-        print '              marked = bool(.3)'
-        print '              answer = lambda r: r.choice(["yes", "no", "maybe"])'
-        print '                 age = int(18, 65)'
-        print '              weight = float()'
-        print '  please be patient...',
-        sys.stdout.flush()
-        G = random_graph(1000, .7, marked='bool(.3)',
-                                  answer=lambda r: r.choice(['yes', 'no', 'maybe']),
-                                  weight='float()',
-                                  age='int(18, 65)')
-        print 'Graph created.  Calculating statistics...'
-        sys.stdout.flush()
-
-        ll=lambda attr: map(lambda n: getattr(n, attr), G.nodes())
-        stats = {}
-        stats['marked'] = float(sum(ll('marked')))/len(G.nodes())
-        stats['answer'] = Counter(ll('answer'))
-        stats['weight'] = float(sum(ll('weight')))/len(G.nodes())
-        stats['age']    = float(sum(ll('age')))/len(G.nodes())
-
-        print '  Stats:'
-        print '    Probability of truth: {marked}'.format(**stats)
-        print '            Answer stats: yes={answer[yes]:>3} no={answer[no]:>3} maybe={answer[maybe]:>3}'.format(**stats)
-        print '             Average age: {age}'.format(**stats)
-        print '          Average weight: {weight}'.format(**stats)
-        # TODO: make sure the results are within bounds
-        print 'Unit test of `random_graph` complete.'
