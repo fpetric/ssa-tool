@@ -45,10 +45,10 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     You can also use a few intelligent arguments, such as bool(n):
 
     >>> all(map(lambda n: n.marked,
-    ...         random_graph(1000, marked='bool(1)')))
+    ...         random_graph(10, marked='bool(1)')))
     True
     >>> any(map(lambda n: n.marked,
-    ...         random_graph(1000, marked='bool(0)')))
+    ...         random_graph(10, marked='bool(0)')))
     False
 
     float():
@@ -60,7 +60,7 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     and int(min, max):
 
     >>> all(map(lambda n: n.age in range(40, 50 + 1),
-    ...         random_graph(1000, age='int(40, 50)')))
+    ...         random_graph(10, age='int(40, 50)')))
     True
 
     Be careful about the arguments you pass.  If you want a range of
