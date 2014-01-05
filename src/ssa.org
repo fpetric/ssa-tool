@@ -39,7 +39,6 @@ selected each time for the next move, at least one privilege will
 always be present and the system is guaranteed to find itself in a
 legitimate state after a finite number of moves.
 
-
 * Introduction
 The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
 #+BEGIN_EXAMPLE
@@ -86,7 +85,7 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
   import creation
   import simulation
 #+END_SRC
-* [#A] Core Classes
+* Core Classes
 #+BEGIN_SRC python "ssa/core/__init__.py"
   
 #+END_SRC
@@ -473,12 +472,12 @@ old code
           else:
               return graph
 #+END_SRC
-* [#B] Creation
+* Creation
   A graphical tool for the creation of self-stabilizing algorithms
 #+BEGIN_SRC python :tangle "ssa/creation/__init__.py"
 
 #+END_SRC
-* [#B] Simulation
+* Simulation
 #+BEGIN_SRC python :tangle "ssa/simulation/__init__.py"
 import generators
 from ColorBank import ColorBank
@@ -650,6 +649,7 @@ from BasicNode import BasicNode
 *** Generating a Random Graph
     :PROPERTIES:
     :noweb-ref: random graphs
+    :ID:       C315D9D2-BE1C-447A-8961-4080AFD9B648
     :END:
 To thoroughly test graph algorithms (in lieu of or in preparation for
 proof), it is very useful to have a means to create randomized graphs
@@ -912,7 +912,7 @@ with =range= taking place of =int(...)=.
 #+END_SRC
 ** [#B] On-screen animation
 ** [#C] Step-by-Step TeX printouts
-* [#B] Tests
+* Tests
 We will be using the Nose toolset for automated testing.
 #+BEGIN_SRC python :noweb-ref "common imports for testing"
   import unittest
@@ -927,6 +927,10 @@ We will be using the Nose toolset for automated testing.
 
 #+END_SRC
 ** Simulation
+*** Random Graph Generation
+:PROPERTIES:
+:tests:    [[id:C315D9D2-BE1C-447A-8961-4080AFD9B648][Generating a Random Graph]]
+:END:
 This test is structured as those above, with a few specializations.
 Since the random graph generator does not (and should not) create
 predictable or reproducible results, we must create a very large
@@ -956,7 +960,7 @@ make our assertions on what the results /should/ look like.
       <<test functions and generators>>
 #+END_SRC
 
-*** Creating the Graph
+**** Creating the Graph
 :PROPERTIES:
 :noweb-ref: create random graph
 :END:
@@ -975,7 +979,7 @@ We create a random graph with the following properties:
       weight='float()',
       age='int(18, 65)')
 #+END_SRC
-*** Define Helper Functions
+**** Define Helper Functions
 :PROPERTIES:
 :noweb-ref: define helper functions
 :END:
@@ -1001,7 +1005,7 @@ and an averaging function to average numerical values:
   def avg(self, attr):
       return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
 #+END_SRC
-*** Testing Randomness
+**** Testing Randomness
 :PROPERTIES:
 :noweb-ref: test randomness
 :END:
@@ -1033,7 +1037,7 @@ ensure it is less than some (generous) threshold value.
     
       assert_less(g, .1)
 #+END_SRC
-*** Testing Functions and Generators
+**** Testing Functions and Generators
 :PROPERTIES:
 :noweb-ref: test functions and generators
 :END:
