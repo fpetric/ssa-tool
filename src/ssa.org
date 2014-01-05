@@ -901,13 +901,13 @@ entire collection of nodes in the graph.  We define
 =get_attribute(attr)= to construct a list of values:
 #+BEGIN_LaTeX
   \[
-  \text{$n$.attribute} \forall n \in G
+    \{\text{$n$.attribute} : n \in G\}
   \]
 #+END_LaTeX
 and an averaging function to average numerical values:
 #+BEGIN_LaTeX
   \[
-  \frac{\sum_{n \in G}{\text{$n$.attribute}}}{|G|}
+  \frac{1}{|G|}\sum_{n \in G}{\text{$n$.attribute}}
   \]
 #+END_LaTeX
 #+BEGIN_SRC python :noweb-ref "define helper functions"
