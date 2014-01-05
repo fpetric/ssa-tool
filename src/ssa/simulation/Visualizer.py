@@ -19,12 +19,12 @@ class Visualizer:
 
     def do_layout(self, layout_algorithm=None):
         if layout_algorithm is None:
-            layout_algorithm = random.Random().choice(self.layout_algorithms)
+            layout_algorithm = self.layout_algorithms[0]
 
         try:
             p = layout_algorithm(self.graph)
         except:
-            print 'Layout algorithm {!r} not yet supported.'.format(layout_algorithm)
+            print 'Layout algorithm `{!s}` not yet supported.'.format(repr(layout_algorithm).split()[1])
             print 'Please install the appropriate package.'
             return
 
@@ -67,23 +67,15 @@ class Visualizer:
 
 if __name__ == '__main__':
     pygame.init()
-
-    import random
-    r = random.Random()
-
     screen_size = (640, 480)
 
-    g = nx.Graph()
+    import generators
 
-    for i in range(5):
-        g.add_node(BasicNode(data=i, randomize=r))
-
-    get_node=lambda i: filter(lambda n: n.data == i, g)
-
-    import itertools
-    for src, dst in itertools.combinations(g.nodes(), 2):
-        if r.random() < .75:
-            g.add_edge(src, dst)
+    g = generators.random_graph((5, 20), .3,
+                                data='(random)',
+                                color=lambda r: ColorBank.random(r),
+                                radius='int(3, 10)',
+                                position=lambda r: tuple([r.random(), r.random()]))
 
     vis = Visualizer(size=screen_size, graph=g)
     vis.do_layout()
