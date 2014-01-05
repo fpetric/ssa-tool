@@ -5,6 +5,8 @@
 #+PROPERTY: noweb tangle
 #+PROPERTY: mkdirp yes
 
+#+TODO: TODO INPROGRESS WRITE_TESTS WISH_LIST | DONE
+
 * Notes
 ** Dijkstra 1974
 A self-stabilizing network is seen as a graph of state machines.  Each
@@ -80,6 +82,8 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
   setup(**config)
 #+END_SRC
 #+BEGIN_SRC python :tangle "ssa/__init__.py"
+  import core
+  import creation
   import simulation
 #+END_SRC
 * [#A] Core Classes
@@ -119,25 +123,15 @@ active---all those privileges of the node that return =True=---and
 these identifications are then linked by a mapping within the node to
 actions that they apply to.
 
-** [#A] Dependencies
+** DONE Dependencies
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
-  from Action import Action
-  from Privilege import Privilege
-  from SelfStabilizingAlgorithm import SelfStabilizingAlgorithm
   from TeXableEntity import TeXableEntity
+  from FiniteStateMachine import FiniteStateMachine
+  #from Action import Action
+  #from Privilege import Privilege
+  #from SelfStabilizingAlgorithm import SelfStabilizingAlgorithm
 #+END_SRC
-** Finite State Machine
-#+BEGIN_SRC python 
-  from ssa.core import TeXableEntity
-  
-  class FiniteStateMachine(TeXableEntity):
-      <<initialization code>>
-#+END_SRC
-
-#+BEGIN_SRC python :noweb-ref "initialization code"
-  pass
-#+END_SRC
-** [#C] TeXable Entity
+** DONE TeXable Entity
 Since this is all math and this research uses TeX almost exclusively,
 it is worthwhile to include auto-generation of TeX documentation for
 the algorithm.
@@ -149,16 +143,148 @@ representation is the first part of the returned tuple when the object
 is asked for its own representation.
 #+BEGIN_SRC python :tangle "ssa/core/TeXableEntity.py"
   class TeXableEntity:
+      """A documented object
+  
+      TeXableEntity is a very simple base class for mathematics-based
+      objects (such as FiniteStateMachine).  It is assumed that the
+      first bit is pure mathematics (something to be placed inside an
+      'align' environment).
+  
+      >>> t = TeXableEntity('x', 'The variable $x$')
+      >>> t
+      TeXableEntity(TeX='x', doc='The variable $x$')
+  
+      >>> t.TeX
+      'x'
+  
+      >>> t.doc
+      'The variable $x$'
+  
+      >>> eval(repr(t)) == t
+      True
+      """
+      __initializer = 'TeXableEntity(TeX={TeX!r}, doc={doc!r})'
       def __init__(self, TeX=None, doc=None):
-          self._TeX = TeX
-          self._doc = doc
+          self.TeX = TeX
+          self.doc = doc
   
       def __repr__(self):
-          return str((str(self._TeX), str(self._doc)))
+          return self.__initializer.format(**self.__dict__)
   
       def __str__(self):
-          return str(self._doc)
+          return str(self.doc)
+      
+      def __eq__(self, other):
+          if isinstance(other, TeXableEntity):
+              return self.TeX == other.TeX and self.doc == other.doc
+          else:
+              return False
+  
+  if __name__ == '__main__':
+      import doctest
+      doctest.testmod()
 #+END_SRC
+** INPROGRESS Finite State Machine
+#+BEGIN_SRC python :tangle "ssa/core/FiniteStateMachine.py"
+  from TeXableEntity import TeXableEntity
+  
+  class FiniteStateMachine(TeXableEntity):
+      def __init__(self,
+                   alphabet      = set(),
+                   states        = set(),
+                   initial_state = None,
+                   accept_states = set(),
+                   transitions   = dict()):
+  
+          self.accept_states = accept_states
+          self.initial_state = initial_state
+          self.states        = states
+          self.alphabet      = alphabet
+          self.transitions   = transitions
+  
+      <<machine editing>>
+  
+      <<machine functionality>>
+#+END_SRC
+*** INPROGRESS Machine Editing
+:PROPERTIES:
+:noweb-ref: "machine editing"
+:noweb-sep: "\n\n"
+:END:
+**** WRITE_TESTS Transitions
+Here we add logic supporting on-the-fly addition of transitions.  If
+either the =source= or =destination= states are not in the set of
+states, they will be added.
+
+If the transition is already defined, a =KeyError= will be raised.
+#+BEGIN_SRC python
+  def add_transition(self, source, token, destination):
+      """Adds a transition from source to destination on an input
+      token.
+  
+      If such a transition is already defined, a KeyError will be
+      raised.
+      """
+      self.states.add(source)
+      self.states.add(destination)
+  
+      if source not in self.transitions:
+          self.transitions[source] = dict()
+      elif token in self.transitions[source]:
+          raise KeyError('Input token already defined for source.')
+  
+      self.transitions[source][token] = destination
+#+END_SRC
+
+**** WRITE_TESTS Initial State
+#+BEGIN_SRC python
+  def set_initial_state(self, state):
+      """Set the initial state for this machine.
+  
+      If the given state is not in the machine's set of states, it will
+      be added.
+      """
+      self.states.add(state)
+      self.initial_state = state
+#+END_SRC
+
+**** TODO Alphabet
+
+**** TODO Accept States
+
+*** TODO Machine Functionality
+:PROPERTIES:
+:noweb-ref: "machine functionality"
+:noweb-sep: "\n\n"
+:END:
+**** WISH_LIST add an input buffer
+It'd be cool to have an input buffer to push an entire sentence.  I
+don't know how useful it would be in the current overall project, but
+perhaps this could be made more robust and separated out into its own
+module.
+**** WRITE_TESTS Resetting the Machine
+#+BEGIN_SRC python
+    def reset(self):
+        self.current_state = self.initial_state
+#+END_SRC
+
+**** WRITE_TESTS Receiving Input
+#+BEGIN_SRC python
+  def update(self, token):
+      """Updates the state of the machine according to the input token.
+  
+      If the input token is not defined for the current state, an
+      Exception is raised to signal failure.
+      """
+      if token in self.transition[self.current_state]:
+          self.current_state = self.transition[self.current_state][token]
+      else:
+          raise Exception('The machine has rejected your input')
+#+END_SRC
+**** DONE Reporting State
+You can grab the current state of the machine by looking at the value
+of =FiniteStateMachine.current_state=.
+***** WISH_LIST Perhaps unsafe.
 ** [#A] Privileges and Actions
 Privileges and Actions are very similar to each other.
 *** TODO TeX-enabled predicates/actions
