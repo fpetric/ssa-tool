@@ -127,9 +127,6 @@ actions that they apply to.
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
   from TeXableEntity import TeXableEntity
   from FiniteStateMachine import FiniteStateMachine
-  #from Action import Action
-  #from Privilege import Privilege
-  #from SelfStabilizingAlgorithm import SelfStabilizingAlgorithm
 #+END_SRC
 ** DONE TeXable Entity
 Since this is all math and this research uses TeX almost exclusively,
@@ -484,14 +481,12 @@ old code
 * [#B] Simulation
 #+BEGIN_SRC python :tangle "ssa/simulation/__init__.py"
 import generators
+from ColorBank import ColorBank
+from BasicNode import BasicNode
 #+END_SRC
 ** Displaying a Graph
-#+BEGIN_SRC python :tangle "ssa/simulation/glob.py"
-  import pygame
-  import networkx as nx
-  
-  pygame.init()
-  
+*** Managing Colors
+#+BEGIN_SRC python :tangle "ssa/simulation/ColorBank.py"
   class ColorBank:
       def __init__(self):
           self.black = (0, 0, 0)
@@ -511,7 +506,11 @@ import generators
       @classmethod
       def random(cls, r):
           return tuple((r.randint(0, 255) for i in range(3)))
-  
+#+END_SRC
+*** A Basic Node
+#+BEGIN_SRC python :tangle "ssa/simulation/BasicNode.py"
+  from ColorBank import ColorBank
+
   class BasicNode:
       default_radius = 25
       default_color = (0,0,0)
@@ -546,6 +545,14 @@ import generators
           return str(self.data)
       def __repr__(self):
           return str(self.__dict__)
+#+END_SRC
+*** Displaying the Game Window
+#+BEGIN_SRC python :tangle "ssa/simulation/Visualizer.py"
+  import pygame
+  import networkx as nx
+  
+  from ColorBank import ColorBank
+  from BasicNode import BasicNode
   
   class Visualizer:
       def __init__(self, size=(640, 480), graph=nx.Graph()):
@@ -563,7 +570,12 @@ import generators
           if layout_algorithm is None:
               layout_algorithm = random.Random().choice(self.layout_algorithms)
   
-          p = layout_algorithm(self.graph)
+          try:
+              p = layout_algorithm(self.graph)
+          except:
+              print 'Layout algorithm {!r} not yet supported.'.format(layout_algorithm)
+              print 'Please install the appropriate package.'
+              return
   
           for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
               node.position = ((position[0] + 1) / 2, (position[1] + 1) / 2)
@@ -603,6 +615,8 @@ import generators
                       ingame = False
   
   if __name__ == '__main__':
+      pygame.init()
+  
       import random
       r = random.Random()
   
@@ -629,8 +643,8 @@ import generators
 #+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
   import networkx
   import random
-  
   from itertools import combinations
+  
   class BasicNode:
       def __init__(self):
           pass

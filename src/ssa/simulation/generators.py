@@ -1,8 +1,8 @@
 
 import networkx
 import random
-
 from itertools import combinations
+
 class BasicNode:
     def __init__(self):
         pass

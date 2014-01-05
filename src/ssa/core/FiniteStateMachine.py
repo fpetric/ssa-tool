@@ -40,3 +40,17 @@ class FiniteStateMachine(TeXableEntity):
         """
         self.states.add(state)
         self.initial_state = state
+
+    def reset(self):
+        self.current_state = self.initial_state
+    
+    def update(self, token):
+        """Updates the state of the machine according to the input token.
+    
+        If the input token is not defined for the current state, an
+        Exception is raised to signal failure.
+        """
+        if token in self.transition[self.current_state]:
+            self.current_state = self.transition[self.current_state][token]
+        else:
+            raise Exception('The machine has rejected your input')

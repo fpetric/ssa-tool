@@ -2,62 +2,8 @@
 import pygame
 import networkx as nx
 
-pygame.init()
-
-class ColorBank:
-    def __init__(self):
-        self.black = (0, 0, 0)
-        self.white = (255, 255, 255)
-        self.red   = (255, 0, 0)
-        self.green = (0, 255, 0)
-        self.blue  = (0, 0, 255)
-
-    def set_color(self, name, red, green, blue):
-        setattr(self, str(name), (red, green, blue))
-
-    @classmethod
-    def get_inverse(cls, color, alpha=1):
-        inverses = [255 - c for c in color] + [alpha]
-        return tuple((channel for channel in inverses))
-
-    @classmethod
-    def random(cls, r):
-        return tuple((r.randint(0, 255) for i in range(3)))
-
-class BasicNode:
-    default_radius = 25
-    default_color = (0,0,0)
-    default_data = None
-    default_position = (0, 0)
-
-    def __init__(self, position=None,
-                       radius=None,
-                       color=None,
-                       data=None,
-                       randomize=None):
-        if randomize is not None:
-            r=randomize
-            if data         is None: data       = '(random)'
-            if color        is None: color      = ColorBank.random(r)
-            if radius       is None: radius     = r.randint(3,50)
-            if position     is None: position   = (r.random(), r.random())
-        else:
-            if data         is None: data       = BasicNode.default_data
-            if color        is None: color      = BasicNode.default_color
-            if radius       is None: radius     = BasicNode.default_radius
-            if position     is None: position   = BasicNode.default_position
-
-        if any(map(lambda c: not (0 <= c <= 1), position)):
-            raise Exception('Woah there buddy.')
-
-        self.data       = data
-        self.color      = color
-        self.radius     = radius
-        self.position   = position
-    def __str__(self):
-        return str(self.data)
-    def __repr__(self):
-        return str(self.__dict__)
+from ColorBank import ColorBank
+from BasicNode import BasicNode
 
 class Visualizer:
     def __init__(self, size=(640, 480), graph=nx.Graph()):
@@ -75,7 +21,12 @@ class Visualizer:
         if layout_algorithm is None:
             layout_algorithm = random.Random().choice(self.layout_algorithms)
 
-        p = layout_algorithm(self.graph)
+        try:
+            p = layout_algorithm(self.graph)
+        except:
+            print 'Layout algorithm {!r} not yet supported.'.format(layout_algorithm)
+            print 'Please install the appropriate package.'
+            return
 
         for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
             node.position = ((position[0] + 1) / 2, (position[1] + 1) / 2)
@@ -115,6 +66,8 @@ class Visualizer:
                     ingame = False
 
 if __name__ == '__main__':
+    pygame.init()
+
     import random
     r = random.Random()
 
