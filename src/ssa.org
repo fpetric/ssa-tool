@@ -625,142 +625,215 @@ import generators
   
       vis.loop()
 #+END_SRC
-** Generating a Random Graph
+** Generators
 #+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
   import networkx
   import random
   
   from itertools import combinations
-  
   class BasicNode:
       def __init__(self):
           pass
       def __repr__(self):
           return '{}::{}'.format(id(self), self.__dict__)
   
+  <<random graphs>>
+
+  if __name__ == '__main__':
+      import doctest
+      doctest.testmod()
+#+END_SRC
+*** Generating a Random Graph
+    :PROPERTIES:
+    :noweb-ref: random graphs
+    :END:
+To thoroughly test graph algorithms (in lieu of or in preparation for
+proof), it is very useful to have a means to create randomized graphs
+with certain characteristics.  NetworkX has a few generators at its
+disposal for creating graphs with deeper properties than I have
+knowledge of, but the following function is able to create a random
+graph with nodes having randomized properties.
+#+BEGIN_SRC python
   def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **properties):
       """Generates a random graph of `degree` nodes, a specified
       probability for edges, and a number of random properties.
+      
+      <<summary>>
   
-      If `degree` is a tuple, it is assumed to be a (min, max) tuple
-      defining an inclusive range of possible degrees.
+      <<doctest basic usage>>
   
-      Each `properties` value can be a function of a random number
-      generator.  If the value does not have __call__ defined, it will
-      be assumed a string unless, as a string, it is one of the following:
+      <<doctest errors>>
+      """
+      r = random.Random()
+      G = networkx.Graph()
   
-      - 'int(n,m)': a random integer in [n, m]
-      - 'float()' : a random floating point number in [0, 1)
-      - 'bool(n)' : a random boolean with a probability of truth between
-                    0 and 1 inclusive (where 1 is True).
+      <<check if degree is range>>
   
-      If the property value is neither callable nor a string of this
-      form, then the value is simply set raw.
+      for n in range(degree):
+          <<add node>>
   
-      Pass in a single argument, the degree of the graph, to get the
-      bare-minimum graph (with a certain edge probability):
-  
+      <<add edges>>
+      
+      return G
+#+END_SRC
+**** Documentation
+***** Summary
+    :PROPERTIES:
+    :noweb-ref: summary
+    :END:
+#+BEGIN_SRC markdown
+  If `degree` is a tuple, it is assumed to be a (min, max) tuple
+  defining an inclusive range of possible degrees.
+    
+  Each `properties` value can be a function of a random number
+  generator.  If the value does not have `__call__` defined, it will be
+  assumed a string unless, as a string, it is one of the following:
+    
+  - 'int(n,m)' :: a random integer in [n, m]
+  - 'float()'  :: a random floating point number in [0, 1)
+  - 'bool(n)'  :: a random boolean with a probability of truth between 0
+                  and 1 inclusive (where 1 is True).
+    
+  If the property value is neither callable nor a string of this form,
+  then the value is simply set raw.
+#+END_SRC
+***** Basic Usage
+    :PROPERTIES:
+    :noweb-ref: doctest basic usage
+    :END:
+#+BEGIN_SRC markdown
+  Pass in a single argument, the degree of the graph, to get the
+  bare-minimum graph (with a certain edge probability):
+    
       >>> G = random_graph(50)
       >>> len(G.nodes())
       50
   
-      Pass in a tuple to get a range of values:
-  
+  Pass in a tuple to get a range of values:
+    
       >>> G = random_graph((40, 60))
       >>> len(G.nodes()) in range(40, 60 + 1)
       True
-  
-      You can also use a few intelligent arguments, such as bool(n):
-  
+    
+  You can also use a few intelligent arguments, such as bool(n):
+    
       >>> all(map(lambda n: n.marked,
       ...         random_graph(10, marked='bool(1)')))
       True
       >>> any(map(lambda n: n.marked,
       ...         random_graph(10, marked='bool(0)')))
       False
-  
-      float():
-  
+    
+  float():
+    
       >>> .45 < sum(map(lambda n: n.weight,
       ...         random_graph(1000, weight='float()')))/1000 < .55
       True
-  
-      and int(min, max):
-  
+    
+  and int(min, max):
+    
       >>> all(map(lambda n: n.age in range(40, 50 + 1),
       ...         random_graph(10, age='int(40, 50)')))
       True
-  
-      Be careful about the arguments you pass.  If you want a range of
-      possible values for the degree, ensure you pass an iterable of
-      exactly two elements:
-  
+#+END_SRC
+
+***** Possible Errors
+    :PROPERTIES:
+    :noweb-ref: doctest errors
+    :END:
+#+BEGIN_SRC markdown
+  Be careful about the arguments you pass.  If you want a range of
+  possible values for the degree, ensure you pass an iterable of exactly
+  two elements.
+    
       >>> random_graph((1,2,3))
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ValueError: Wrong number of values for (min, max) degree
-  
-      Mind the arguments for the keywords 'bool', 'int', and 'float'.
-  
+    
+  Mind the arguments for the keywords 'bool', 'int', and 'float'.
+    
       >>> random_graph(5, marked='int(3,4,5)')
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ValueError: Wrong number of arguments for int.
-      """
-      r = random.Random()
-      G = networkx.Graph()
-  
-      if hasattr(degree, '__getitem__'):
-          if len(degree) is not 2:
-              raise ValueError('Wrong number of values for (min, max) degree')
-          degree = r.randint(*degree)
-  
-      for n in range(degree):
-          new_node = base_class()
-  
-          for key in properties:
-              new_prop = str(key)
-              new_value = properties[key]
-              # Avoid overwriting properties.  This could happen if the
-              # user passes in something that is a dictionary rather
-              # than a traditional KV list.  We'll accept anything that
-              # has __str__, but __str__ is not meant to be unique.
-              if hasattr(new_node, new_prop): 
-                  raise Exception('Did not overwrite duplicate property')
-  
-              if hasattr(properties[key], '__call__'):
-                  setattr(new_node, new_prop, new_value(r))
-              else:
-                  if '(' in new_value and ')' in new_value: # val is a func
-                      # collect the arguments
-                      # TODO: make this safe, i.e. destroy `eval`
-                      func = new_value[:new_value.index('(')]
-                      args = eval(new_value[new_value.index('('):])
-                      ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
-  
-                      if func == 'float':
-                          if len(args) is not 0: raise ex('float')
-                          new_value = r.random()
-                      elif func == 'int':
-                          if len(args) is not 2: raise ex('int')
-                          new_value = r.randint(*args)
-                      elif func == 'bool':
-                          new_value = r.random() <= float(args)
-  
-                  setattr(new_node, new_prop, new_value)
-          
-          G.add_node(new_node)
-  
-      for src, dst in combinations(G.nodes(), 2):
-          # perhaps add switch to check for __call__(node_a, node_b)
-          if r.random() <= edge_probability:
-              G.add_edge(src, dst)
+    
+#+END_SRC
+**** Code
+***** Check Degree
+     :PROPERTIES:
+     :noweb-ref: check if degree is range
+     :END:
+#+BEGIN_SRC python
+  if hasattr(degree, '__getitem__'):
+      if len(degree) is not 2:
+          raise ValueError('Wrong number of values for (min, max) degree')
+      degree = r.randint(*degree)
+#+END_SRC
+***** Adding Nodes
+     :PROPERTIES:
+     :noweb-ref: add node
+     :END:
+#+BEGIN_SRC python
+  new_node = base_class()
       
-      return G
+  for key in properties:
+      new_prop = str(key)
+      new_value = properties[key]
+      
+      <<check for property overwrite>>
+      
+      <<parse and set property value>>
+    
+  G.add_node(new_node)
+#+END_SRC
+****** Property Overwrite
+     :PROPERTIES:
+     :noweb-ref: check for property overwrite
+     :END:
+#+BEGIN_SRC python
+  # Avoid overwriting properties.  This could happen if the
+  # user passes in something that is a dictionary rather
+  # than a traditional KV list.  We'll accept anything that
+  # has __str__, but __str__ is not meant to be unique.
+  if hasattr(new_node, new_prop): 
+      raise Exception('Did not overwrite duplicate property')
+#+END_SRC
+****** Property Set
+     :PROPERTIES:
+     :noweb-ref: parse and set property value
+     :END:
+#+BEGIN_SRC python
+  if hasattr(new_value, '__call__'):
+      setattr(new_node, new_prop, new_value(r))
+  else:
+      if '(' in new_value and ')' in new_value: # val is a func
+          # collect the arguments
+          # TODO: make this safe, i.e. destroy `eval`
+          func = new_value[:new_value.index('(')]
+          args = eval(new_value[new_value.index('('):])
+          ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
   
-  if __name__ == '__main__':
-      import doctest
-      doctest.testmod()
+          if func == 'float':
+              if len(args) is not 0: raise ex('float')
+              new_value = r.random()
+          elif func == 'int':
+              if len(args) is not 2: raise ex('int')
+              new_value = r.randint(*args)
+          elif func == 'bool':
+              new_value = r.random() <= float(args)
+  
+      setattr(new_node, new_prop, new_value)
+#+END_SRC
+***** Adding Edges
+     :PROPERTIES:
+     :noweb-ref: add edges
+     :END:
+#+BEGIN_SRC python
+  for src, dst in combinations(G.nodes(), 2):
+      # perhaps add switch to check for __call__(node_a, node_b)
+      if r.random() <= edge_probability:
+          G.add_edge(src, dst)
 #+END_SRC
 ** [#B] On-screen animation
 ** [#C] Step-by-Step TeX printouts
