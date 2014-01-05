@@ -38,3 +38,30 @@ class RandomGraphTest(unittest.TestCase):
                  for c in ['yes', 'no', 'maybe']])
       
         assert_less(g, .1)
+
+    def test_raw_func(self):
+        choices = ['yes', 'no', 'maybe']
+        def get_marked(random_instance):
+            return random_instance.choice(choices)
+        g = generators.random_graph(15, marked=get_marked)
+        assert all(map(lambda n: n.marked in choices, g.nodes()))
+    
+    def test_lambda_func(self):
+        choices = ['yes', 'no', 'maybe']
+        g = generators.random_graph(15, marked=lambda r: r.choice(choices))
+        assert all(map(lambda n: n.marked in choices, g.nodes()))
+    def test_generator_func(self):
+        def gen_weight(random_instance):
+            while True:
+                yield random_instance.random()
+        g = generators.random_graph(15, weight=gen_weight)
+        assert all(map(lambda n: 0 <= n.weight < 1, g.nodes()))
+    
+    def test_generator_func2(self):
+        def gen_in_range(minimum, maximum):
+            # iter(int, True) is an infinite generator: 0, 0, 0, ...
+            return lambda r: (r.uniform(minimum, maximum)
+                              for i in iter(int, True))
+    
+        g = generators.random_graph(15, weight=gen_in_range(10, 20))
+        assert all(map(lambda n: 10 <= n.weight <= 20, g.nodes()))

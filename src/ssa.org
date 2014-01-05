@@ -555,21 +555,19 @@ from BasicNode import BasicNode
   from BasicNode import BasicNode
   
   class Visualizer:
-      def __init__(self, size=(640, 480), graph=nx.Graph()):
+      def __init__(self, size=(640, 480), graph=nx.Graph(), edge_width = 2):
           """where `size` is a 2-tuple representing screen dimens"""
   
           self.screen = pygame.display.set_mode(size)
   
           self.colors = ColorBank()
           self.graph = graph
+          self.edge_width = edge_width
           self.layout_algorithms = [getattr(nx, a) for a in dir(nx) if a.endswith('_layout')]
           # TODO sometimes crashes here; why?
           self.text_font = pygame.font.SysFont('monospace', 15)
   
-      def do_layout(self, layout_algorithm=None):
-          if layout_algorithm is None:
-              layout_algorithm = self.layout_algorithms[0]
-  
+      def do_layout(self, layout_algorithm=nx.circular_layout):
           try:
               p = layout_algorithm(self.graph)
           except:
@@ -587,7 +585,7 @@ from BasicNode import BasicNode
           for src, dst in self.graph.edges():
               pygame.draw.line(self.screen, self.colors.white,
                                self.floats_to_pos(src.position),
-                               self.floats_to_pos(dst.position), 3)
+                               self.floats_to_pos(dst.position), self.edge_width)
   
           for n in self.graph.nodes():
               normal_pos = self.floats_to_pos(n.position) # keep track of z order for drag drop
@@ -621,7 +619,7 @@ from BasicNode import BasicNode
       import generators
   
       g = generators.random_graph((5, 20), .3,
-                                  data='(random)',
+                                  data=(i for i in range(50)),
                                   color=lambda r: ColorBank.random(r),
                                   radius='int(3, 10)',
                                   position=lambda r: tuple([r.random(), r.random()]))
@@ -672,8 +670,10 @@ graph with nodes having randomized properties.
       """
       r = random.Random()
       G = networkx.Graph()
-  
+
       <<check if degree is range>>
+  
+      <<check for dynamically-created generators>>
   
       for n in range(degree):
           <<add node>>
@@ -741,6 +741,21 @@ graph with nodes having randomized properties.
       >>> all(map(lambda n: n.age in range(40, 50 + 1),
       ...         random_graph(10, age='int(40, 50)')))
       True
+  
+  For any attribute, you can specify a function or a generator.  You can
+  even supply a function that *returns* a generator.  All functions must
+  take exactly one required argument, a random number generator, as its
+  first parameter.
+  
+  (ref:smp - optionify random thingy)
+  
+  Consider the following:
+  
+      >>> graph = random_graph(5, weight=(i for i in range(5)))
+      >>> sorted([n.weight for n in graph.nodes()])
+      [0, 1, 2, 3, 4]
+  
+                                                                           (ref:)
 #+END_SRC
 
 ***** Possible Errors
@@ -763,7 +778,16 @@ graph with nodes having randomized properties.
       Traceback (most recent call last):
         File "<stdin>", line 1, in ?
       ValueError: Wrong number of arguments for int.
-    
+  
+  If you are using generators, keep in mind that *each* node must be
+  given a value.  If the generator produces less values than you give
+  the graph nodes, an exception will be raised:
+  
+      >>> n = 5
+      >>> g = random_graph(n + 1, weight=(i for i in range(n)))
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      Exception: Ran out of iterations for the generator given by 'weight'
 #+END_SRC
 **** Code
 ***** Check Degree
@@ -776,6 +800,24 @@ graph with nodes having randomized properties.
           raise ValueError('Wrong number of values for (min, max) degree')
       degree = r.randint(*degree)
 #+END_SRC
+***** Check for Dynamic Generators
+:PROPERTIES:
+:noweb-ref: check for dynamically-created generators
+:END:
+In playing with the tool for a while, I've come to see a few use cases
+for the ability to create 'on the fly' generators with lambda
+expressions.  The code currently checks for functions by checking if
+they define =__call__=, and this is good behavior.  However, it is
+possible that such a function could return a generator object, so we
+need to run through each property /first/ to check if calling any
+existing functions yields a generator (no pun intended).
+#+BEGIN_SRC python
+  for key in properties:                  
+      if hasattr(properties[key], '__call__'):
+          check_value = properties[key](r)
+          if hasattr(check_value, 'next'):
+              properties[key] = check_value
+#+END_SRC
 ***** Adding Nodes
      :PROPERTIES:
      :noweb-ref: add node
@@ -784,8 +826,8 @@ graph with nodes having randomized properties.
   new_node = base_class()
       
   for key in properties:
-      new_prop = str(key)
-      new_value = properties[key]
+      property_key = str(key)
+      property_value = properties[key]
       
       <<check for property overwrite>>
       
@@ -802,35 +844,62 @@ graph with nodes having randomized properties.
   # user passes in something that is a dictionary rather
   # than a traditional KV list.  We'll accept anything that
   # has __str__, but __str__ is not meant to be unique.
-  if hasattr(new_node, new_prop): 
+  if hasattr(new_node, property_key): 
       raise Exception('Did not overwrite duplicate property')
 #+END_SRC
 ****** Property Set
      :PROPERTIES:
      :noweb-ref: parse and set property value
      :END:
+The new value can be a couple things.  If it is a callable function
+(implements =__call__=), we assume it is some function that expects a
+=random.Random= object as its single required parameter.  If it is a
+generator (implements =__next__=), we retrieve the next value.  Otherwise,
+we parse =property_value= as a string 
 #+BEGIN_SRC python
-  if hasattr(new_value, '__call__'):
-      setattr(new_node, new_prop, new_value(r))
+  new_value = None
+    
+  if hasattr(property_value, '__call__'):
+      new_value = property_value(r)
+  elif hasattr(property_value, 'next'):
+      try:
+          new_value = next(property_value)
+      except StopIteration:
+          raise Exception('Ran out of iterations for the generator given by {!r}'\
+                              .format(property_key))
+  elif '(' in property_value and ')' in property_value: # val is a func
+      # collect the arguments
+      # TODO: make this safe, i.e. destroy `eval`
+      func = property_value[:property_value.index('(')]
+      args = eval(property_value[property_value.index('('):])
+      ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+      
+      if func == 'float':
+          if len(args) is not 0: raise ex('float')
+          new_value = r.random()
+      elif func == 'int':
+          if len(args) is not 2: raise ex('int')
+          new_value = r.randint(*args)
+      elif func == 'bool':
+          new_value = r.random() <= float(args)
   else:
-      if '(' in new_value and ')' in new_value: # val is a func
-          # collect the arguments
-          # TODO: make this safe, i.e. destroy `eval`
-          func = new_value[:new_value.index('(')]
-          args = eval(new_value[new_value.index('('):])
-          ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+      new_value = property_value
   
-          if func == 'float':
-              if len(args) is not 0: raise ex('float')
-              new_value = r.random()
-          elif func == 'int':
-              if len(args) is not 2: raise ex('int')
-              new_value = r.randint(*args)
-          elif func == 'bool':
-              new_value = r.random() <= float(args)
-  
-      setattr(new_node, new_prop, new_value)
+  setattr(new_node, property_key, new_value)
 #+END_SRC
+******* WISH_LIST Enhance security
+We have the line =args=eval(property_value[...])=.  This should be
+fine given the audience, but it is terribly unsafe.  Find a better way.
+
+Perhaps we can represent arguments as tuples, LISP-style?
+#+BEGIN_EXAMPLE
+  random_graph(15,
+    marked = ('bool', .3)
+    weight = ('float',)
+    ranged = ('float', 5, 7)
+    more_r = ('range', 1, 10))
+#+END_EXAMPLE
+with =range= taking place of =int(...)=.
 ***** Adding Edges
      :PROPERTIES:
      :noweb-ref: add edges
@@ -883,8 +952,14 @@ make our assertions on what the results /should/ look like.
       <<define helper functions>>
   
       <<test randomness>>
+
+      <<test functions and generators>>
 #+END_SRC
 
+*** Creating the Graph
+:PROPERTIES:
+:noweb-ref: create random graph
+:END:
 We create a random graph with the following properties:
 - degree :: 1000
 - edge probability :: 70%
@@ -892,7 +967,7 @@ We create a random graph with the following properties:
 - answer :: equal chances of being 'yes', 'no', or 'maybe'
 - weight :: a random real in [0, 1)
 - age :: a random number between 18 and 65
-#+BEGIN_SRC python :noweb-ref "create random graph"
+#+BEGIN_SRC python
   generators.random_graph(\
       1000, .7,
       marked='bool(.3)',
@@ -900,7 +975,10 @@ We create a random graph with the following properties:
       weight='float()',
       age='int(18, 65)')
 #+END_SRC
-
+*** Define Helper Functions
+:PROPERTIES:
+:noweb-ref: define helper functions
+:END:
 Now that we have a graph of a bunch of objects with randomized
 attributes, we need a way to extract these attributes out of the
 entire collection of nodes in the graph.  We define
@@ -916,14 +994,17 @@ and an averaging function to average numerical values:
   \frac{1}{|G|}\sum_{n \in G}{\text{$n$.attribute}}
   \]
 #+END_LaTeX
-#+BEGIN_SRC python :noweb-ref "define helper functions"
+#+BEGIN_SRC python
   def get_attribute(self, attr):
       return map(lambda n: getattr(n, attr), self.G.nodes())
 
   def avg(self, attr):
       return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
 #+END_SRC
-
+*** Testing Randomness
+:PROPERTIES:
+:noweb-ref: test randomness
+:END:
 We are ready to implement our tests.  For =bool=, =float=, and =int=,
 we test to make sure the average values we collect from the generated
 graph match the theoretical averages (the ones we gave to target). For
@@ -933,7 +1014,7 @@ To test the =func= case, we count the occurances of each possible
 =answer= and find its absolute variance from the theoretical value it
 should have ($1000/3=333.\bar3$).  We then sum those variances and
 ensure it is less than some (generous) threshold value.
-#+BEGIN_SRC python :noweb-ref "test randomness"
+#+BEGIN_SRC python
   def test_bool(self):
       assert_almost_equal(self.avg('marked'), .3, 1)
     
@@ -952,4 +1033,48 @@ ensure it is less than some (generous) threshold value.
     
       assert_less(g, .1)
 #+END_SRC
+*** Testing Functions and Generators
+:PROPERTIES:
+:noweb-ref: test functions and generators
+:END:
+The functions and generators are where the real generality (to an
+extent) comes in.  We should be able to define a function that takes
+one argument---a random number generator---and spits out values for
+us.  In fact, we should be able to use a few things:
+- a function that, given a random number generator, returns a value
+- a function that, given a random number generator, returns a
+  generator of values
+- a raw generator of values.
 
+#+BEGIN_SRC python
+  def test_raw_func(self):
+      choices = ['yes', 'no', 'maybe']
+      def get_marked(random_instance):
+          return random_instance.choice(choices)
+      g = generators.random_graph(15, marked=get_marked)
+      assert all(map(lambda n: n.marked in choices, g.nodes()))
+  
+  def test_lambda_func(self):
+      choices = ['yes', 'no', 'maybe']
+      g = generators.random_graph(15, marked=lambda r: r.choice(choices))
+      assert all(map(lambda n: n.marked in choices, g.nodes()))
+#+END_SRC
+
+and now to test generators:
+#+BEGIN_SRC python
+  def test_generator_func(self):
+      def gen_weight(random_instance):
+          while True:
+              yield random_instance.random()
+      g = generators.random_graph(15, weight=gen_weight)
+      assert all(map(lambda n: 0 <= n.weight < 1, g.nodes()))
+  
+  def test_generator_func2(self):
+      def gen_in_range(minimum, maximum):
+          # iter(int, True) is an infinite generator: 0, 0, 0, ...
+          return lambda r: (r.uniform(minimum, maximum)
+                            for i in iter(int, True))
+  
+      g = generators.random_graph(15, weight=gen_in_range(10, 20))
+      assert all(map(lambda n: 10 <= n.weight <= 20, g.nodes()))
+#+END_SRC

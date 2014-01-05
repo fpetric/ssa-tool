@@ -6,21 +6,19 @@ from ColorBank import ColorBank
 from BasicNode import BasicNode
 
 class Visualizer:
-    def __init__(self, size=(640, 480), graph=nx.Graph()):
+    def __init__(self, size=(640, 480), graph=nx.Graph(), edge_width = 2):
         """where `size` is a 2-tuple representing screen dimens"""
 
         self.screen = pygame.display.set_mode(size)
 
         self.colors = ColorBank()
         self.graph = graph
+        self.edge_width = edge_width
         self.layout_algorithms = [getattr(nx, a) for a in dir(nx) if a.endswith('_layout')]
         # TODO sometimes crashes here; why?
         self.text_font = pygame.font.SysFont('monospace', 15)
 
-    def do_layout(self, layout_algorithm=None):
-        if layout_algorithm is None:
-            layout_algorithm = self.layout_algorithms[0]
-
+    def do_layout(self, layout_algorithm=nx.circular_layout):
         try:
             p = layout_algorithm(self.graph)
         except:
@@ -38,7 +36,7 @@ class Visualizer:
         for src, dst in self.graph.edges():
             pygame.draw.line(self.screen, self.colors.white,
                              self.floats_to_pos(src.position),
-                             self.floats_to_pos(dst.position), 3)
+                             self.floats_to_pos(dst.position), self.edge_width)
 
         for n in self.graph.nodes():
             normal_pos = self.floats_to_pos(n.position) # keep track of z order for drag drop
@@ -72,7 +70,7 @@ if __name__ == '__main__':
     import generators
 
     g = generators.random_graph((5, 20), .3,
-                                data='(random)',
+                                data=(i for i in range(50)),
                                 color=lambda r: ColorBank.random(r),
                                 radius='int(3, 10)',
                                 position=lambda r: tuple([r.random(), r.random()]))

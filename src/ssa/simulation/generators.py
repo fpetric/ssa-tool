@@ -61,6 +61,21 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
         >>> all(map(lambda n: n.age in range(40, 50 + 1),
         ...         random_graph(10, age='int(40, 50)')))
         True
+    
+    For any attribute, you can specify a function or a generator.  You can
+    even supply a function that *returns* a generator.  All functions must
+    take exactly one required argument, a random number generator, as its
+    first parameter.
+    
+    (ref:smp - optionify random thingy)
+    
+    Consider the following:
+    
+        >>> graph = random_graph(5, weight=(i for i in range(5)))
+        >>> sorted([n.weight for n in graph.nodes()])
+        [0, 1, 2, 3, 4]
+    
+                                                                             (ref:)
 
     Be careful about the arguments you pass.  If you want a range of
     possible values for the degree, ensure you pass an iterable of exactly
@@ -77,7 +92,16 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
         Traceback (most recent call last):
           File "<stdin>", line 1, in ?
         ValueError: Wrong number of arguments for int.
-      
+    
+    If you are using generators, keep in mind that *each* node must be
+    given a value.  If the generator produces less values than you give
+    the graph nodes, an exception will be raised:
+    
+        >>> n = 5
+        >>> g = random_graph(n + 1, weight=(i for i in range(n)))
+        Traceback (most recent call last):
+          File "<stdin>", line 1, in ?
+        Exception: Ran out of iterations for the generator given by 'weight'
     """
     r = random.Random()
     G = networkx.Graph()
@@ -87,40 +111,55 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
             raise ValueError('Wrong number of values for (min, max) degree')
         degree = r.randint(*degree)
 
+    for key in properties:                  
+        if hasattr(properties[key], '__call__'):
+            check_value = properties[key](r)
+            if hasattr(check_value, 'next'):
+                properties[key] = check_value
+
     for n in range(degree):
         new_node = base_class()
             
         for key in properties:
-            new_prop = str(key)
-            new_value = properties[key]
+            property_key = str(key)
+            property_value = properties[key]
             
             # Avoid overwriting properties.  This could happen if the
             # user passes in something that is a dictionary rather
             # than a traditional KV list.  We'll accept anything that
             # has __str__, but __str__ is not meant to be unique.
-            if hasattr(new_node, new_prop): 
+            if hasattr(new_node, property_key): 
                 raise Exception('Did not overwrite duplicate property')
             
-            if hasattr(new_value, '__call__'):
-                setattr(new_node, new_prop, new_value(r))
+            new_value = None
+              
+            if hasattr(property_value, '__call__'):
+                new_value = property_value(r)
+            elif hasattr(property_value, 'next'):
+                try:
+                    new_value = next(property_value)
+                except StopIteration:
+                    raise Exception('Ran out of iterations for the generator given by {!r}'\
+                                        .format(property_key))
+            elif '(' in property_value and ')' in property_value: # val is a func
+                # collect the arguments
+                # TODO: make this safe, i.e. destroy `eval`
+                func = property_value[:property_value.index('(')]
+                args = eval(property_value[property_value.index('('):])
+                ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+                
+                if func == 'float':
+                    if len(args) is not 0: raise ex('float')
+                    new_value = r.random()
+                elif func == 'int':
+                    if len(args) is not 2: raise ex('int')
+                    new_value = r.randint(*args)
+                elif func == 'bool':
+                    new_value = r.random() <= float(args)
             else:
-                if '(' in new_value and ')' in new_value: # val is a func
-                    # collect the arguments
-                    # TODO: make this safe, i.e. destroy `eval`
-                    func = new_value[:new_value.index('(')]
-                    args = eval(new_value[new_value.index('('):])
-                    ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+                new_value = property_value
             
-                    if func == 'float':
-                        if len(args) is not 0: raise ex('float')
-                        new_value = r.random()
-                    elif func == 'int':
-                        if len(args) is not 2: raise ex('int')
-                        new_value = r.randint(*args)
-                    elif func == 'bool':
-                        new_value = r.random() <= float(args)
-            
-                setattr(new_node, new_prop, new_value)
+            setattr(new_node, property_key, new_value)
           
         G.add_node(new_node)
 
