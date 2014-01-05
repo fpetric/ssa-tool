@@ -67,17 +67,7 @@ class Visualizer:
 
         self.colors = ColorBank()
         self.graph = graph
-        self.layout_algorithms = \
-            [
-            #nx.circular_layout,
-            #nx.fruchterman_reingold_layout,
-            #nx.graphviz_layout,
-            #nx.pygraphviz_layout,
-            #nx.random_layout,
-            #nx.shell_layout,
-            nx.spectral_layout,
-            #nx.spring_layout
-            ]
+        self.layout_algorithms = [getattr(nx, a) for a in dir(nx) if a.endswith('_layout')]
         # TODO sometimes crashes here; why?
         self.text_font = pygame.font.SysFont('monospace', 15)
 
