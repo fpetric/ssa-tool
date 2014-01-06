@@ -959,30 +959,6 @@ with =range= taking place of =int(...)=.
 #+END_SRC
 ** On-screen animation
 ** Step-by-Step TeX Print-Outs
-* TODO Interoperability
-:PROPERTIES:
-:ID:       7593A8B2-FCAF-44BA-8EAD-836152C25388
-:END:
-To be really useful, it would be good to be able to import/export
-graphs and algorithms into various formats.  =ssa.interop= is designed
-to fill this hole.
-#+BEGIN_SRC python :tangle "ssa/interop.py"
-  <<graph import and export>>
-#+END_SRC
-** TODO Graphs
-:PROPERTIES:
-:noweb-ref: graph import and export
-:END:
-NetworkX provides a few functions for graph import/export, but it is
-lacking in its proficiency with the Graph Exchange Format (GEXF).  The
-following functions deal with that.
-#+BEGIN_SRC python
-  def write_to_gexf(graph, path, encoding='utf-8', prettyprint=True, version='1'):
-      try:
-          import pygexf
-      except ImportError:
-          nx.write_to_gexf(graph, path, encoding, prettyprint, version='1.1draft')
-#+END_SRC
 * Tests
 We will be using the Nose toolset for automated testing.
 #+BEGIN_SRC python :noweb-ref "common imports for testing"
