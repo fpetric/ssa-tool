@@ -42,24 +42,24 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
         True
       
     You can also use a few intelligent arguments, such as bool(n):
-      
-        >>> all(map(lambda n: n.marked,
-        ...         random_graph(10, marked='bool(1)')))
+    
+        >>> G = random_graph(10, marked='bool(1)')
+        >>> all(map(lambda n: G.node[n]['marked'], G.node))
         True
-        >>> any(map(lambda n: n.marked,
-        ...         random_graph(10, marked='bool(0)')))
+        >>> G = random_graph(10, marked='bool(0)')
+        >>> any(map(lambda n: G.node[n]['marked'], G.node))
         False
       
     float():
-      
-        >>> .45 < sum(map(lambda n: n.weight,
-        ...         random_graph(1000, weight='float()')))/1000 < .55
+    
+        >>> G = random_graph(1000, weight='float()')
+        >>> .45 < sum(map(lambda n: G.node[n]['weight'], G.node)) / 1000 < .55
         True
       
     and int(min, max):
       
-        >>> all(map(lambda n: n.age in range(40, 50 + 1),
-        ...         random_graph(10, age='int(40, 50)')))
+        >>> G = random_graph(10, age='int(40, 50)')
+        >>> all(map(lambda n: G.node[n]['age'] in range(40, 50 + 1), G.node))
         True
     
     For any attribute, you can specify a function or a generator.  You can
@@ -72,7 +72,7 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
     Consider the following:
     
         >>> graph = random_graph(5, weight=(i for i in range(5)))
-        >>> sorted([n.weight for n in graph.nodes()])
+        >>> sorted([graph.node[n]['weight'] for n in graph.nodes()])
         [0, 1, 2, 3, 4]
     
                                                                              (ref:)
@@ -119,6 +119,8 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
 
     for n in range(degree):
         new_node = base_class()
+        
+        G.add_node(new_node)
             
         for key in properties:
             property_key = str(key)
@@ -159,9 +161,7 @@ def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **propertie
             else:
                 new_value = property_value
             
-            setattr(new_node, property_key, new_value)
-          
-        G.add_node(new_node)
+            G.node[new_node][property_key] = new_value
 
     for src, dst in combinations(G.nodes(), 2):
         # perhaps add switch to check for __call__(node_a, node_b)

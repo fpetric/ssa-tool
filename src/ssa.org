@@ -769,24 +769,24 @@ graph with nodes having randomized properties.
       True
     
   You can also use a few intelligent arguments, such as bool(n):
-    
-      >>> all(map(lambda n: n.marked,
-      ...         random_graph(10, marked='bool(1)')))
+  
+      >>> G = random_graph(10, marked='bool(1)')
+      >>> all(map(lambda n: G.node[n]['marked'], G.node))
       True
-      >>> any(map(lambda n: n.marked,
-      ...         random_graph(10, marked='bool(0)')))
+      >>> G = random_graph(10, marked='bool(0)')
+      >>> any(map(lambda n: G.node[n]['marked'], G.node))
       False
     
   float():
-    
-      >>> .45 < sum(map(lambda n: n.weight,
-      ...         random_graph(1000, weight='float()')))/1000 < .55
+  
+      >>> G = random_graph(1000, weight='float()')
+      >>> .45 < sum(map(lambda n: G.node[n]['weight'], G.node)) / 1000 < .55
       True
     
   and int(min, max):
     
-      >>> all(map(lambda n: n.age in range(40, 50 + 1),
-      ...         random_graph(10, age='int(40, 50)')))
+      >>> G = random_graph(10, age='int(40, 50)')
+      >>> all(map(lambda n: G.node[n]['age'] in range(40, 50 + 1), G.node))
       True
   
   For any attribute, you can specify a function or a generator.  You can
@@ -799,7 +799,7 @@ graph with nodes having randomized properties.
   Consider the following:
   
       >>> graph = random_graph(5, weight=(i for i in range(5)))
-      >>> sorted([n.weight for n in graph.nodes()])
+      >>> sorted([graph.node[n]['weight'] for n in graph.nodes()])
       [0, 1, 2, 3, 4]
   
                                                                            (ref:)
@@ -871,6 +871,8 @@ existing functions yields a generator (no pun intended).
      :END:
 #+BEGIN_SRC python
   new_node = base_class()
+
+  G.add_node(new_node)
       
   for key in properties:
       property_key = str(key)
@@ -879,8 +881,6 @@ existing functions yields a generator (no pun intended).
       <<check for property overwrite>>
       
       <<parse and set property value>>
-    
-  G.add_node(new_node)
 #+END_SRC
 ****** Property Overwrite
      :PROPERTIES:
@@ -901,8 +901,8 @@ existing functions yields a generator (no pun intended).
 The new value can be a couple things.  If it is a callable function
 (implements =__call__=), we assume it is some function that expects a
 =random.Random= object as its single required parameter.  If it is a
-generator (implements =__next__=), we retrieve the next value.  Otherwise,
-we parse =property_value= as a string 
+generator (implements =next=), we retrieve the next value.  Otherwise,
+we parse =property_value= as a string
 #+BEGIN_SRC python
   new_value = None
     
@@ -932,7 +932,7 @@ we parse =property_value= as a string
   else:
       new_value = property_value
   
-  setattr(new_node, property_key, new_value)
+  G.node[new_node][property_key] = new_value
 #+END_SRC
 ******* WISH_LIST Enhance security
 We have the line =args=eval(property_value[...])=.  This should be
@@ -959,6 +959,30 @@ with =range= taking place of =int(...)=.
 #+END_SRC
 ** On-screen animation
 ** Step-by-Step TeX Print-Outs
+* TODO Interoperability
+:PROPERTIES:
+:ID:       7593A8B2-FCAF-44BA-8EAD-836152C25388
+:END:
+To be really useful, it would be good to be able to import/export
+graphs and algorithms into various formats.  =ssa.interop= is designed
+to fill this hole.
+#+BEGIN_SRC python :tangle "ssa/interop.py"
+  <<graph import and export>>
+#+END_SRC
+** TODO Graphs
+:PROPERTIES:
+:noweb-ref: graph import and export
+:END:
+NetworkX provides a few functions for graph import/export, but it is
+lacking in its proficiency with the Graph Exchange Format (GEXF).  The
+following functions deal with that.
+#+BEGIN_SRC python
+  def write_to_gexf(graph, path, encoding='utf-8', prettyprint=True, version='1'):
+      try:
+          import pygexf
+      except ImportError:
+          nx.write_to_gexf(graph, path, encoding, prettyprint, version='1.1draft')
+#+END_SRC
 * Tests
 We will be using the Nose toolset for automated testing.
 #+BEGIN_SRC python :noweb-ref "common imports for testing"
@@ -1058,8 +1082,8 @@ and an averaging function to average numerical values:
 #+END_LaTeX
 #+BEGIN_SRC python
   def get_attribute(self, attr):
-      return map(lambda n: getattr(n, attr), self.G.nodes())
-
+      return map(lambda n: self.G.node[n][attr], self.G.node)
+  
   def avg(self, attr):
       return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
 #+END_SRC
@@ -1114,12 +1138,12 @@ us.  In fact, we should be able to use a few things:
       def get_marked(random_instance):
           return random_instance.choice(choices)
       g = generators.random_graph(15, marked=get_marked)
-      assert all(map(lambda n: n.marked in choices, g.nodes()))
+      assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
   
   def test_lambda_func(self):
       choices = ['yes', 'no', 'maybe']
       g = generators.random_graph(15, marked=lambda r: r.choice(choices))
-      assert all(map(lambda n: n.marked in choices, g.nodes()))
+      assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
 #+END_SRC
 
 and now to test generators:
@@ -1129,7 +1153,7 @@ and now to test generators:
           while True:
               yield random_instance.random()
       g = generators.random_graph(15, weight=gen_weight)
-      assert all(map(lambda n: 0 <= n.weight < 1, g.nodes()))
+      assert all(map(lambda n: 0 <= g.node[n]['weight'] < 1, g.node))
   
   def test_generator_func2(self):
       def gen_in_range(minimum, maximum):
@@ -1138,5 +1162,5 @@ and now to test generators:
                             for i in iter(int, True))
   
       g = generators.random_graph(15, weight=gen_in_range(10, 20))
-      assert all(map(lambda n: 10 <= n.weight <= 20, g.nodes()))
+      assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
 #+END_SRC

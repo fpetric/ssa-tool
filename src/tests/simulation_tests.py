@@ -1,9 +1,7 @@
 
 import unittest
 from nose.tools import *
-
 from ssa.simulation import *
-
 class RandomGraphTest(unittest.TestCase):
     @classmethod
     def setupClass(cls):
@@ -16,7 +14,7 @@ class RandomGraphTest(unittest.TestCase):
             age='int(18, 65)')
 
     def get_attribute(self, attr):
-        return map(lambda n: getattr(n, attr), self.G.nodes())
+        return map(lambda n: self.G.node[n][attr], self.G.node)
     
     def avg(self, attr):
         return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
@@ -44,18 +42,18 @@ class RandomGraphTest(unittest.TestCase):
         def get_marked(random_instance):
             return random_instance.choice(choices)
         g = generators.random_graph(15, marked=get_marked)
-        assert all(map(lambda n: n.marked in choices, g.nodes()))
+        assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
     
     def test_lambda_func(self):
         choices = ['yes', 'no', 'maybe']
         g = generators.random_graph(15, marked=lambda r: r.choice(choices))
-        assert all(map(lambda n: n.marked in choices, g.nodes()))
+        assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
     def test_generator_func(self):
         def gen_weight(random_instance):
             while True:
                 yield random_instance.random()
         g = generators.random_graph(15, weight=gen_weight)
-        assert all(map(lambda n: 0 <= n.weight < 1, g.nodes()))
+        assert all(map(lambda n: 0 <= g.node[n]['weight'] < 1, g.node))
     
     def test_generator_func2(self):
         def gen_in_range(minimum, maximum):
@@ -64,4 +62,4 @@ class RandomGraphTest(unittest.TestCase):
                               for i in iter(int, True))
     
         g = generators.random_graph(15, weight=gen_in_range(10, 20))
-        assert all(map(lambda n: 10 <= n.weight <= 20, g.nodes()))
+        assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
