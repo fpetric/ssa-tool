@@ -619,7 +619,7 @@ A graphical tool for the creation of self-stabilizing algorithms
               return
   
           for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
-              node.position = ((position[0] + 1) / 2, (position[1] + 1) / 2)
+              self.graph.node[node]['position'] = ((position[0] + 1) / 2, (position[1] + 1) / 2)
   
       def draw(self):
           self.screen.fill(self.colors.green)
@@ -627,13 +627,13 @@ A graphical tool for the creation of self-stabilizing algorithms
   
           for src, dst in self.graph.edges():
               pygame.draw.line(self.screen, self.colors.white,
-                               self.floats_to_pos(src.position),
-                               self.floats_to_pos(dst.position), self.edge_width)
+                               self.floats_to_pos(self.graph.node[src]['position']),
+                               self.floats_to_pos(self.graph.node[dst]['position']), self.edge_width)
   
-          for n in self.graph.nodes():
-              normal_pos = self.floats_to_pos(n.position) # keep track of z order for drag drop
-              pygame.draw.circle(self.screen, n.color, normal_pos, n.radius, 0)
-              label = self.text_font.render(str(n.data), True, ColorBank.get_inverse(n.color))
+          for node, node_data in self.graph.nodes(data=True):
+              normal_pos = self.floats_to_pos(node_data['position']) # keep track of z order for drag drop
+              pygame.draw.circle(self.screen, node_data['color'], normal_pos, node_data['radius'], 0)
+              label = self.text_font.render(str(node_data['data']), True, ColorBank.get_inverse(node_data['color']))
               self.screen.blit(label, normal_pos)
   
           pygame.display.update()
