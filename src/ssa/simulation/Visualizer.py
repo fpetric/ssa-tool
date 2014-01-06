@@ -62,7 +62,7 @@ class Visualizer:
         ingame=True
         for i in range(3):
             self.graph = make_graph()
-            for i in range(50):
+            for i in range(10):
                 self.do_layout()
                 self.draw()
                 pygame.time.delay(50)
