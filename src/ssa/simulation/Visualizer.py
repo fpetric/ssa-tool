@@ -18,7 +18,7 @@ class Visualizer:
         # TODO sometimes crashes here; why?
         self.text_font = pygame.font.SysFont('monospace', 15)
 
-    def do_layout(self, layout_algorithm=nx.circular_layout):
+    def do_layout(self, layout_algorithm=nx.spring_layout):
         try:
             p = layout_algorithm(self.graph)
         except:
@@ -53,29 +53,33 @@ class Visualizer:
         return tuple((coordinate / scale for coordinate, scale in zip(position, self.screen.get_size())))
 
     def loop(self):
+        """Runs the simulator.
+
+        >>> pygame.init()
+        (6, 0)
+        >>> Visualizer(size=(640, 480), graph=make_graph()).loop()
+        """
         ingame=True
-        while ingame:
-            self.draw()
-            pygame.time.delay(500)
-            self.do_layout()
+        for i in range(3):
+            self.graph = make_graph()
+            for i in range(50):
+                self.do_layout()
+                self.draw()
+                pygame.time.delay(50)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     ingame = False
+        pygame.quit()
 
+import generators
+make_graph = lambda: \
+    generators.random_graph((5, 20), .3,
+                            data=(i for i in range(50)),
+                            color=lambda r: ColorBank.random(r),
+                            radius='int(3, 10)',
+                            position=lambda r: tuple([r.random(), r.random()]))
+  
 if __name__ == '__main__':
-    pygame.init()
-    screen_size = (640, 480)
-
-    import generators
-
-    g = generators.random_graph((5, 20), .3,
-                                data=(i for i in range(50)),
-                                color=lambda r: ColorBank.random(r),
-                                radius='int(3, 10)',
-                                position=lambda r: tuple([r.random(), r.random()]))
-
-    vis = Visualizer(size=screen_size, graph=g)
-    vis.do_layout()
-
-    vis.loop()
+    import doctest
+    doctest.testmod()
