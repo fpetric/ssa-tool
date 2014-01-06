@@ -40,6 +40,9 @@ always be present and the system is guaranteed to find itself in a
 legitimate state after a finite number of moves.
 
 * Introduction
+:PROPERTIES:
+:ID:       50650171-2D03-4633-B4A9-625372F23D79
+:END:
 The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
 #+BEGIN_EXAMPLE
   setup.py
@@ -123,11 +126,17 @@ these identifications are then linked by a mapping within the node to
 actions that they apply to.
 
 ** DONE Dependencies
+:PROPERTIES:
+:ID:       EFAAB89D-EF82-4DE4-A144-5268FC1A11F8
+:END:
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
   from TeXableEntity import TeXableEntity
   from FiniteStateMachine import FiniteStateMachine
 #+END_SRC
 ** DONE TeXable Entity
+:PROPERTIES:
+:ID:       BFE270CC-AD8D-4A10-B695-6F90BADA1C55
+:END:
 Since this is all math and this research uses TeX almost exclusively,
 it is worthwhile to include auto-generation of TeX documentation for
 the algorithm.
@@ -181,6 +190,9 @@ is asked for its own representation.
       doctest.testmod()
 #+END_SRC
 ** INPROGRESS Finite State Machine
+:PROPERTIES:
+:ID:       E9B1FF06-C88E-4CF6-A30C-D9F7D17E326F
+:END:
 #+BEGIN_SRC python :tangle "ssa/core/FiniteStateMachine.py"
   from TeXableEntity import TeXableEntity
   
@@ -281,7 +293,7 @@ module.
 You can grab the current state of the machine by looking at the value
 of =FiniteStateMachine.current_state=.
 ***** WISH_LIST Perhaps unsafe.
-** [#A] Privileges and Actions
+** Privileges and Actions
 Privileges and Actions are very similar to each other.
 *** TODO TeX-enabled predicates/actions
 Create a class for =Predicate= and =Action= that both inherit from
@@ -290,16 +302,23 @@ rules and predicates so that we can have a nice display of the entity.
 
 This could also be useful in export.
 *** Privileges
+:PROPERTIES:
+:ID:       0DD0C7C1-F462-4F1B-B5C9-E9418CAA8E99
+:END:
 #+BEGIN_SRC python :tangle "ssa/core/Privilege.py"
+  from TeXableEntity import TeXableEntity
   class Privilege(TeXableEntity):
       """A function from G, v -> {True, False}
   
       >>> pred = Privilege(lambda G, v: v in G,
+      ... # doctest: +SKIP
                            'G, v \mapsto v \in G',
                            'Returns true when $v$ is a node in $G$')
       >>> doc(pred)
+      ... # doctest: +SKIP
       'Returns true when $v$ is a node in $G$'
       >>> repr(pred)
+      ... # doctest: +SKIP
       'G, v \mapsto v \in G'
       """
       def __init__(self, predicate = lambda graph, node: True,
@@ -317,16 +336,23 @@ This could also be useful in export.
 **** TODO doctest callable
 requires making a graph... ugh
 *** Actions
+:PROPERTIES:
+:ID:       03B2B5CE-6839-4400-ABC3-1E16764142A8
+:END:
 #+BEGIN_SRC python :tangle "ssa/core/Action.py"
+  from TeXableEntity import TeXableEntity
   class Action(TeXableEntity):
       """A function from G, v -> G'
   
       >>> action = Action(lambda G, v: v['marked'] = True,
+      ... # doctest: +SKIP
                           'v.marked \gets True',
                           'Marks $v$')
       >>> doc(action)
+      ... # doctest: +SKIP
       'Mark $v$'
       >>> repr(action)
+      ... # doctest: +SKIP
       'v.marked \gets True'
       """
       def __init__(self, action = lambda graph, node: graph,
@@ -339,7 +365,10 @@ requires making a graph... ugh
           return self.action(graph, node)
 #+END_SRC
 **** TODO doctest callable
-** [#A] Self-Stabilizing Algorithm
+** Self-Stabilizing Algorithm
+:PROPERTIES:
+:ID:       178FB0D4-0E4C-4458-B0BF-C8F01662998B
+:END:
 - a dictionary from =Rule= objects to sets of =Privilege= objects.
 - also a =TeXableEntity=
 
@@ -473,18 +502,27 @@ old code
               return graph
 #+END_SRC
 * Creation
-  A graphical tool for the creation of self-stabilizing algorithms
+:PROPERTIES:
+:ID:       5E7F7349-CAC3-4CDB-814C-01B01F63E7D0
+:END:
+A graphical tool for the creation of self-stabilizing algorithms
 #+BEGIN_SRC python :tangle "ssa/creation/__init__.py"
 
 #+END_SRC
-* Simulation
+* INPROGRESS Simulation
+:PROPERTIES:
+:ID:       017756B6-C2B1-4224-A8B0-98F0944EF921
+:END:
 #+BEGIN_SRC python :tangle "ssa/simulation/__init__.py"
-import generators
-from ColorBank import ColorBank
-from BasicNode import BasicNode
+  import generators
+  from ColorBank import ColorBank
+  from BasicNode import BasicNode
 #+END_SRC
 ** Displaying a Graph
 *** Managing Colors
+:PROPERTIES:
+:ID:       FA752FEE-D647-4156-9E58-9EE8EBE8F502
+:END:
 #+BEGIN_SRC python :tangle "ssa/simulation/ColorBank.py"
   class ColorBank:
       def __init__(self):
@@ -507,6 +545,9 @@ from BasicNode import BasicNode
           return tuple((r.randint(0, 255) for i in range(3)))
 #+END_SRC
 *** A Basic Node
+:PROPERTIES:
+:ID:       72CC2548-41E1-4A16-A3BA-E3AE9DBA28DB
+:END:
 #+BEGIN_SRC python :tangle "ssa/simulation/BasicNode.py"
   from ColorBank import ColorBank
 
@@ -546,6 +587,9 @@ from BasicNode import BasicNode
           return str(self.__dict__)
 #+END_SRC
 *** Displaying the Game Window
+:PROPERTIES:
+:ID:       15876325-7EB7-4943-9B28-377F5F4B3EA6
+:END:
 #+BEGIN_SRC python :tangle "ssa/simulation/Visualizer.py"
   import pygame
   import networkx as nx
@@ -629,6 +673,9 @@ from BasicNode import BasicNode
       vis.loop()
 #+END_SRC
 ** Generators
+:PROPERTIES:
+:ID:       0791B53E-7544-43A0-B5D0-713F3199FE0A
+:END:
 #+BEGIN_SRC python :tangle "ssa/simulation/generators.py"
   import networkx
   import random
@@ -910,8 +957,8 @@ with =range= taking place of =int(...)=.
       if r.random() <= edge_probability:
           G.add_edge(src, dst)
 #+END_SRC
-** [#B] On-screen animation
-** [#C] Step-by-Step TeX printouts
+** On-screen animation
+** Step-by-Step TeX Print-Outs
 * Tests
 We will be using the Nose toolset for automated testing.
 #+BEGIN_SRC python :noweb-ref "common imports for testing"
@@ -919,17 +966,32 @@ We will be using the Nose toolset for automated testing.
   from nose.tools import *
 #+END_SRC
 ** Core
+:PROPERTIES:
+:ID:       6C18CD91-679E-4835-9E2A-C4BCF1C506FB
+:END:
 #+BEGIN_SRC python :tangle "tests/core_tests.py"
 
 #+END_SRC
 ** Creation
+:PROPERTIES:
+:ID:       F45B85F5-9690-4AFB-8A21-D27FA0DDC803
+:END:
 #+BEGIN_SRC python :tangle "tests/creation_tests.py"
 
 #+END_SRC
 ** Simulation
+:PROPERTIES:
+:ID:       328AAB02-1AAC-4A0C-ADCE-54962602181A
+:END:
+#+BEGIN_SRC python :tangle "tests/simulation_tests.py"
+  <<common imports for testing>>
+  from ssa.simulation import *
+  <<random graph test>>
+#+END_SRC
 *** Random Graph Generation
 :PROPERTIES:
 :tests:    [[id:C315D9D2-BE1C-447A-8961-4080AFD9B648][Generating a Random Graph]]
+:noweb-ref: random graph test
 :END:
 This test is structured as those above, with a few specializations.
 Since the random graph generator does not (and should not) create
@@ -942,11 +1004,7 @@ We import all those classes that we need to and define a testing class
 to contain the random graph in the correct scope.  After we define a
 few helper functions to look at only one attribute at a time, we then
 make our assertions on what the results /should/ look like.
-#+BEGIN_SRC python :tangle "tests/simulation_tests.py"
-  <<common imports for testing>>
-
-  from ssa.simulation import *
-  
+#+BEGIN_SRC python
   class RandomGraphTest(unittest.TestCase):
       @classmethod
       def setupClass(cls):
