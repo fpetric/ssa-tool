@@ -293,33 +293,24 @@ module.
 You can grab the current state of the machine by looking at the value
 of =FiniteStateMachine.current_state=.
 ***** WISH_LIST Perhaps unsafe.
-** Privileges and Actions
-Privileges and Actions are very similar to each other.
+** Predicates and Actions
+Predicates and Actions are very similar to each other.
 *** TODO TeX-enabled predicates/actions
 Create a class for =Predicate= and =Action= that both inherit from
 =TeXableEntity=.  We should be able to attach TeX documentation to
 rules and predicates so that we can have a nice display of the entity.
 
 This could also be useful in export.
-*** Privileges
+*** Predicates
 :PROPERTIES:
 :ID:       0DD0C7C1-F462-4F1B-B5C9-E9418CAA8E99
 :END:
-#+BEGIN_SRC python :tangle "ssa/core/Privilege.py"
+#+BEGIN_SRC python :tangle "ssa/core/Predicate.py"
   from TeXableEntity import TeXableEntity
-  class Privilege(TeXableEntity):
+  class Predicate(TeXableEntity):
       """A function from G, v -> {True, False}
-  
-      >>> pred = Privilege(lambda G, v: v in G,
-      ... # doctest: +SKIP
-                           'G, v \mapsto v \in G',
-                           'Returns true when $v$ is a node in $G$')
-      >>> doc(pred)
-      ... # doctest: +SKIP
-      'Returns true when $v$ is a node in $G$'
-      >>> repr(pred)
-      ... # doctest: +SKIP
-      'G, v \mapsto v \in G'
+
+         <<documentation>>
       """
       def __init__(self, predicate = lambda graph, node: True,
                          as_TeX    = None,
@@ -332,6 +323,60 @@ This could also be useful in export.
   
       def __bool__(self, graph, node):
           return self()
+#+END_SRC
+**** Online Documentation
+:PROPERTIES:
+:noweb-ref: documentation
+:ID:       197C9408-92F9-4AFC-8ADD-9E11A184CCCD
+:END:
+#+BEGIN_SRC markdown
+  A `Predicate` consists of two parts:
+  
+    - documentation (both TeXnical and human-readable)
+  
+          >>> TeX_documentation   = 'G, v \mapsto \dots'
+          >>> human_documentation = 'Returns true when $v$ has' +
+                                    'more than one marked neighbor.'
+  
+    - predicate function, which can be a pure 'lambda' function:
+  
+          >>> lambda_predicate = lambda G, v: v in G
+  
+      or the name of a full-on function:
+  
+          >>> def fulldef_predicate(graph, node):
+          ...     number_marked = 0
+          ...     for neighbor in graph.neighbors(node):
+          ...         if neighbor.marked:
+          ...             number_marked += 1
+          ...         if number_marked > 1:
+          ...             return True
+          ...     return False
+  
+  We can create a `Predicate` object using these three parts like so:
+  
+      >>> predicate = Predicate(fulldef_predicate,
+      ...                       TeX_documentation,
+      ...                       human_documentation)
+  
+  Our `Predicate` object will now behave like a function, able to be
+  called with two arguments (a graph and a node) for a natural feel.
+  Let's create a random graph and get a random node in that graph;
+  hopefully we'll get lucky!
+  
+      >>> from generators import random_graph
+      >>> from random import choice
+      >>> G = random_graph(              \
+            (20, 30),                    \
+            .8,                          \
+            marked='bool(.8)')
+      >>> some_node = choice(G.nodes())
+  
+  Now that we have `G` and `some_node` in `G`, we can test to see if the
+  predicate is true for that node in `G`:
+  
+      >>> predicate(G, some_node)                   # doctest: +SKIP
+      True
 #+END_SRC
 **** TODO doctest callable
 requires making a graph... ugh
@@ -369,7 +414,7 @@ requires making a graph... ugh
 :PROPERTIES:
 :ID:       178FB0D4-0E4C-4458-B0BF-C8F01662998B
 :END:
-- a dictionary from =Rule= objects to sets of =Privilege= objects.
+- a dictionary from =Rule= objects to sets of =Predicate= objects.
 - also a =TeXableEntity=
 
 old code
@@ -1125,7 +1170,6 @@ us.  In fact, we should be able to use a few things:
       g = generators.random_graph(15, marked=lambda r: r.choice(choices))
       assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
 #+END_SRC
-
 and now to test generators:
 #+BEGIN_SRC python
   def test_generator_func(self):
