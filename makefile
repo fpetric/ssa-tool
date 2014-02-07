@@ -1,31 +1,31 @@
 paper:
-	cd doc && xelatex        smp > /dev/null
-	cd doc && makeglossaries smp > /dev/null
-	cd doc && biber          smp > /dev/null
-	cd doc && xelatex        smp > /dev/null
-	cd doc && xelatex        smp > /dev/null
-	cd doc && xelatex        smp > /dev/null
+	cd paper && xelatex        smp > /dev/null
+	cd paper && makeglossaries smp > /dev/null
+	cd paper && biber          smp > /dev/null
+	cd paper && xelatex        smp > /dev/null
+	cd paper && xelatex        smp > /dev/null
+	cd paper && xelatex        smp > /dev/null
 
 cleanpaper:
-	cd doc && rm -f *.aux        # tex
-	cd doc && rm -f *.bbl        # biber
-	cd doc && rm -f *.bcf        # biber
-	cd doc && rm -f *.blg        # biber
-	cd doc && rm -f *.glg        # makeglossaries
-	cd doc && rm -f *.glo        # makeglossaries
-	cd doc && rm -f *.gls        # makeglossaries
-	cd doc && rm -f *.idx        # xindy
-	cd doc && rm -f *.ilg        # xindy
-	cd doc && rm -f *.ind        # xindy
-	cd doc && rm -f *.log        # tex
-	cd doc && rm -f *.out        # tex
-	cd doc && rm -f *.run.xml    # biber
-	cd doc && rm -f *.toc        # tex
-	cd doc && rm -f *.xdv        # tex
-	cd doc && rm -f *.xdy        # xindy
-	cd doc && rm -f *~           # emacs
-	cd doc/sections && rm -f *.aux
-	cd doc/sections && rm -f *~
+	cd paper && rm -f *.aux        # tex
+	cd paper && rm -f *.bbl        # biber
+	cd paper && rm -f *.bcf        # biber
+	cd paper && rm -f *.blg        # biber
+	cd paper && rm -f *.glg        # makeglossaries
+	cd paper && rm -f *.glo        # makeglossaries
+	cd paper && rm -f *.gls        # makeglossaries
+	cd paper && rm -f *.idx        # xindy
+	cd paper && rm -f *.ilg        # xindy
+	cd paper && rm -f *.ind        # xindy
+	cd paper && rm -f *.log        # tex
+	cd paper && rm -f *.out        # tex
+	cd paper && rm -f *.run.xml    # biber
+	cd paper && rm -f *.toc        # tex
+	cd paper && rm -f *.xdv        # tex
+	cd paper && rm -f *.xdy        # xindy
+	cd paper && rm -f *~           # emacs
+	cd paper/sections && rm -f *.aux
+	cd paper/sections && rm -f *~
 
 documentation:
 	$(info No prepared documentation yet)
