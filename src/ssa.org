@@ -570,6 +570,74 @@ old code
           else:
               return graph
 #+END_SRC
+** TODO Algorithm
+#+BEGIN_SRC python :tangle "ssa/core/Algorithm.py"
+  from ssa.core import TeXableEntity
+  from ssa.core import Predicate
+  from ssa.core import Action
+  class Algorithm(TeXableEntity):
+      """A self-stabilizing algorithm
+  
+      <<class algorithm documentation>>
+      """
+      def __init__(self, TeX,
+                         doc,
+                         pa):
+          self.TeX = TeX
+          self.doc = doc
+          self.pa  = pa
+  
+      <<class algorithm run>>
+
+      <<class algorithm stability>>
+
+      <<class algorithm construction>>
+#+END_SRC
+*** Running the Algorithm
+:PROPERTIES:
+:noweb-ref: class algorithm run
+:END:
+Since algorithms may take many iterations to converge, the following
+function is provided in such a way so that it can take a number of
+times to execute the algorithm.  This value defaults to 1.
+#+BEGIN_SRC python
+  def run(self, graph, count=1):
+      """Run the algorithm `n` times.
+  
+      <<class algorithm run documentation>>
+      """
+      assert n >= 0
+      while n > 0:
+          <<class algorithm run once>>
+#+END_SRC
+**** TODO Running it Once
+:PROPERTIES:
+:noweb-ref: class algorithm run once
+:END:
+To run the algorithm once, we would say the following.
+#+BEGIN_SRC python
+  pass
+#+END_SRC
+*** Stability Analysis
+**** Determining if the Algorithm has Stabilized
+:PROPERTIES:
+:noweb-ref: class algorithm stability
+:END:
+#+BEGIN_SRC python
+  def has_stabilized(self):
+      """Returns True if the graph has stabilized.
+  
+      This function runs `Algorithm.run` twice."""
+      pass
+#+END_SRC
+**** Running Until Stabilization
+This is not recommended as there can be no guarantee of halt, but the
+following is provided for completeness.
+#+BEGIN_SRC python
+  def stabilize(self, graph):
+      while not self.has_stabilized():
+          self.run(graph)
+#+END_SRC
 * Creation
 :PROPERTIES:
 :ID:       5E7F7349-CAC3-4CDB-814C-01B01F63E7D0
