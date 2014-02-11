@@ -59,6 +59,3 @@ class Predicate(TeXableEntity):
 
     def __call__(self, graph, node):
         return self.predicate(graph, node)
-
-    def __bool__(self, graph, node):
-        return self()
