@@ -78,7 +78,8 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
       'install_requires': ['networkx', 'pygame'],
       'packages': ['ssa'],
       'scripts': [],
-      'name': 'ssa'
+      'name': 'ssa',
+      'py_modules': ['core', 'creation', 'simulation']
   }
   
   setup(**config)
@@ -131,6 +132,8 @@ actions that they apply to.
 :END:
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
   from TeXableEntity import TeXableEntity
+  from Action import Action
+  from Predicate import Predicate
   from FiniteStateMachine import FiniteStateMachine
 #+END_SRC
 ** DONE TeXable Entity

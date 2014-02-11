@@ -14,7 +14,8 @@ config = {
     'install_requires': ['networkx', 'pygame'],
     'packages': ['ssa'],
     'scripts': [],
-    'name': 'ssa'
+    'name': 'ssa',
+    'py_modules': ['core', 'creation', 'simulation']
 }
 
 setup(**config)
