@@ -336,9 +336,6 @@ This could also be useful in export.
   
       def __call__(self, graph, node):
           return self.predicate(graph, node)
-  
-      def __bool__(self, graph, node):
-          return self()
 #+END_SRC
 **** Online Documentation
 :PROPERTIES:
