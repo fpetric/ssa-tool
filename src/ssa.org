@@ -90,8 +90,12 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
   import simulation
 #+END_SRC
 * Core Classes
-#+BEGIN_SRC python "ssa/core/__init__.py"
-  
+:PROPERTIES:
+:ID:       9A6247A9-9F24-4A97-9161-CC87C2AC8786
+:END:
+#+BEGIN_SRC python :tangle "ssa/core/__init__.py"
+  from .. import creation
+  from .. import simulation
 #+END_SRC
 In Dijkstra's 1974 paper, he describes a self-stabilizing algorithm as
 a graph of state-machines:
@@ -313,7 +317,7 @@ This could also be useful in export.
   class Predicate(TeXableEntity):
       """A function from G, v -> {True, False}
 
-         <<documentation>>
+         <<class predicate documentation>>
       """
       def __init__(self, predicate = lambda graph, node: True,
                          as_TeX    = None,
@@ -329,7 +333,7 @@ This could also be useful in export.
 #+END_SRC
 **** Online Documentation
 :PROPERTIES:
-:noweb-ref: documentation
+:noweb-ref: class predicate documentation
 :ID:       197C9408-92F9-4AFC-8ADD-9E11A184CCCD
 :END:
 #+BEGIN_SRC markdown
@@ -392,13 +396,7 @@ requires making a graph... ugh
   class Action(TeXableEntity):
       """A function from G, v -> G'
   
-      >>> action = Action(lambda G, v: v['marked'] = True,
-                          'v.marked \gets True',
-                          'Marks $v$')
-      >>> doc(action)
-      'Mark $v$'
-      >>> repr(action)
-      'v.marked \gets True'
+      <<class action documentation>>
       """
       def __init__(self, action = lambda graph, node: graph,
                          as_TeX = None,
@@ -409,7 +407,29 @@ requires making a graph... ugh
       def __call__(self, graph, node):
           return self.action(graph, node)
 #+END_SRC
-**** TODO doctest callable
+**** Online Documentation
+:PROPERTIES:
+:noweb-ref: class action documentation
+:END:
+#+BEGIN_SRC markdown
+  Create an action like so:
+  
+      >>> action = Action(lambda G, v: v['marked'] = True,
+                          'v.marked \gets True',
+                          'Marks $v$')
+  
+  You can retrieve the documentation and TeX representation of the
+  object as you would a `TeXableEntity`:
+  
+      >>> action.doc
+      'Mark $v$'
+      >>> action.TeX
+      'v.marked \gets True'
+  
+  You can also *call* `Action` objects, passing a graph and node as
+  arguments.  This functionality is deferred to the member function
+  `Action.action`.
+#+END_SRC
 ** Self-Stabilizing Algorithm
 :PROPERTIES:
 :ID:       178FB0D4-0E4C-4458-B0BF-C8F01662998B
