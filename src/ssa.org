@@ -145,7 +145,7 @@ actions that they apply to.
 :END:
 #+BEGIN_SRC python :tangle "ssa/core/__init__.py"
   from TeXableEntity import TeXableEntity
-  from Action import Action
+  from Move import Move
   from Predicate import Predicate
   from FiniteStateMachine import FiniteStateMachine
 #+END_SRC
@@ -309,10 +309,10 @@ module.
 You can grab the current state of the machine by looking at the value
 of =FiniteStateMachine.current_state=.
 ***** WISH_LIST Perhaps unsafe.
-** Predicates and Actions
-Predicates and Actions are very similar to each other.
+** Predicates and Moves
+Predicates and Moves are very similar to each other.
 *** TODO TeX-enabled predicates/actions
-Create a class for =Predicate= and =Action= that both inherit from
+Create a class for =Predicate= and =Move= that both inherit from
 =TeXableEntity=.  We should be able to attach TeX documentation to
 rules and predicates so that we can have a nice display of the entity.
 
@@ -391,13 +391,13 @@ This could also be useful in export.
       >>> predicate(G, some_node)                   # doctest: +SKIP
       True
 #+END_SRC
-*** Actions
+*** Moves
 :PROPERTIES:
 :ID:       03B2B5CE-6839-4400-ABC3-1E16764142A8
 :END:
-#+BEGIN_SRC python :tangle "ssa/core/Action.py"
+#+BEGIN_SRC python :tangle "ssa/core/Move.py"
   from TeXableEntity import TeXableEntity
-  class Action(TeXableEntity):
+  class Move(TeXableEntity):
       """A function from G, v -> G'
   
       <<class action documentation>>
@@ -418,7 +418,7 @@ This could also be useful in export.
 #+BEGIN_SRC markdown
   Create an action like so:
   
-      >>> action = Action(lambda G, v: v['marked'] = True,
+      >>> action = Move(lambda G, v: v['marked'] = True,
                           'v.marked \gets True',
                           'Marks $v$')
   
@@ -430,9 +430,9 @@ This could also be useful in export.
       >>> action.TeX
       'v.marked \gets True'
   
-  You can also *call* `Action` objects, passing a graph and node as
+  You can also *call* `Move` objects, passing a graph and node as
   arguments.  This functionality is deferred to the member function
-  `Action.action`.
+  `Move.action`.
 #+END_SRC
 ** Self-Stabilizing Algorithm
 :PROPERTIES:
@@ -574,7 +574,7 @@ old code
 #+BEGIN_SRC python :tangle "ssa/core/Algorithm.py"
   from ssa.core import TeXableEntity
   from ssa.core import Predicate
-  from ssa.core import Action
+  from ssa.core import Move
   class Algorithm(TeXableEntity):
       """A self-stabilizing algorithm
   
