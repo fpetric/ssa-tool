@@ -10,7 +10,7 @@ check:
 	$(info If this kind of thing bothers you (e.g. epileptic), do not look at this test.)
 	$(info At any rate, these tests are designed to be unattended.)
 	$(info Press enter to confirm that you have read this message, or Ctrl-C out.)
-	read response
+	@read response
 	nosetests --with-doctest
 
 clean:
