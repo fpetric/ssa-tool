@@ -1,32 +1,3 @@
-paper:
-	cd paper && xelatex        smp > /dev/null
-	cd paper && makeglossaries smp > /dev/null
-	cd paper && biber          smp > /dev/null
-	cd paper && xelatex        smp > /dev/null
-	cd paper && xelatex        smp > /dev/null
-	cd paper && xelatex        smp > /dev/null
-
-cleanpaper:
-	cd paper && rm -f *.aux        # tex
-	cd paper && rm -f *.bbl        # biber
-	cd paper && rm -f *.bcf        # biber
-	cd paper && rm -f *.blg        # biber
-	cd paper && rm -f *.glg        # makeglossaries
-	cd paper && rm -f *.glo        # makeglossaries
-	cd paper && rm -f *.gls        # makeglossaries
-	cd paper && rm -f *.idx        # xindy
-	cd paper && rm -f *.ilg        # xindy
-	cd paper && rm -f *.ind        # xindy
-	cd paper && rm -f *.log        # tex
-	cd paper && rm -f *.out        # tex
-	cd paper && rm -f *.run.xml    # biber
-	cd paper && rm -f *.toc        # tex
-	cd paper && rm -f *.xdv        # tex
-	cd paper && rm -f *.xdy        # xindy
-	cd paper && rm -f *~           # emacs
-	cd paper/sections && rm -f *.aux
-	cd paper/sections && rm -f *~
-
 documentation:
 	$(info No prepared documentation yet)
 	$(info See src/ssa.org)
