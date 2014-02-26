@@ -23,6 +23,7 @@ class Move:
     """
     #% move %#
     def __init__(self, move):
+        assert(len(inspect.getargspec(move).args) is 2)
         self.move = move
 
     def __call__(self, graph, node):

@@ -571,27 +571,88 @@ old code
               return graph
 #+END_SRC
 ** TODO Algorithm
+:PROPERTIES:
+:ID:       FC377C0B-CAA7-4AD2-B997-5BE5097C3256
+:END:
 #+BEGIN_SRC python :tangle "ssa/core/Algorithm.py"
-  from ssa.core import TeXableEntity
-  from ssa.core import Predicate
-  from ssa.core import Move
-  class Algorithm(TeXableEntity):
+  import inspect
+  import TeXableEntity
+  import Predicate
+  import Move
+  
+  class Algorithm:
       """A self-stabilizing algorithm
   
       <<class algorithm documentation>>
       """
-      def __init__(self, TeX,
-                         doc,
-                         pa):
+      #% algorithm %#
+      def __init__(self, TeX, doc, ruleset):
           self.TeX = TeX
           self.doc = doc
-          self.pa  = pa
+          self.ruleset = ruleset
+      #% endalgorithm %#
   
+          <<class algorithm ensure moveset is proper>>
+    
       <<class algorithm run>>
-
+  
       <<class algorithm stability>>
-
+  
       <<class algorithm construction>>
+#+END_SRC
+*** Ensuring a Proper Data-Structure
+:PROPERTIES:
+:noweb-ref: class algorithm ensure moveset is proper
+:END:
+We assume that =self.ruleset= is a dictionary structure that
+correlates to the mathematical definition---something like the
+following:
+#+BEGIN_SRC python :tangle no :noweb-ref nil
+  some_predicate = lambda n, N: True
+  some_move = lambda n, N: n, N
+  
+  #% algorithm-example-moveset %#
+  moveset = {
+      some_predicate: [some_move, some_move],
+      some_predicate: [some_move, some_move, some_move],
+      some_predicate: [some_move]
+  }
+  #% end-algorithm-example-moveset %#
+#+END_SRC
+We require that every key in the =moveset= be a callable object, as a
+=Predicate= would be.  (Keeping in style with 'duck typing' dictates
+that we only check for the behavior's existence.)
+
+So, we first ensure that =moveset= is a mapping type.
+#+BEGIN_SRC python
+  assert(hasattr(self.ruleset, '__getitem__'))
+#+END_SRC
+Note: if we wanted to ensure it was also nonempty, we can add the
+following line:
+#+BEGIN_SRC python :tangle no :noweb-ref nil
+  assert(hasattr(self.ruleset, '__len__') and len(self.ruleset > 0))
+#+END_SRC
+We then ensure that every single 'key' is callable,
+#+BEGIN_SRC python
+  assert(all(map(lambda p: hasattr(p, '__call__'),
+                 self.ruleset)))
+#+END_SRC
+and takes exactly two arguments.
+#+BEGIN_SRC python
+  assert(all(map(lambda p: len(inspect.getargspec(p).args) is 2,
+                 self.ruleset)))
+#+END_SRC
+
+Now we must go through every value for each key to ensure that
+- the value is a collection type
+- every entry in the value is a callable function of two arguments
+#+BEGIN_SRC python
+  for predicate in self.ruleset:
+      moves = self.ruleset[predicate]
+      assert(hasattr(moves, '__getitem__'))
+      assert(all(map(lambda move: hasattr(move, '__call__') and
+                                  len(inspect.getargspec(move).args) is 2,
+                     moves)))
 #+END_SRC
 *** Running the Algorithm
 :PROPERTIES:

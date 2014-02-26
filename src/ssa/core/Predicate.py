@@ -50,8 +50,11 @@ class Predicate:
            >>> predicate(G, some_node)                   # doctest: +SKIP
            True
     """
+    #% predicate %#
     def __init__(self, predicate):
+        assert(len(inspect.getargspec(predicate).args) is 2)
         self.predicate = predicate
 
-    def __call__(self, graph, node):
-        return self.predicate(graph, node)
+    def __call__(self, node, neighborhood):
+        return bool(self.predicate(node, neighborhood))
+    #% endpredicate %#

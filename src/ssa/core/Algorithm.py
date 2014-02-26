@@ -1,19 +1,33 @@
 
-from ssa.core import TeXableEntity
-from ssa.core import Predicate
-from ssa.core import Action
-class Algorithm(TeXableEntity):
+import inspect
+import TeXableEntity
+import Predicate
+import Move
+
+class Algorithm:
     """A self-stabilizing algorithm
 
     
     """
-    def __init__(self, TeX,
-                       doc,
-                       pa):
+    #% algorithm %#
+    def __init__(self, TeX, doc, ruleset):
         self.TeX = TeX
         self.doc = doc
-        self.pa  = pa
+        self.ruleset = ruleset
+    #% endalgorithm %#
 
+        assert(hasattr(self.ruleset, '__getitem__'))
+        assert(all(map(lambda p: hasattr(p, '__call__'),
+                       self.ruleset)))
+        assert(all(map(lambda p: len(inspect.getargspec(p).args) is 2,
+                       self.ruleset)))
+        for predicate in self.ruleset:
+            moves = self.ruleset[predicate]
+            assert(hasattr(moves, '__getitem__'))
+            assert(all(map(lambda move: hasattr(move, '__call__') and
+                                        len(inspect.getargspec(move).args) is 2,
+                           moves)))            
+  
     def run(self, graph, count=1):
         """Run the algorithm `n` times.
     
