@@ -1,6 +1,5 @@
 
-from TeXableEntity import TeXableEntity
-class Predicate(TeXableEntity):
+class Predicate:
     """A function from G, v -> {True, False}
 
        A `Predicate` consists of two parts:
@@ -51,10 +50,7 @@ class Predicate(TeXableEntity):
            >>> predicate(G, some_node)                   # doctest: +SKIP
            True
     """
-    def __init__(self, predicate = lambda graph, node: True,
-                       as_TeX    = None,
-                       doc       = None):
-        TeXableEntity.__init__(self, as_TeX, doc)
+    def __init__(self, predicate):
         self.predicate = predicate
 
     def __call__(self, graph, node):

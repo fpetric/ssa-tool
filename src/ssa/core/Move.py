@@ -1,6 +1,6 @@
 
-from TeXableEntity import TeXableEntity
-class Move(TeXableEntity):
+import inspect
+class Move:
     """A function from G, v -> G'
 
     Create an action like so:
@@ -22,10 +22,7 @@ class Move(TeXableEntity):
     `Move.action`.
     """
     #% move %#
-    def __init__(self, move = lambda node, neighborhood: node, neighborhood,
-                       as_TeX = None,
-                       doc    = None):
-        TeXableEntity.__init__(self, as_TeX, doc)
+    def __init__(self, move):
         self.move = move
 
     def __call__(self, graph, node):
