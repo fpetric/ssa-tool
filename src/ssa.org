@@ -317,25 +317,26 @@ Create a class for =Predicate= and =Move= that both inherit from
 rules and predicates so that we can have a nice display of the entity.
 
 This could also be useful in export.
-*** Predicates
+*** TODO Predicates [0/1]
 :PROPERTIES:
 :ID:       0DD0C7C1-F462-4F1B-B5C9-E9418CAA8E99
 :END:
+- [ ] Update documentation to reflect new arguments (no longer
+  function of graph)
 #+BEGIN_SRC python :tangle "ssa/core/Predicate.py"
-  from TeXableEntity import TeXableEntity
-  class Predicate(TeXableEntity):
+  class Predicate:
       """A function from G, v -> {True, False}
-
+  
          <<class predicate documentation>>
       """
-      def __init__(self, predicate = lambda graph, node: True,
-                         as_TeX    = None,
-                         doc       = None):
-          TeXableEntity.__init__(self, as_TeX, doc)
+      #% predicate %#
+      def __init__(self, predicate):
+          assert(len(inspect.getargspec(predicate).args) is 2)
           self.predicate = predicate
   
-      def __call__(self, graph, node):
-          return self.predicate(graph, node)
+      def __call__(self, node, neighborhood):
+          return bool(self.predicate(node, neighborhood))
+      #% endpredicate %#
 #+END_SRC
 **** Online Documentation
 :PROPERTIES:
@@ -396,20 +397,20 @@ This could also be useful in export.
 :ID:       03B2B5CE-6839-4400-ABC3-1E16764142A8
 :END:
 #+BEGIN_SRC python :tangle "ssa/core/Move.py"
-  from TeXableEntity import TeXableEntity
-  class Move(TeXableEntity):
+  import inspect
+  class Move:
       """A function from G, v -> G'
   
       <<class action documentation>>
       """
-      def __init__(self, action = lambda graph, node: graph,
-                         as_TeX = None,
-                         doc    = None):
-          TeXableEntity.__init__(self, as_TeX, doc)
+      #% move %#
+      def __init__(self, move):
+          assert(len(inspect.getargspec(move).args) is 2)
           self.move = move
   
       def __call__(self, graph, node):
           return self.move(graph, node)
+      #% endmove %#
 #+END_SRC
 **** Online Documentation
 :PROPERTIES:
