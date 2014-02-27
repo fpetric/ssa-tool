@@ -577,9 +577,6 @@ old code
 :END:
 #+BEGIN_SRC python :tangle "ssa/core/Algorithm.py"
   import inspect
-  import TeXableEntity
-  import Predicate
-  import Move
   
   class Algorithm:
       """A self-stabilizing algorithm
@@ -587,9 +584,7 @@ old code
       <<class algorithm documentation>>
       """
       #% algorithm %#
-      def __init__(self, TeX, doc, ruleset):
-          self.TeX = TeX
-          self.doc = doc
+      def __init__(self, ruleset):
           self.ruleset = ruleset
       #% endalgorithm %#
   

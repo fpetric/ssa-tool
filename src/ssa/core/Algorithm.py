@@ -1,8 +1,5 @@
 
 import inspect
-import TeXableEntity
-import Predicate
-import Move
 
 class Algorithm:
     """A self-stabilizing algorithm
@@ -10,9 +7,7 @@ class Algorithm:
     
     """
     #% algorithm %#
-    def __init__(self, TeX, doc, ruleset):
-        self.TeX = TeX
-        self.doc = doc
+    def __init__(self, ruleset):
         self.ruleset = ruleset
     #% endalgorithm %#
 
