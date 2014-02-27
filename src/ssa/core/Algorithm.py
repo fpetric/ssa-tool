@@ -16,18 +16,20 @@ class Algorithm:
         self.ruleset = ruleset
     #% endalgorithm %#
 
-        assert(hasattr(self.ruleset, '__getitem__'))
-        assert(all(map(lambda p: hasattr(p, '__call__'),
-                       self.ruleset)))
-        assert(all(map(lambda p: len(inspect.getargspec(p).args) is 2,
-                       self.ruleset)))
+        #% algorithm-ruleset-assertions %#
+        assert hasattr(self.ruleset, '__getitem__')
+        assert all(map(lambda p: hasattr(p, '__call__'),
+                       self.ruleset))
+        assert all(map(lambda p: Algorithm.is_valid_function(p),
+                       self.ruleset))
         for predicate in self.ruleset:
             moves = self.ruleset[predicate]
-            assert(hasattr(moves, '__getitem__'))
-            assert(all(map(lambda move: hasattr(move, '__call__') and
-                                        len(inspect.getargspec(move).args) is 2,
-                           moves)))            
-  
+            assert hasattr(moves, '__getitem__')
+            assert all(map(lambda m: hasattr(m, '__call__') and
+                                     Algorithm.is_valid_function(m),
+                           moves))
+        #% end-algorithm-ruleset-assertions %#
+
     def run(self, graph, count=1):
         """Run the algorithm `n` times.
     
@@ -42,3 +44,8 @@ class Algorithm:
     
         This function runs `Algorithm.run` twice."""
         pass
+
+    
+  
+    def is_valid_function(function):
+        return len(inspect.getargspec(function).args) is 2

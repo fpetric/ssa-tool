@@ -331,7 +331,7 @@ This could also be useful in export.
       """
       #% predicate %#
       def __init__(self, predicate):
-          assert(len(inspect.getargspec(predicate).args) is 2)
+          assert len(inspect.getargspec(predicate).args) is 2
           self.predicate = predicate
   
       def __call__(self, node, neighborhood):
@@ -405,7 +405,7 @@ This could also be useful in export.
       """
       #% move %#
       def __init__(self, move):
-          assert(len(inspect.getargspec(move).args) is 2)
+          assert len(inspect.getargspec(move).args) is 2
           self.move = move
   
       def __call__(self, graph, node):
@@ -593,13 +593,17 @@ old code
           self.ruleset = ruleset
       #% endalgorithm %#
   
+          #% algorithm-ruleset-assertions %#
           <<class algorithm ensure moveset is proper>>
-    
+          #% end-algorithm-ruleset-assertions %#
+  
+      <<class algorithm construction>>
+  
       <<class algorithm run>>
   
       <<class algorithm stability>>
-  
-      <<class algorithm construction>>
+    
+      <<class algorithm miscellaneous>>
 #+END_SRC
 *** Ensuring a Proper Data-Structure
 :PROPERTIES:
@@ -626,22 +630,22 @@ that we only check for the behavior's existence.)
 
 So, we first ensure that =moveset= is a mapping type.
 #+BEGIN_SRC python
-  assert(hasattr(self.ruleset, '__getitem__'))
+  assert hasattr(self.ruleset, '__getitem__')
 #+END_SRC
 Note: if we wanted to ensure it was also nonempty, we can add the
 following line:
 #+BEGIN_SRC python :tangle no :noweb-ref nil
-  assert(hasattr(self.ruleset, '__len__') and len(self.ruleset > 0))
+  assert hasattr(self.ruleset, '__len__') and len(self.ruleset > 0)
 #+END_SRC
 We then ensure that every single 'key' is callable,
 #+BEGIN_SRC python
-  assert(all(map(lambda p: hasattr(p, '__call__'),
-                 self.ruleset)))
+  assert all(map(lambda p: hasattr(p, '__call__'),
+                 self.ruleset))
 #+END_SRC
 and takes exactly two arguments.
 #+BEGIN_SRC python
-  assert(all(map(lambda p: len(inspect.getargspec(p).args) is 2,
-                 self.ruleset)))
+  assert all(map(lambda p: Algorithm.is_valid_function(p),
+                 self.ruleset))
 #+END_SRC
 
 Now we must go through every value for each key to ensure that
@@ -650,10 +654,18 @@ Now we must go through every value for each key to ensure that
 #+BEGIN_SRC python
   for predicate in self.ruleset:
       moves = self.ruleset[predicate]
-      assert(hasattr(moves, '__getitem__'))
-      assert(all(map(lambda move: hasattr(move, '__call__') and
-                                  len(inspect.getargspec(move).args) is 2,
-                     moves)))
+      assert hasattr(moves, '__getitem__')
+      assert all(map(lambda m: hasattr(m, '__call__') and
+                               Algorithm.is_valid_function(m),
+                     moves))
+#+END_SRC
+**** Knowing what function
+:PROPERTIES:
+:noweb-ref: class algorithm miscellaneous
+:END:
+#+BEGIN_SRC python
+  def is_valid_function(function):
+      return len(inspect.getargspec(function).args) is 2
 #+END_SRC
 *** Running the Algorithm
 :PROPERTIES:

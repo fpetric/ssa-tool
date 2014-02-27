@@ -52,7 +52,7 @@ class Predicate:
     """
     #% predicate %#
     def __init__(self, predicate):
-        assert(len(inspect.getargspec(predicate).args) is 2)
+        assert len(inspect.getargspec(predicate).args) is 2
         self.predicate = predicate
 
     def __call__(self, node, neighborhood):
