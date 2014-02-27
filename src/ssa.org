@@ -1084,7 +1084,7 @@ with =range= taking place of =int(...)=.
           G.add_edge(src, dst)
 #+END_SRC
 ** On-screen animation
-** Step-by-Step TeX Print-Outs
+** COMMENT Step-by-Step TeX Print-Outs
 * Tests
 We will be using the Nose toolset for automated testing.
 #+BEGIN_SRC python :noweb-ref "common imports for testing"
@@ -1265,3 +1265,7 @@ and now to test generators:
       g = generators.random_graph(15, weight=gen_in_range(10, 20))
       assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
 #+END_SRC
+* TODO Items [0/1]
+- [ ] make logical representations not depend on TeX or any
+  documentation, but rather extend one into the other using multiple
+  inheritance.
