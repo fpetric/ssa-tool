@@ -1275,6 +1275,30 @@ and now to test generators:
       g = generators.random_graph(15, weight=gen_in_range(10, 20))
       assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
 #+END_SRC
+** Practical Test
+#+BEGIN_SRC python :tangle "src/test.py"
+  from ssa.core import *
+  from ssa.simulation.generators import random_graph
+  
+  import networkx
+  
+  G = random_graph(5, marked='bool(.25)')
+  
+  def read_neighbors(G, n):
+      return {n: G.node[n] for n in G.neighbors(n)}
+  
+  n = G.nodes()[1]
+  print(repr(read_neighbors(G, n)))
+  
+  def is_marked_alone(node, neighborhood=None):
+      if node['marked']:
+          for n in neighborhood:
+              if n['marked']:
+                  return n
+          else:
+              return True
+      return False
+#+END_SRC
 * TODO Items [0/1]
 - [ ] make logical representations not depend on TeX or any
   documentation, but rather extend one into the other using multiple
