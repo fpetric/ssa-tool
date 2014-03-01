@@ -591,7 +591,8 @@ the function to simply update the node and neighborhood itself.)
 #+END_SRC
 Add this entire debacle to the history.
 #+BEGIN_SRC python
-  history.add((node, neighborhood, next_move, new_node, new_neighborhood))
+  history.add((    node,     neighborhood, next_move,
+               new_node, new_neighborhood))
 #+END_SRC
 ***** TODO Can a move cause a node to write to its neighbors?
 ***** Is This Node Privileged?
