@@ -25,6 +25,8 @@ class Algorithm:
                            moves))
         #% end-algorithm-ruleset-assertions %#
 
+
+
     def run(self, graph, count=1):
         """Run the algorithm `count` times.
     
@@ -34,6 +36,7 @@ class Algorithm:
     
         history = None
         while count > 0:
+            #% daemon-run-once %#
             privileged_nodes = dict()
             for node in graph.nodes:
                 neighborhood = graph.neighbors(node)
@@ -49,14 +52,13 @@ class Algorithm:
             next_move = random.choice(self.ruleset[satisfied_predicate])
             new_node, new_neighborhood = next_move(node, neighborhood)
             history.add((node, neighborhood, next_move, new_node, new_neighborhood))
+            #% end-daemon-run-once %#
 
     def has_stabilized(self):
         """Returns True if the graph has stabilized.
     
         This function runs `Algorithm.run` twice."""
         pass
-
-    
   
     def is_valid_function(function):
         return len(inspect.getargspec(function).args) is 2

@@ -475,13 +475,13 @@ following:
   some_predicate = lambda n, N: True
   some_move = lambda n, N: n, N
   
-  #% algorithm-example-moveset %#
+  #% algorithm-ruleset-ex %#
   moveset = {
       some_predicate: [some_move, some_move],
       some_predicate: [some_move, some_move, some_move],
       some_predicate: [some_move]
   }
-  #% end-algorithm-example-moveset %#
+  #% end-algorithm-ruleset-ex %#
 #+END_SRC
 We require that every key in the =moveset= be a callable object, as a
 =Predicate= would be.  (Keeping in style with 'duck typing' dictates
@@ -534,6 +534,7 @@ Since algorithms may take many iterations to converge, the following
 function is provided in such a way so that it can take a number of
 times to execute the algorithm.  This value defaults to 1.
 #+BEGIN_SRC python
+  #% daemon-run %#
   def run(self, graph, count=1):
       """Run the algorithm `count` times.
   
@@ -544,6 +545,7 @@ times to execute the algorithm.  This value defaults to 1.
       history = None
       while count > 0:
           <<class algorithm run once>>
+  #% end-daemon-run %#
 #+END_SRC
 **** Running it Once
 :PROPERTIES:
@@ -561,16 +563,20 @@ graph, find its neighborhood, and then see if the node (with its
 neighborhood) is privileged.  (Remember that privileges are functions
 of a node and its neighborhood.)
 #+BEGIN_SRC python
+  #% daemon-find-privileged-nodes %#
   for node in graph.nodes:
       neighborhood = graph.neighbors(node)
       <<class algorithm run is node privileged>>
+  #% end-daemon-find-privileged-nodes %#
 #+END_SRC
 Once we have this collection of all privileged nodes, we pick a random
 node and get a random predicate that it satisfies.
 #+BEGIN_SRC python
+  #% daemon-pick-predicate %#
   node = random.choice(privileged_nodes)
   neighborhood = graph.neighbors(node)
   satisfied_predicate = random.choice(privileged_nodes[node])
+  #% end-daemon-pick-predicate %#
 #+END_SRC
 We then take our chosen predicate, access the moves that it implies,
 and get a random one, calling it =next_move=.  We then use this move
@@ -578,8 +584,10 @@ on the node and its neighborhood to receive an updated node and
 neighborhood.  (Note that, in practice, it will make more sense for
 the function to simply update the node and neighborhood itself.)
 #+BEGIN_SRC python
+  #% daemon-apply-move %#
   next_move = random.choice(self.ruleset[satisfied_predicate])
   new_node, new_neighborhood = next_move(node, neighborhood)
+  #% end-daemon-apply-move %#
 #+END_SRC
 Add this entire debacle to the history.
 #+BEGIN_SRC python
@@ -596,12 +604,14 @@ keys are =Predicate= values).  If the predicate is true for this node
 and its neighborhood, at it to the dictionary (inserting a new value
 if necessary).
 #+BEGIN_SRC python
+  #% daemon-get-privileges %#
   for predicate in self.ruleset:
       if predicate(node, neighborhood):
           if node in privileged_nodes:
               privileged_nodes[node] += predicate
           else:
               privileged_nodes[node] = [predicate]
+  #% end-daemon-get-privileges %#
 #+END_SRC
 *** Stability Analysis
 **** Determining if the Algorithm has Stabilized
