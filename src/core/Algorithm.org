@@ -8,8 +8,12 @@
 :PROPERTIES:
 :ID:       78B5126E-F0DB-4231-8BA0-B9D8BC3ED824
 :END:
-#+BEGIN_SRC python :tangle "../ssa/core/Algorithm.py" :noweb tangle
+The =Algorithm= class is simply defined as a ruleset
+#+BEGIN_SRC python :tangle "Algorithm.py" :noweb tangle
   <<imports>>
+
+  <<documentation parsing>>
+  <<predicates and moves>>
   
   class Algorithm:
       """A self-stabilizing algorithm
@@ -30,6 +34,150 @@
       <<stability>>
       <<miscellaneous>>
 #+END_SRC
+* Documentation Parsing
+:PROPERTIES:
+:noweb-ref: documentation parsing
+:END:
+#+BEGIN_SRC python
+  def parsedoc(symbol):
+      """Parses documentation
+      """
+      try:
+          doc_lines = [s.strip() for s in symbol.__doc__.split('\n')]
+          idx = doc_lines.index('')
+  
+          name = '\n'.join(doc_lines[:idx])
+          newidx = doc_lines.index('',idx+1)
+  
+          tex = '\n'.join(doc_lines[idx+1:newidx])
+          human = '\n'.join(doc_lines[newidx+1:])
+      except:
+          print(locals())
+  
+      return { 'name':       name.strip(),
+               'doc tex':     tex.strip(),
+               'doc human': human.strip()
+           }
+#+END_SRC
+* Predicates and Moves
+:PROPERTIES:
+:noweb-ref: predicates and moves
+:END:
+** Predicates
+Predicates and moves are simply functions that have associated
+meta-data.  Since this meta-data is sort of 'extra' on top of what a
+self-stabilizing algorithm /needs/ to be, predicates and moves are
+distinguished by Python /decorators/.
+#+BEGIN_SRC python
+  def predicate(author, version, **others):
+      """Marks a function as a predicate, providing metadata.
+  
+      <<predicate documentation>>
+      """
+      def _predicate(func):
+          func.meta = {
+              'author':  author,
+              'version': version
+          }
+          func.meta.update(parsedoc(func))
+          func.meta.update(others)
+          return func
+      return _predicate
+#+END_SRC
+*** Online Documentation
+:PROPERTIES:
+:noweb-ref: predicate documentation
+:END:
+#+BEGIN_SRC markdown
+  Consider an example:
+  
+      >>> @predicate(author  = 'Sean Allred',
+      ...            version = '1.0',
+      ...            custom_key = 'foo')
+      ... def all_neighbors_marked(this_node, neighbors):
+      ...     <<predicate documentation example function>>
+  
+  This will set various meta-data in a member dictionary called `meta`:
+  
+      >>> all_neighbors_marked.meta['author']
+      'Sean Allred'
+      >>> all_neighbors_marked.meta['version']
+      '1.0'
+      >>> all_neighbors_marked.meta['custom_key']
+      'foo'
+#+END_SRC
+**** Function Definition
+:PROPERTIES:
+:noweb-ref: predicate documentation example function
+:END:
+#+BEGIN_SRC python
+  '''all neighbors are marked
+    
+  \forall u in N(v) "marked"(u) = 0
+    
+  Each node in the neighborhood of the current
+  node is unmarked.
+  '''
+  
+  for u in neighbors:
+      if u['marked']:
+          return False
+  return True
+#+END_SRC
+** Move
+#+BEGIN_SRC python
+  def move(author, version, **others):
+      """Marks a function as a move, providing metadata.
+  
+      <<move documentation>>
+      """
+      def _move(func):
+          func.meta = {
+              'author':  author,
+              'version': version
+          }
+          func.meta.update(parsedoc(func))
+          func.meta.update(others)
+          return func
+      return _move
+#+END_SRC
+*** Online Documentation
+:PROPERTIES:
+:noweb-ref: move documentation
+:END:
+#+BEGIN_SRC markdown
+  Consider an example:
+  
+      >>> @move(author = 'Sean Allred',
+      ...      version = '1.0',
+      ...   custom_key = 'foo')
+      ... def mark_this_node(this_node, neighbors):
+      ...     <<move documentation example function>>
+  
+  This will set various meta-data in a member dictionary called `meta`:
+  
+      >>> mark_this_node.meta['author']
+      'Sean Allred'
+      >>> mark_this_node.meta['version']
+      '1.0'
+      >>> mark_this_node.meta['custom_key']
+      'foo'
+#+END_SRC
+**** Function Definition
+:PROPERTIES:
+:noweb-ref: move documentation example function
+:END:
+#+BEGIN_SRC python
+  '''mark this node
+    
+  "marked"(n) = 1
+    
+  Mark this node.
+  '''
+  
+  u['marked'] = True
+#+END_SRC
+
 * Ensuring a Proper Data-Structure
 :PROPERTIES:
 :noweb-ref: ensure moveset is proper
@@ -205,10 +353,10 @@ following is provided for completeness.
           self.run(graph)
 #+END_SRC
 * Tests
-  :PROPERTIES:
-  :ID:       07052652-FE3B-43BC-B448-5A5478626532
-  :END:
-#+BEGIN_SRC python :tangle "../tests/algorithm_test.py"
+:PROPERTIES:
+:ID:       07052652-FE3B-43BC-B448-5A5478626532
+:END:
+#+BEGIN_SRC python :tangle "Algorithm_test.py"
   import sys
   sys.path.append('/Users/sean/Dropbox/smp/src')
   
@@ -250,9 +398,9 @@ Using the generators module, we can create a few random graphs quite easily.
   <<independent set>>
 #+END_SRC
 *** Independent Set
-    :PROPERTIES:
-    :noweb-ref: independent set
-    :END:
+:PROPERTIES:
+:noweb-ref: independent set
+:END:
 #+BEGIN_SRC python
   def node_should_mark(node, neighborhood):
       """"marked"(n) = 1 \land \exists v \in N(n) : "marked"(v) = 1

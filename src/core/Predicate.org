@@ -8,9 +8,8 @@
 :PROPERTIES:
 :ID:       3F2710C6-61CC-49BF-A727-9A0AEE796196
 :END:
-- [ ] Update documentation to reflect new arguments (no longer
-  function of graph)
-#+BEGIN_SRC python :tangle "../ssa/core/Predicate.py"
+#+BEGIN_SRC python :tangle "Predicate.py"
+  from Documentation import Documentation
   class Predicate:
       """A function from G, v -> {True, False}
   
@@ -20,11 +19,100 @@
       def __init__(self, predicate):
           assert len(inspect.getargspec(predicate).args) is 2
           self.predicate = predicate
+          self.doc = Documentation.parse(self.predicate)
   
       def __call__(self, node, neighborhood):
           return bool(self.predicate(node, neighborhood))
       #% endpredicate %#
+      
+      def __str__(self):
+          import inspect
+          return inspect.getsource(self.predicate)
 #+END_SRC
+* Function Meta-Data
+:PROPERTIES:
+:ID:       03B4599D-8052-4C0D-939D-2A2E2B0B947B
+:END:
+We can represent function meta-data through the use of decorators.
+
+#+BEGIN_SRC python
+  @predicate(author  = 'Sean Allred',
+             version = '1.0')
+  def all_neighbors_marked(this_node, neighbors):
+      """\forall u in N(v) "marked"(u) = 0
+      
+      Each node in the neighborhood of the current
+      node is unmarked.
+      """
+      
+      for u in neighbors:
+          if u['marked']:
+              return False
+      return True
+#+END_SRC
+Date is retrieved by file touch date.
+
+To keep all the data needed in the source file, we can use function
+decorators.  This decorator takes two arguments --- =author= and
+=version= --- and sets them as metadata for the function.
+#+BEGIN_SRC python
+  def predicate(author, version, **others):
+      def _predicate(func):
+          func.meta = {
+              'author':  author,
+              'version': version
+          }
+          func.meta.update(others)
+          return func
+      return _predicate
+#+END_SRC
+
+* File I/O
+Consider the example file below:
+#+BEGIN_SRC xml
+  <ssa:save version = "1.0">
+  <ssa:predicate name = "All Neighbors Marked"
+        function-name = "all_neighbors_marked"
+             node-arg = "this_node"
+     neighborhood-arg = "neighbors">
+    <ssa:documentation>
+      <ssa:tex>
+        \forall u in N(v) "marked"(u) = 0
+      </ssa:tex>
+      <ssa:human>
+        Each node in the neighborhood of
+        the current node is unmarked.
+      </ssa:human>
+    </ssa:documentation>
+    <ssa:function-body>
+  return all(map(lambda u: not u['marked'], neighbors))
+    </ssa:function-body>
+  </ssa:predicate>
+  </ssa:save>
+#+END_SRC
+We must be able to write this /and/ read this stuff.
+** Writing
+:PROPERTIES:
+:ID:       CA789DAD-C09A-4389-8223-9EA47054D74D
+:END:
+We are passed in the path of a temporary file containing the function
+definition as it should be parsed.
+#+BEGIN_SRC python :tangle "test_input.py"
+  def all_neighbors_marked(this_node, neighbors):
+      """\forall u in N(v) "marked"(u) = 0
+  
+      Each node in the neighborhood of the current
+      node is unmarked.
+      """
+  
+      for u in neighbors:
+          if u['marked']:
+              return False
+      return True
+#+END_SRC
+So let's read it in.
+
+
 * Online Documentation
 :PROPERTIES:
 :noweb-ref: class predicate documentation
@@ -33,32 +121,31 @@
 #+BEGIN_SRC markdown
   A `Predicate` consists of two parts:
   
-    - documentation (both TeXnical and human-readable)
+    - some documentation (both TeXnical and human-readable), and
+    - a predicate function, which can be a pure 'lambda' function:
   
-          >>> TeX_documentation   = 'G, v \mapsto \dots'
-          >>> human_documentation = 'Returns true when $v$ has' +
-                                    'more than one marked neighbor.'
+          >>> lambda_predicate = lambda v, N: len(N) < 4
   
-    - predicate function, which can be a pure 'lambda' function:
+      or the name of a full-on function that has been defined:
   
-          >>> lambda_predicate = lambda G, v: v in G
-  
-      or the name of a full-on function:
-  
-          >>> def fulldef_predicate(graph, node):
+          >>> def fulldef_predicate(node, neighbors):
+          ...     """G, v \mapsto \dots
+          ...
+          ...     Returns true when $v$ has more than one
+          ...     marked neighbor.
+          ...     """
           ...     number_marked = 0
-          ...     for neighbor in graph.neighbors(node):
-          ...         if neighbor.marked:
+          ...     for neighbor in neighbors:
+          ...         if neighbor['marked']:
           ...             number_marked += 1
           ...         if number_marked > 1:
           ...             return True
           ...     return False
   
-  We can create a `Predicate` object using these three parts like so:
+  We can create a `Predicate` object using just the function definition
+  like so:
   
-      >>> predicate = Predicate(fulldef_predicate,
-      ...                       TeX_documentation,
-      ...                       human_documentation)
+      >>> predicate = Predicate(fulldef_predicate)
   
   Our `Predicate` object will now behave like a function, able to be
   called with two arguments (a graph and a node) for a natural feel.
