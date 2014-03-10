@@ -1,0 +1,276 @@
+#+TITLE: Self-Stabilizing Algorithm
+#+AUTHOR: Sean Allred
+#+DATE: [2014-03-09 Sun]
+
+#+PROPERTY: noweb tangle
+
+* Overview
+:PROPERTIES:
+:ID:       78B5126E-F0DB-4231-8BA0-B9D8BC3ED824
+:END:
+#+BEGIN_SRC python :tangle "../ssa/core/Algorithm.py" :noweb tangle
+  <<imports>>
+  
+  class Algorithm:
+      """A self-stabilizing algorithm
+  
+      <<documentation>>
+      """
+      #% algorithm %#
+      def __init__(self, ruleset):
+          self.ruleset = ruleset
+      #% endalgorithm %#
+  
+          #% algorithm-ruleset-assertions %#
+          <<class algorithm ensure moveset is proper>>
+          #% end-algorithm-ruleset-assertions %#
+  
+      <<construction>>
+      <<run>>
+      <<stability>>
+      <<miscellaneous>>
+#+END_SRC
+* Ensuring a Proper Data-Structure
+:PROPERTIES:
+:noweb-ref: ensure moveset is proper
+:END:
+We assume that =self.ruleset= is a dictionary structure that
+correlates to the mathematical definition---something like the
+following:
+#+BEGIN_SRC python :tangle no :noweb-ref nil
+  some_predicate = lambda n, N: True
+  some_move = lambda n, N: n, N
+  
+  #% algorithm-ruleset-ex %#
+  ruleset = {
+      some_predicate: [some_move, some_move],
+      some_predicate: [some_move, some_move, some_move],
+      some_predicate: [some_move]
+  }
+  #% end-algorithm-ruleset-ex %#
+#+END_SRC
+We require that every key in the =moveset= be a callable object, as a
+=Predicate= would be.  (Keeping in style with 'duck typing' dictates
+that we only check for the behavior's existence.)
+
+So, we first ensure that =moveset= is a mapping type.
+#+BEGIN_SRC python
+  assert hasattr(self.ruleset, '__getitem__')
+#+END_SRC
+Note: if we wanted to ensure it was also nonempty, we can add the
+following line:
+#+BEGIN_SRC python :tangle no :noweb-ref nil
+  assert hasattr(self.ruleset, '__len__') and len(self.ruleset > 0)
+#+END_SRC
+We then ensure that every single 'key' is callable,
+#+BEGIN_SRC python
+  assert all(map(lambda p: hasattr(p, '__call__'),
+                 self.ruleset))
+#+END_SRC
+and takes exactly two arguments.
+#+BEGIN_SRC python
+  assert all(map(lambda p: Algorithm.is_valid_function(p),
+                 self.ruleset))
+#+END_SRC
+
+Now we must go through every value for each key to ensure that
+- the value is a collection type
+- every entry in the value is a callable function of two arguments
+#+BEGIN_SRC python
+  for predicate in self.ruleset:
+      moves = self.ruleset[predicate]
+      assert hasattr(moves, '__getitem__')
+      assert all(map(lambda m: hasattr(m, '__call__') and
+                               Algorithm.is_valid_function(m),
+                     moves))
+#+END_SRC
+* Validating Functions
+:PROPERTIES:
+:noweb-ref: miscellaneous
+:END:
+To look at what the function needs, we load an introspection package.
+#+BEGIN_SRC python :noweb-ref "imports"
+  import inspect
+#+END_SRC
+#+BEGIN_SRC python
+  def is_valid_function(function):
+      return len(inspect.getargspec(function).args) is 2
+#+END_SRC
+* Running the Algorithm
+:PROPERTIES:
+:noweb-ref: run
+:END:
+Since algorithms may take many iterations to converge, the following
+function is provided in such a way so that it can take a number of
+times to execute the algorithm.  This value defaults to 1.
+#+BEGIN_SRC python
+  #% daemon-run %#
+  def run(self, graph, count=1):
+      """Run the algorithm `count` times.
+  
+      <<run documentation>>
+      """
+      assert count >= 0
+
+      history = None
+      while count > 0:
+          <<run once>>
+  #% end-daemon-run %#
+#+END_SRC
+** Running it Once
+:PROPERTIES:
+:noweb-ref: run once
+:END:
+We prepare a dictionary of privileged nodes that will store the
+predicates each node satisfies as a list.  That is, if a node =n=
+satisfies =p1=, =p2=, and =p3=, we know that
+=privileged_nodes[n]=[p1,p2,p3]=.
+#+BEGIN_SRC python
+  privileged_nodes = dict()
+#+END_SRC
+To populate this data structure, we iterate through every node in our
+graph, find its neighborhood, and then see if the node (with its
+neighborhood) is privileged.  (Remember that privileges are functions
+of a node and its neighborhood.)
+#+BEGIN_SRC python
+  #% daemon-find-privileged-nodes %#
+  for node in graph.nodes:
+      neighborhood = graph.neighbors(node)
+      <<run is node privileged>>
+  #% end-daemon-find-privileged-nodes %#
+#+END_SRC
+Once we have this collection of all privileged nodes, we pick a random
+node and get a random predicate that it satisfies.
+#+BEGIN_SRC python
+  #% daemon-pick-predicate %#
+  node = random.choice(privileged_nodes)
+  neighborhood = graph.neighbors(node)
+  satisfied_predicate = random.choice(privileged_nodes[node])
+  #% end-daemon-pick-predicate %#
+#+END_SRC
+We then take our chosen predicate, access the moves that it implies,
+and get a random one, calling it =next_move=.  We then use this move
+on the node and its neighborhood to receive an updated node and
+neighborhood.  (Note that, in practice, it will make more sense for
+the function to simply update the node and neighborhood itself.)
+#+BEGIN_SRC python
+  #% daemon-apply-move %#
+  next_move = random.choice(self.ruleset[satisfied_predicate])
+  new_node, new_neighborhood = next_move(node, neighborhood)
+  #% end-daemon-apply-move %#
+#+END_SRC
+Add this entire debacle to the history.
+#+BEGIN_SRC python
+  history.add((    node,     neighborhood, next_move,
+               new_node, new_neighborhood))
+#+END_SRC
+**** TODO Can a move cause a node to write to its neighbors?
+*** Is This Node Privileged?
+:PROPERTIES:
+:noweb-ref: run is node privileged
+:END:
+Run through all of the rules in our algorithm.  Since =ruleset= is a
+dictionary, it will automatically iterate through the keys (and the
+keys are =Predicate= values).  If the predicate is true for this node
+and its neighborhood, at it to the dictionary (inserting a new value
+if necessary).
+#+BEGIN_SRC python
+  #% daemon-get-privileges %#
+  for predicate in self.ruleset:
+      if predicate(node, neighborhood):
+          if node in privileged_nodes:
+              privileged_nodes[node] += predicate
+          else:
+              privileged_nodes[node] = [predicate]
+  #% end-daemon-get-privileges %#
+#+END_SRC
+* Stability Analysis
+** Determining if the Algorithm has Stabilized
+:PROPERTIES:
+:noweb-ref: stability
+:END:
+#+BEGIN_SRC python
+  def has_stabilized(self):
+      """Returns True if the graph has stabilized.
+  
+      This function runs `Algorithm.run` twice."""
+      pass
+#+END_SRC
+** Running Until Stabilization
+This is not recommended as there can be no guarantee of halt, but the
+following is provided for completeness.
+#+BEGIN_SRC python
+  def stabilize(self, graph):
+      while not self.has_stabilized():
+          self.run(graph)
+#+END_SRC
+* Tests
+  :PROPERTIES:
+  :ID:       07052652-FE3B-43BC-B448-5A5478626532
+  :END:
+#+BEGIN_SRC python :tangle "../tests/algorithm_test.py"
+  import sys
+  sys.path.append('/Users/sean/Dropbox/smp/src')
+  
+  import unittest
+  from nose.tools import *
+  from ssa.core import *
+  
+  class AlgorithmTest(unittest.TestCase):
+      def setupClass(cls):
+          self.graphs = list()
+          <<create random graphs>>
+          
+          self.algorithms = dict()
+          <<create test algorithms>>
+#+END_SRC
+** Creating a Few Random Graphs
+:PROPERTIES:
+:noweb-ref: create random graphs
+:END:
+Using the generators module, we can create a few random graphs quite easily.
+#+BEGIN_SRC python
+  from ssa.simulatinon.generators import random_graph
+  import random
+  for i in range(10):
+      self.graphs.append(
+          random_graph(random.randint(50, 200), random.random(),
+                       marked='bool(.3)',
+                       answer=lambda r: r.choice(['yes', 'no', 'maybe']),
+                       weight='float()',
+                       age='int(18, 65)'))
+#+END_SRC
+** ALL OF THE ALGORITHMS
+:PROPERTIES:
+:noweb-ref: create test algorithms
+:END:
+#+BEGIN_SRC python
+  from ssa.core import Predicate, Move
+  
+  <<independent set>>
+#+END_SRC
+*** Independent Set
+    :PROPERTIES:
+    :noweb-ref: independent set
+    :END:
+#+BEGIN_SRC python
+  def node_should_mark(node, neighborhood):
+      """"marked"(n) = 1 \land \exists v \in N(n) : "marked"(v) = 1
+  
+      Returns True if the node is marked where a neighbor is also
+      marked.
+  
+      """
+      rteurn n['marked']
+  
+  def ndoe_should_unmark(node, neighborhood):
+      """"marked"(n) = 0 \land \forall v \in N(n), "marked"(v) = 0
+  
+      Returns True if the node is not marked and its entire neighborhood
+      is also unmarked.
+  
+      """
+      return not n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+  
+  rule_a = Predicate(node_should_mark
+#+END_SRC

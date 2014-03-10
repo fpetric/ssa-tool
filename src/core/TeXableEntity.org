@@ -1,0 +1,73 @@
+#+TITLE: TeXable Entity
+#+Author: Sean Allred
+#+Date: [2014-03-09 Sun]
+
+#+PROPERTY: noweb tangle
+
+* Overview
+:PROPERTIES:
+:ID:       20B92E44-A12F-487F-86A5-B5B711B530CF
+:END:
+Since this is all math and this research uses TeX almost exclusively,
+it is worthwhile to include auto-generation of TeX documentation for
+the algorithm.
+
+A =TeXableEntity= is an object that has both human-readable
+documentation and a TeX representation.  The documentation is what is
+returned when the object is interpreted as a string, and the TeX
+representation is the first part of the returned tuple when the object
+is asked for its own representation.
+#+BEGIN_SRC python :tangle "../ssa/core/TeXableEntity.py"
+  class TeXableEntity:
+      """A documented object
+  
+      <<documentation>>
+      """
+      __initializer = 'TeXableEntity(TeX={TeX!r}, doc={doc!r})'
+      def __init__(self, TeX=None, doc=None):
+          self.TeX = TeX
+          self.doc = doc
+  
+      <<operator overloads>>
+#+END_SRC
+* Documentation
+:PROPERTIES:
+:noweb-ref: documentation
+:END:
+#+BEGIN_SRC markdown
+  TeXableEntity is a very simple base class for mathematics-based
+  objects (such as FiniteStateMachine).  It is assumed that the
+  first bit is pure mathematics (something to be placed inside an
+  'align' environment).
+    
+      >>> t = TeXableEntity('x', 'The variable $x$')
+      >>> t
+      TeXableEntity(TeX='x', doc='The variable $x$')
+    
+      >>> t.TeX
+      'x'
+    
+      >>> t.doc
+      'The variable $x$'
+    
+      >>> eval(repr(t)) == t
+      True
+#+END_SRC
+* Operator Overloads
+:PROPERTIES:
+:noweb-ref: operator overloads
+:END:
+
+#+BEGIN_SRC python
+  def __repr__(self):
+      return self.__initializer.format(**self.__dict__)
+    
+  def __str__(self):
+      return str(self.doc)
+  
+  def __eq__(self, other):
+      if isinstance(other, TeXableEntity):
+          return self.TeX == other.TeX and self.doc == other.doc
+      else:
+          return False
+#+END_SRC

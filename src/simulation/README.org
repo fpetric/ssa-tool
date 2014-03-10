@@ -1,0 +1,455 @@
+#+TITLE: Simulation
+#+AUTHOR: Sean Allred
+#+DATE: [2014-03-09 Sun]
+
+* Overview
+#+BEGIN_SRC python :tangle "../ssa/simulation/__init__.py"
+  import generators
+  from ColorBank import ColorBank
+  from BasicNode import BasicNode
+#+END_SRC
+** Displaying a Graph
+*** Managing Colors
+:PROPERTIES:
+:ID:       FA752FEE-D647-4156-9E58-9EE8EBE8F502
+:END:
+#+BEGIN_SRC python :tangle "../ssa/simulation/ColorBank.py"
+  class ColorBank:
+      def __init__(self):
+          self.black = (0, 0, 0)
+          self.white = (255, 255, 255)
+          self.red   = (255, 0, 0)
+          self.green = (0, 255, 0)
+          self.blue  = (0, 0, 255)
+  
+      def set_color(self, name, red, green, blue):
+          setattr(self, str(name), (red, green, blue))
+  
+      @classmethod
+      def get_inverse(cls, color, alpha=1):
+          inverses = [255 - c for c in color] + [alpha]
+          return tuple((channel for channel in inverses))
+  
+      @classmethod
+      def random(cls, r):
+          return tuple((r.randint(0, 255) for i in range(3)))
+#+END_SRC
+*** A Basic Node
+:PROPERTIES:
+:ID:       72CC2548-41E1-4A16-A3BA-E3AE9DBA28DB
+:END:
+#+BEGIN_SRC python :tangle "../ssa/simulation/BasicNode.py"
+  from ColorBank import ColorBank
+
+  class BasicNode:
+      default_radius = 25
+      default_color = (0,0,0)
+      default_data = None
+      default_position = (0, 0)
+  
+      def __init__(self, position=None,
+                         radius=None,
+                         color=None,
+                         data=None,
+                         randomize=None):
+          if randomize is not None:
+              r=randomize
+              if data         is None: data       = '(random)'
+              if color        is None: color      = ColorBank.random(r)
+              if radius       is None: radius     = r.randint(3,50)
+              if position     is None: position   = (r.random(), r.random())
+          else:
+              if data         is None: data       = BasicNode.default_data
+              if color        is None: color      = BasicNode.default_color
+              if radius       is None: radius     = BasicNode.default_radius
+              if position     is None: position   = BasicNode.default_position
+  
+          if any(map(lambda c: not (0 <= c <= 1), position)):
+              raise Exception('Woah there buddy.')
+  
+          self.data       = data
+          self.color      = color
+          self.radius     = radius
+          self.position   = position
+      def __str__(self):
+          return str(self.data)
+      def __repr__(self):
+          return str(self.__dict__)
+#+END_SRC
+*** Displaying the Game Window
+:PROPERTIES:
+:ID:       15876325-7EB7-4943-9B28-377F5F4B3EA6
+:END:
+#+BEGIN_SRC python :tangle "../ssa/simulation/Visualizer.py"
+  import pygame
+  import networkx as nx
+  
+  from ColorBank import ColorBank
+  from BasicNode import BasicNode
+  
+  class Visualizer:
+      def __init__(self, size=(640, 480), graph=nx.Graph(), edge_width = 2):
+          """where `size` is a 2-tuple representing screen dimens"""
+  
+          self.screen = pygame.display.set_mode(size)
+  
+          self.colors = ColorBank()
+          self.graph = graph
+          self.edge_width = edge_width
+          self.layout_algorithms = [getattr(nx, a) for a in dir(nx) if a.endswith('_layout')]
+          # TODO sometimes crashes here; why?
+          self.text_font = pygame.font.SysFont('monospace', 15)
+  
+      def do_layout(self, layout_algorithm=nx.spring_layout):
+          try:
+              p = layout_algorithm(self.graph)
+          except:
+              print 'Layout algorithm `{!s}` not yet supported.'.format(repr(layout_algorithm).split()[1])
+              print 'Please install the appropriate package.'
+              return
+  
+          for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
+              self.graph.node[node]['position'] = ((position[0] + 1) / 2, (position[1] + 1) / 2)
+  
+      def draw(self):
+          self.screen.fill(self.colors.green)
+          size = self.screen.get_size()
+  
+          for src, dst in self.graph.edges():
+              pygame.draw.line(self.screen, self.colors.white,
+                               self.floats_to_pos(self.graph.node[src]['position']),
+                               self.floats_to_pos(self.graph.node[dst]['position']), self.edge_width)
+  
+          for node, node_data in self.graph.nodes(data=True):
+              normal_pos = self.floats_to_pos(node_data['position']) # keep track of z order for drag drop
+              pygame.draw.circle(self.screen, node_data['color'], normal_pos, node_data['radius'], 0)
+              label = self.text_font.render(str(node_data['data']), True, ColorBank.get_inverse(node_data['color']))
+              self.screen.blit(label, normal_pos)
+  
+          pygame.display.update()
+  
+      def floats_to_pos(self, floats):
+          return tuple((int(coordinate * scale) for coordinate, scale in zip(floats, self.screen.get_size())))
+  
+      def pos_to_floats(self, position):
+          return tuple((coordinate / scale for coordinate, scale in zip(position, self.screen.get_size())))
+  
+      def loop(self):
+          """Runs the simulator.
+  
+          >>> pygame.init()
+          (6, 0)
+          >>> Visualizer(size=(640, 480), graph=make_graph()).loop()
+          """
+          ingame=True
+          for i in range(3):
+              self.graph = make_graph()
+              for i in range(10):
+                  self.do_layout()
+                  self.draw()
+                  pygame.time.delay(50)
+              for event in pygame.event.get():
+                  if event.type == pygame.QUIT:
+                      pygame.quit()
+                      ingame = False
+          pygame.quit()
+  
+  import generators
+  make_graph = lambda: \
+      generators.random_graph((5, 20), .3,
+                              data=(i for i in range(50)),
+                              color=lambda r: ColorBank.random(r),
+                              radius='int(3, 10)',
+                              position=lambda r: tuple([r.random(), r.random()]))
+    
+  if __name__ == '__main__':
+      import doctest
+      doctest.testmod()
+#+END_SRC
+** Generators
+:PROPERTIES:
+:ID:       0791B53E-7544-43A0-B5D0-713F3199FE0A
+:END:
+#+BEGIN_SRC python :tangle "../ssa/simulation/generators.py"
+  import networkx
+  import random
+  from itertools import combinations
+  
+  class BasicNode:
+      def __init__(self):
+          pass
+      def __repr__(self):
+          return '{}::{}'.format(id(self), self.__dict__)
+  
+  <<random graphs>>
+
+  if __name__ == '__main__':
+      import doctest
+      doctest.testmod()
+#+END_SRC
+*** Generating a Random Graph
+    :PROPERTIES:
+    :noweb-ref: random graphs
+    :ID:       C315D9D2-BE1C-447A-8961-4080AFD9B648
+    :END:
+To thoroughly test graph algorithms (in lieu of or in preparation for
+proof), it is very useful to have a means to create randomized graphs
+with certain characteristics.  NetworkX has a few generators at its
+disposal for creating graphs with deeper properties than I have
+knowledge of, but the following function is able to create a random
+graph with nodes having randomized properties.
+#+BEGIN_SRC python
+  def random_graph(degree, edge_probability=0.5, base_class=BasicNode, **properties):
+      """Generates a random graph of `degree` nodes, a specified
+      probability for edges, and a number of random properties.
+      
+      <<summary>>
+  
+      <<doctest basic usage>>
+  
+      <<doctest errors>>
+      """
+      r = random.Random()
+      G = networkx.Graph()
+
+      <<check if degree is range>>
+  
+      <<check for dynamically-created generators>>
+  
+      for n in range(degree):
+          <<add node>>
+  
+      <<add edges>>
+      
+      return G
+#+END_SRC
+**** Documentation
+***** Summary
+    :PROPERTIES:
+    :noweb-ref: summary
+    :END:
+#+BEGIN_SRC markdown
+  If `degree` is a tuple, it is assumed to be a (min, max) tuple
+  defining an inclusive range of possible degrees.
+    
+  Each `properties` value can be a function of a random number
+  generator.  If the value does not have `__call__` defined, it will be
+  assumed a string unless, as a string, it is one of the following:
+    
+  - 'int(n,m)' :: a random integer in [n, m]
+  - 'float()'  :: a random floating point number in [0, 1)
+  - 'bool(n)'  :: a random boolean with a probability of truth between 0
+                  and 1 inclusive (where 1 is True).
+    
+  If the property value is neither callable nor a string of this form,
+  then the value is simply set raw.
+#+END_SRC
+***** Basic Usage
+    :PROPERTIES:
+    :noweb-ref: doctest basic usage
+    :END:
+#+BEGIN_SRC markdown
+  Pass in a single argument, the degree of the graph, to get the
+  bare-minimum graph (with a certain edge probability):
+    
+      >>> G = random_graph(50)
+      >>> len(G.nodes())
+      50
+  
+  Pass in a tuple to get a range of values:
+    
+      >>> G = random_graph((40, 60))
+      >>> len(G.nodes()) in range(40, 60 + 1)
+      True
+    
+  You can also use a few intelligent arguments, such as bool(n):
+  
+      >>> G = random_graph(10, marked='bool(1)')
+      >>> all(map(lambda n: G.node[n]['marked'], G.node))
+      True
+      >>> G = random_graph(10, marked='bool(0)')
+      >>> any(map(lambda n: G.node[n]['marked'], G.node))
+      False
+    
+  float():
+  
+      >>> G = random_graph(1000, weight='float()')
+      >>> .45 < sum(map(lambda n: G.node[n]['weight'], G.node)) / 1000 < .55
+      True
+    
+  and int(min, max):
+    
+      >>> G = random_graph(10, age='int(40, 50)')
+      >>> all(map(lambda n: G.node[n]['age'] in range(40, 50 + 1), G.node))
+      True
+  
+  For any attribute, you can specify a function or a generator.  You can
+  even supply a function that *returns* a generator.  All functions must
+  take exactly one required argument, a random number generator, as its
+  first parameter.
+  
+  (ref:smp - optionify random thingy)
+  
+  Consider the following:
+  
+      >>> graph = random_graph(5, weight=(i for i in range(5)))
+      >>> sorted([graph.node[n]['weight'] for n in graph.nodes()])
+      [0, 1, 2, 3, 4]
+  
+                                                                           (ref:)
+#+END_SRC
+
+***** Possible Errors
+    :PROPERTIES:
+    :noweb-ref: doctest errors
+    :END:
+#+BEGIN_SRC markdown
+  Be careful about the arguments you pass.  If you want a range of
+  possible values for the degree, ensure you pass an iterable of exactly
+  two elements.
+    
+      >>> random_graph((1,2,3))
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Wrong number of values for (min, max) degree
+    
+  Mind the arguments for the keywords 'bool', 'int', and 'float'.
+    
+      >>> random_graph(5, marked='int(3,4,5)')
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Wrong number of arguments for int.
+  
+  If you are using generators, keep in mind that *each* node must be
+  given a value.  If the generator produces less values than you give
+  the graph nodes, an exception will be raised:
+  
+      >>> n = 5
+      >>> g = random_graph(n + 1, weight=(i for i in range(n)))
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      Exception: Ran out of iterations for the generator given by 'weight'
+#+END_SRC
+**** Code
+***** Check Degree
+     :PROPERTIES:
+     :noweb-ref: check if degree is range
+     :END:
+#+BEGIN_SRC python
+  if hasattr(degree, '__getitem__'):
+      if len(degree) is not 2:
+          raise ValueError('Wrong number of values for (min, max) degree')
+      degree = r.randint(*degree)
+#+END_SRC
+***** Check for Dynamic Generators
+:PROPERTIES:
+:noweb-ref: check for dynamically-created generators
+:END:
+In playing with the tool for a while, I've come to see a few use cases
+for the ability to create 'on the fly' generators with lambda
+expressions.  The code currently checks for functions by checking if
+they define =__call__=, and this is good behavior.  However, it is
+possible that such a function could return a generator object, so we
+need to run through each property /first/ to check if calling any
+existing functions yields a generator (no pun intended).
+#+BEGIN_SRC python
+  for key in properties:                  
+      if hasattr(properties[key], '__call__'):
+          check_value = properties[key](r)
+          if hasattr(check_value, 'next'):
+              properties[key] = check_value
+#+END_SRC
+***** Adding Nodes
+     :PROPERTIES:
+     :noweb-ref: add node
+     :END:
+#+BEGIN_SRC python
+  new_node = base_class()
+
+  G.add_node(new_node)
+      
+  for key in properties:
+      property_key = str(key)
+      property_value = properties[key]
+      
+      <<check for property overwrite>>
+      
+      <<parse and set property value>>
+#+END_SRC
+****** Property Overwrite
+     :PROPERTIES:
+     :noweb-ref: check for property overwrite
+     :END:
+#+BEGIN_SRC python
+  # Avoid overwriting properties.  This could happen if the
+  # user passes in something that is a dictionary rather
+  # than a traditional KV list.  We'll accept anything that
+  # has __str__, but __str__ is not meant to be unique.
+  if hasattr(new_node, property_key): 
+      raise Exception('Did not overwrite duplicate property')
+#+END_SRC
+****** Property Set
+     :PROPERTIES:
+     :noweb-ref: parse and set property value
+     :END:
+The new value can be a couple things.  If it is a callable function
+(implements =__call__=), we assume it is some function that expects a
+=random.Random= object as its single required parameter.  If it is a
+generator (implements =next=), we retrieve the next value.  Otherwise,
+we parse =property_value= as a string
+#+BEGIN_SRC python
+  new_value = None
+    
+  if hasattr(property_value, '__call__'):
+      new_value = property_value(r)
+  elif hasattr(property_value, 'next'):
+      try:
+          new_value = next(property_value)
+      except StopIteration:
+          raise Exception('Ran out of iterations for the generator given by {!r}'\
+                              .format(property_key))
+  elif '(' in property_value and ')' in property_value: # val is a func
+      # collect the arguments
+      # TODO: make this safe, i.e. destroy `eval`
+      func = property_value[:property_value.index('(')]
+      args = eval(property_value[property_value.index('('):])
+      ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+      
+      if func == 'float':
+          if len(args) is not 0: raise ex('float')
+          new_value = r.random()
+      elif func == 'int':
+          if len(args) is not 2: raise ex('int')
+          new_value = r.randint(*args)
+      elif func == 'bool':
+          new_value = r.random() <= float(args)
+  else:
+      new_value = property_value
+  
+  G.node[new_node][property_key] = new_value
+#+END_SRC
+******* WISH_LIST Enhance security
+We have the line =args=eval(property_value[...])=.  This should be
+fine given the audience, but it is terribly unsafe.  Find a better way.
+
+Perhaps we can represent arguments as tuples, LISP-style?
+#+BEGIN_EXAMPLE
+  random_graph(15,
+    marked = ('bool', .3)
+    weight = ('float',)
+    ranged = ('float', 5, 7)
+    more_r = ('range', 1, 10))
+#+END_EXAMPLE
+with =range= taking place of =int(...)=.
+***** Adding Edges
+     :PROPERTIES:
+     :noweb-ref: add edges
+     :END:
+#+BEGIN_SRC python
+  for src, dst in combinations(G.nodes(), 2):
+      # perhaps add switch to check for __call__(node_a, node_b)
+      if r.random() <= edge_probability:
+          G.add_edge(src, dst)
+#+END_SRC
+** On-screen animation
+** COMMENT Step-by-Step TeX Print-Outs

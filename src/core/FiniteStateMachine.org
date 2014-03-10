@@ -1,0 +1,105 @@
+#+TITLE: Finite State Machine
+#+AUTHOR: Sean Allred
+#+DATE: [2014-03-09 Sun]
+
+* Overview
+#+BEGIN_SRC python :tangle "ssa/core/FiniteStateMachine.py"
+  from TeXableEntity import TeXableEntity
+  
+  class FiniteStateMachine(TeXableEntity):
+      def __init__(self,
+                   alphabet      = set(),
+                   states        = set(),
+                   initial_state = None,
+                   accept_states = set(),
+                   transitions   = dict()):
+  
+          self.accept_states = accept_states
+          self.initial_state = initial_state
+          self.states        = states
+          self.alphabet      = alphabet
+          self.transitions   = transitions
+  
+      <<machine editing>>
+  
+      <<machine functionality>>
+#+END_SRC
+* INPROGRESS Machine Editing
+:PROPERTIES:
+:noweb-ref: "machine editing"
+:noweb-sep: "\n\n"
+:END:
+** WRITE_TESTS Transitions
+Here we add logic supporting on-the-fly addition of transitions.  If
+either the =source= or =destination= states are not in the set of
+states, they will be added.
+
+If the transition is already defined, a =KeyError= will be raised.
+#+BEGIN_SRC python
+  def add_transition(self, source, token, destination):
+      """Adds a transition from source to destination on an input
+      token.
+  
+      If such a transition is already defined, a KeyError will be
+      raised.
+      """
+      self.states.add(source)
+      self.states.add(destination)
+  
+      if source not in self.transitions:
+          self.transitions[source] = dict()
+      elif token in self.transitions[source]:
+          raise KeyError('Input token already defined for source.')
+  
+      self.transitions[source][token] = destination
+#+END_SRC
+
+** WRITE_TESTS Initial State
+#+BEGIN_SRC python
+  def set_initial_state(self, state):
+      """Set the initial state for this machine.
+  
+      If the given state is not in the machine's set of states, it will
+      be added.
+      """
+      self.states.add(state)
+      self.initial_state = state
+#+END_SRC
+
+** TODO Alphabet
+
+** TODO Accept States
+
+** TODO Machine Functionality
+:PROPERTIES:
+:noweb-ref: "machine functionality"
+:noweb-sep: "\n\n"
+:END:
+*** WISH_LIST add an input buffer
+It'd be cool to have an input buffer to push an entire sentence.  I
+don't know how useful it would be in the current overall project, but
+perhaps this could be made more robust and separated out into its own
+module.
+*** WRITE_TESTS Resetting the Machine
+#+BEGIN_SRC python
+    def reset(self):
+        self.current_state = self.initial_state
+#+END_SRC
+
+*** WRITE_TESTS Receiving Input
+#+BEGIN_SRC python
+  def update(self, token):
+      """Updates the state of the machine according to the input token.
+  
+      If the input token is not defined for the current state, an
+      Exception is raised to signal failure.
+      """
+      if token in self.transition[self.current_state]:
+          self.current_state = self.transition[self.current_state][token]
+      else:
+          raise Exception('The machine has rejected your input')
+#+END_SRC
+*** DONE Reporting State
+You can grab the current state of the machine by looking at the value
+of =FiniteStateMachine.current_state=.
+**** WISH_LIST Perhaps unsafe.

@@ -1,0 +1,70 @@
+#+TITLE: Core Classes
+#+AUTHOR: Sean Allred
+#+DATE: [2014-03-09 Sun]
+
+* Overview
+#+BEGIN_SRC python :tangle "ssa/core/__init__.py"
+  from .. import creation
+  from .. import simulation
+#+END_SRC
+In Dijkstra's 1974 paper, he describes a self-stabilizing algorithm as
+a graph of state-machines:
+#+BEGIN_QUOTE
+We consider a connected graph in which the majority of the possible
+edges are missing and a finite state machine is placed at each node;
+machines placed in directly connected nodes are called each other's
+neighbors.  For each machine one or more so-called "privileges" are
+defined, i.e. boolean functions of its own state and the states of its
+neighbors; when such a boolean function is true, we say that the
+privilege is "present."  In order to model the undefined speed ratios
+of the various machines, we introduce a central daemon---its
+replacement by a distributed daemon falls outside the scope of this
+article---that can "select" one of the privileges present.  The
+machine enjoying the selected privilege will then make its "move";
+i.e. it is brought into a new state that is a function of its old
+state and the states of its neighbors.  If for such a machine more
+than one privilege is present, the new state may also depend on the
+privilege selected.  After completion of the move, the daemon will
+select a new privilege.
+#+END_QUOTE
+Thus, we need to create a new class to act as the nodes of a NetworkX
+graph.  This new node class will impose a collection of privileges
+upon the object---privilege functions that must be additionally given
+the collection of its neighbors.  These privilege functions do, of
+course, return =True= or =False=.
+
+Here comes the fun part: the new node class has a property (or rather,
+a function =privileges_present=, TODO "python property act like a
+function") that returns the identifications of all privileges that are
+active---all those privileges of the node that return =True=---and
+these identifications are then linked by a mapping within the node to
+actions that they apply to.
+
+* Dependencies
+:PROPERTIES:
+:ID:       EFAAB89D-EF82-4DE4-A144-5268FC1A11F8
+:END:
+#+BEGIN_SRC python :tangle "ssa/core/__init__.py"
+  from TeXableEntity import TeXableEntity
+  from Move import Move
+  from Predicate import Predicate
+  from FiniteStateMachine import FiniteStateMachine
+#+END_SRC
+* TeXable Entity
+#+INCLUDE: TeXableEntity.org
+* Finite State Machine
+#+INCLUDE: FiniteStateMachine.org
+* Predicates and Moves
+Predicates and Moves are very similar to each other.
+** TeX-enabled predicates/actions
+Create a class for =Predicate= and =Move= that both inherit from
+=TeXableEntity=.  We should be able to attach TeX documentation to
+rules and predicates so that we can have a nice display of the entity.
+
+This could also be useful in export.
+** Predicates
+#+INCLUDE: Predicate.org
+** Moves
+#+INCLUDE: Move.org
+* Self-Stabilizing Algorithm
+#+INCLUDE: Algorithm.org
