@@ -3,10 +3,9 @@
 #+DATE: [2014-03-09 Sun]
 
 * Overview
-#+BEGIN_SRC python :tangle "ssa/core/__init__.py"
-  from .. import creation
-  from .. import simulation
-#+END_SRC
+:PROPERTIES:
+:ID:       05C6B6A6-9E56-41AB-AC42-2D11978522FD
+:END:
 In Dijkstra's 1974 paper, he describes a self-stabilizing algorithm as
 a graph of state-machines:
 #+BEGIN_QUOTE
@@ -44,27 +43,10 @@ actions that they apply to.
 :PROPERTIES:
 :ID:       EFAAB89D-EF82-4DE4-A144-5268FC1A11F8
 :END:
-#+BEGIN_SRC python :tangle "ssa/core/__init__.py"
-  from TeXableEntity import TeXableEntity
-  from Move import Move
-  from Predicate import Predicate
-  from FiniteStateMachine import FiniteStateMachine
+#+BEGIN_SRC python :tangle "__init__.py"
+  from Algorithm import Algorithm
+  from Algorithm import predicate
+  from Algorithm import move
 #+END_SRC
-* TeXable Entity
-#+INCLUDE: TeXableEntity.org
-* Finite State Machine
-#+INCLUDE: FiniteStateMachine.org
-* Predicates and Moves
-Predicates and Moves are very similar to each other.
-** TeX-enabled predicates/actions
-Create a class for =Predicate= and =Move= that both inherit from
-=TeXableEntity=.  We should be able to attach TeX documentation to
-rules and predicates so that we can have a nice display of the entity.
-
-This could also be useful in export.
-** Predicates
-#+INCLUDE: Predicate.org
-** Moves
-#+INCLUDE: Move.org
 * Self-Stabilizing Algorithm
 #+INCLUDE: Algorithm.org

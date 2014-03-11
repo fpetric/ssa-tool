@@ -41,7 +41,11 @@ The =Algorithm= class is simply defined as a ruleset
 #+BEGIN_SRC python
   def parsedoc(symbol):
       """Parses documentation
+  
+      <<parsedoc documentation>>
       """
+      if not symbol.__doc__ or symbol.__doc__.strip() == '':
+          return dict()
       try:
           doc_lines = [s.strip() for s in symbol.__doc__.split('\n')]
           idx = doc_lines.index('')
@@ -58,6 +62,35 @@ The =Algorithm= class is simply defined as a ruleset
                'doc tex':     tex.strip(),
                'doc human': human.strip()
            }
+#+END_SRC
+** Online Documentation
+:PROPERTIES:
+:noweb-ref: parsedoc documentation
+:END:
+#+BEGIN_SRC markdown
+  `parsedoc` parses the docstring of a symbol into three parts:
+  
+  - short name
+  - TeXnical documentation
+  - Long-form documentation
+  
+  Each part must be seperated by two blank lines (whitespace is
+  ignored).
+  
+      >>> def hello(a, b):
+      ...     '''Name
+      ... 
+      ...     TeXnical documentation
+      ... 
+      ...     Human documentation
+      ...     '''
+      ...     return b
+      >>> parsedoc(hello)['name']
+      'Name'
+      >>> parsedoc(hello)['doc tex']
+      'TeXnical documentation'
+      >>> parsedoc(hello)['doc human']
+      'Human documentation'
 #+END_SRC
 * Predicates and Moves
 :PROPERTIES:
@@ -113,7 +146,7 @@ distinguished by Python /decorators/.
 #+BEGIN_SRC python
   '''all neighbors are marked
     
-  \forall u in N(v) "marked"(u) = 0
+  `forall u in N(v) "marked"(u) = 0
     
   Each node in the neighborhood of the current
   node is unmarked.
@@ -356,32 +389,51 @@ following is provided for completeness.
 :PROPERTIES:
 :ID:       07052652-FE3B-43BC-B448-5A5478626532
 :END:
-#+BEGIN_SRC python :tangle "Algorithm_test.py"
+#+BEGIN_SRC python :tangle "Algorithm.py"
+  if __name__ == "__main__":
+      import doctest
+      doctest.testmod()
+#+END_SRC
+#+BEGIN_SRC python :noweb-ref "test imports"
   import sys
   sys.path.append('/Users/sean/Dropbox/smp/src')
   
   import unittest
   from nose.tools import *
-  from ssa.core import *
-  
+  from core.Algorithm import Algorithm
+  from core.Algorithm import predicate
+  from core.Algorithm import move
+#+END_SRC
+#+BEGIN_SRC python :tangle "Algorithm_test.py"
+  <<test imports>>
+
   class AlgorithmTest(unittest.TestCase):
+      @classmethod
       def setupClass(cls):
-          self.graphs = list()
+          cls.graphs = list()
           <<create random graphs>>
           
-          self.algorithms = dict()
+          cls.algorithm = dict()
           <<create test algorithms>>
+  
+      def test_metadata(self):
+          pred = self.algorithm['independent set'].ruleset.keys()[0]
+          assert pred.meta['name']      != ''
+          assert pred.meta['doc tex']   != ''
+          assert pred.meta['doc human'] != ''
 #+END_SRC
 ** Creating a Few Random Graphs
 :PROPERTIES:
 :noweb-ref: create random graphs
 :END:
 Using the generators module, we can create a few random graphs quite easily.
-#+BEGIN_SRC python
-  from ssa.simulatinon.generators import random_graph
+#+BEGIN_SRC python :noweb-ref "test imports"
+  from simulation.generators import random_graph
   import random
+#+END_SRC
+#+BEGIN_SRC python
   for i in range(10):
-      self.graphs.append(
+      cls.graphs.append(
           random_graph(random.randint(50, 200), random.random(),
                        marked='bool(.3)',
                        answer=lambda r: r.choice(['yes', 'no', 'maybe']),
@@ -393,8 +445,6 @@ Using the generators module, we can create a few random graphs quite easily.
 :noweb-ref: create test algorithms
 :END:
 #+BEGIN_SRC python
-  from ssa.core import Predicate, Move
-  
   <<independent set>>
 #+END_SRC
 *** Independent Set
@@ -402,23 +452,56 @@ Using the generators module, we can create a few random graphs quite easily.
 :noweb-ref: independent set
 :END:
 #+BEGIN_SRC python
-  def node_should_mark(node, neighborhood):
-      """"marked"(n) = 1 \land \exists v \in N(n) : "marked"(v) = 1
+  <<ind-set declare predicates>>
+  <<ind-set declare moves>>
+  
+  cls.algorithm['independent set'] = \
+  Algorithm({
+       node_should_mark: [mark_node],
+     node_should_unmark: [unmark_node]
+  })
+#+END_SRC
+**** Predicates
+:PROPERTIES:
+:noweb-ref: ind-set declare predicates
+:END:
+#+BEGIN_SRC python
+  @predicate(author='Sean Allred', version='1.0')
+  def node_should_unmark(node, neighborhood):
+      """Rule 1
+  
+      "marked"(n) = 1 `land `exists v `in N(n) : "marked"(v) = 1
   
       Returns True if the node is marked where a neighbor is also
       marked.
   
       """
-      rteurn n['marked']
+      return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
   
-  def ndoe_should_unmark(node, neighborhood):
-      """"marked"(n) = 0 \land \forall v \in N(n), "marked"(v) = 0
+  @predicate(author='Sean Allred', version='1.0')
+  def node_should_mark(node, neighborhood):
+      """Rule 2
+  
+      "marked"(n) = 0 `land `forall v `in N(n), "marked"(v) = 0
   
       Returns True if the node is not marked and its entire neighborhood
       is also unmarked.
   
       """
-      return not n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+      return not n['marked'] and all(map(lambda v: not v['marked'], neighborhood))
+#+END_SRC
+**** Moves
+:PROPERTIES:
+:noweb-ref: ind-set declare moves
+:END:
+#+BEGIN_SRC python
+  @move(author='Sean Allred', version='1.0')
+  def mark_node(node, neighborhood):
+      node['marked'] = True
+      return node, neighborhood
   
-  rule_a = Predicate(node_should_mark
+  @move(author='Sean Allred', version='1.0')
+  def unmark_node(node, neighborhood):
+      node['marked'] = False
+      return node, neighborhood
 #+END_SRC

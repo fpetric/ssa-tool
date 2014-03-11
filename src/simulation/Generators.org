@@ -2,8 +2,13 @@
 #+AUTHOR: Sean Allred
 #+DATE: [2014-03-09 Sun]
 
+#+PROPERTY: noweb tangle
+
 * Overview
-#+BEGIN_SRC python :tangle "../ssa/simulation/generators.py"
+:PROPERTIES:
+:ID:       0F11043C-3A3B-4307-B8FF-D2DD79A8B9EF
+:END:
+#+BEGIN_SRC python :tangle "generators.py"
   import networkx
   import random
   from itertools import combinations
@@ -291,11 +296,12 @@ with =range= taking place of =int(...)=.
 ** Test
 * Tests
 :PROPERTIES:
-:tangle:   ../tests/generator_tests.py
+:tangle:   generator_tests.py
 :END:
 ** Random Graph Generation
 :PROPERTIES:
 :noweb-ref: random graph test
+:ID:       CDB12492-67B2-47B6-9BC2-7963F8053617
 :END:
 This test is structured as those above, with a few specializations.
 Since the random graph generator does not (and should not) create
@@ -325,6 +331,7 @@ make our assertions on what the results /should/ look like.
 *** Creating the Graph
 :PROPERTIES:
 :noweb-ref: create random graph
+:ID:       6E674337-9BFF-4C4A-92A6-D991C5A6B4AE
 :END:
 We create a random graph with the following properties:
 - degree :: 1000
@@ -344,6 +351,7 @@ We create a random graph with the following properties:
 *** Define Helper Functions
 :PROPERTIES:
 :noweb-ref: define helper functions
+:ID:       4B714A8D-79AD-4B78-BF03-834351064EE1
 :END:
 Now that we have a graph of a bunch of objects with randomized
 attributes, we need a way to extract these attributes out of the
@@ -370,6 +378,7 @@ and an averaging function to average numerical values:
 *** Testing Randomness
 :PROPERTIES:
 :noweb-ref: test randomness
+:ID:       E80C466D-A580-4B4F-926D-C0F084E34436
 :END:
 We are ready to implement our tests.  For =bool=, =float=, and =int=,
 we test to make sure the average values we collect from the generated
@@ -402,6 +411,7 @@ ensure it is less than some (generous) threshold value.
 *** Testing Functions and Generators
 :PROPERTIES:
 :noweb-ref: test functions and generators
+:ID:       D70CB956-AB21-4120-A4DF-368C0DDA70EE
 :END:
 The functions and generators are where the real generality (to an
 extent) comes in.  We should be able to define a function that takes

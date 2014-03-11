@@ -2,18 +2,21 @@
 #+AUTHOR: Sean Allred
 #+DATE: [2014-03-09 Sun]
 
+#+PROPERTY: noweb tangle
+
 * Overview
-#+BEGIN_SRC python :tangle "../ssa/simulation/__init__.py"
+:PROPERTIES:
+:ID:       4FAB9880-8E21-4FCA-8A5C-984F085FDFFF
+:END:
+#+BEGIN_SRC python :tangle "__init__.py"
   import generators
-  from ColorBank import ColorBank
-  from BasicNode import BasicNode
 #+END_SRC
 ** Displaying a Graph
 *** Managing Colors
 :PROPERTIES:
 :ID:       FA752FEE-D647-4156-9E58-9EE8EBE8F502
 :END:
-#+BEGIN_SRC python :tangle "../ssa/simulation/ColorBank.py"
+#+BEGIN_SRC python :tangle "ColorBank.py"
   class ColorBank:
       def __init__(self):
           self.black = (0, 0, 0)
@@ -38,7 +41,7 @@
 :PROPERTIES:
 :ID:       72CC2548-41E1-4A16-A3BA-E3AE9DBA28DB
 :END:
-#+BEGIN_SRC python :tangle "../ssa/simulation/BasicNode.py"
+#+BEGIN_SRC python :tangle "BasicNode.py"
   from ColorBank import ColorBank
 
   class BasicNode:
@@ -80,7 +83,7 @@
 :PROPERTIES:
 :ID:       15876325-7EB7-4943-9B28-377F5F4B3EA6
 :END:
-#+BEGIN_SRC python :tangle "../ssa/simulation/Visualizer.py"
+#+BEGIN_SRC python :tangle "Visualizer.py"
   import pygame
   import networkx as nx
   
@@ -170,7 +173,7 @@
 :PROPERTIES:
 :ID:       0791B53E-7544-43A0-B5D0-713F3199FE0A
 :END:
-#+BEGIN_SRC python :tangle "../ssa/simulation/generators.py"
+#+BEGIN_SRC python :tangle "generators.py"
   import networkx
   import random
   from itertools import combinations
