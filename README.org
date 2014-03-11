@@ -8,3 +8,178 @@ evaluation of self-stabilizing algorithms.
 I will add more content here soon, but please do see the documentation
 for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with
 [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text editor.
+
+#+Title: Working with Self-Stabilizing Algorithms in Python
+#+Author: Sean Allred
+#+Date: [2013-12-24 Tue]
+
+#+PROPERTY: noweb tangle
+#+PROPERTY: mkdirp yes
+
+#+TODO: TODO INPROGRESS WRITE_TESTS WISH_LIST | DONE
+
+* COMMENT Example
+#+BEGIN_SRC python :tangle example.py
+  import ssa
+  
+  random_graph = ssa.simulation.generators.random_graph
+  
+  G = random_graph(5, marked='bool(.25)')
+  
+  def read_neighbors(G, n):
+      return {n: G.node[n] for n in G.neighbors(n)}
+  
+  n = G.nodes()[1]
+  print(repr(read_neighbors(G, n)))
+  
+  def is_marked_alone(node, neighborhood=None):
+      if node['marked']:
+          for n in neighborhood:
+              if n['marked']:
+                  return n
+          else:
+              return True
+      return False
+#+END_SRC
+
+* Notes
+** Dijkstra 1974
+A self-stabilizing network is seen as a graph of state machines.  Each
+privilege is realized as a transition from the current state to
+another state.  The state of the graph is passed as input to this
+state machine.  When the input graph matches some predicate, this
+privilege is set---there is some transition out of this state.  This
+is why the choice of predicate to act upon is arbitrary: you can only
+move to one other state!
+
+When every node of the graph is in an accepting state with no set
+predicates, then the graph has stabilized.
+
+*** privilege
+- we consider graphs of finite state machines
+- privileges are boolean functions of the FSM's state and the states
+  of its neighbors
+- when these functions are true, the privilege is 'present'
+*** system state
+- each legitimate state must have at least one privilege present
+  - even if the action is 'do nothing'
+- in each legitimate state, every possible action will maintain
+  legitimacy
+- each privilege must be present in at least one legitimate state
+- for any given pair of legitimate states, there exists a
+  transformation between them
+*** self-stabilization
+regardless of the initial state and regardless of the privilege
+selected each time for the next move, at least one privilege will
+always be present and the system is guaranteed to find itself in a
+legitimate state after a finite number of moves.
+
+* Introduction
+:PROPERTIES:
+:ID:       50650171-2D03-4633-B4A9-625372F23D79
+:END:
+The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
+#+BEGIN_EXAMPLE
+  setup.py
+  ssa/
+      __init__.py
+      core/
+          __init__.py
+      creation/
+          __init__.py
+      simulation/
+          __init__.py
+  bin/
+  docs/
+  tests/
+      __init__.py
+      core_tests.py
+      creation_tests.py
+      simulation_tests.py
+#+END_EXAMPLE
+#+BEGIN_SRC python :tangle "./setup.py"
+  try:
+      from setuptools import setup
+  except ImportError:
+      from distutils.core import setup
+  
+  config = {
+      'description': 'A utility for the creation and evaluation of self-stabilizing algorithms',
+      'author': 'Sean Allred',
+      'url': 'http://github.com/vermiculus/smp',
+      'download_url': 'http://github.com/vermiculus/smp',
+      'author_email': 'seallred@smcm.edu',
+      'version': '0.1',
+      'install_requires': ['networkx', 'pygame'],
+      'packages': ['ssa'],
+      'scripts': [],
+      'name': 'ssa',
+      'py_modules': ['core', 'creation', 'simulation']
+  }
+  
+  setup(**config)
+#+END_SRC
+#+BEGIN_SRC python :tangle "ssa/__init__.py"
+  import core
+  import creation
+  import simulation
+#+END_SRC
+** TODO Fix =python setup.py install= sequence
+It's saying I need a couple files:
+#+BEGIN_EXAMPLE
+  core.py
+  creation.py
+  simulation.py
+#+END_EXAMPLE
+but what goes in them?  I opened up a [[http://stackoverflow.com/questions/21685430/when-running-setup-py-install-on-my-module-what-needs-to-be-in-submodule-p][question on StackOverflow]], but
+I'm not hopeful about getting any responses.
+* Core Classes
+#+INCLUDE: core/README.org
+* Creation
+:PROPERTIES:
+:ID:       5E7F7349-CAC3-4CDB-814C-01B01F63E7D0
+:END:
+A graphical tool for the creation of self-stabilizing algorithms
+#+BEGIN_SRC python :tangle "ssa/creation/__init__.py"
+
+#+END_SRC
+* Simulation
+#+INCLUDE simulation/README.org
+* Tests
+We are using the Nose toolset for automated testing.
+** Simulation
+:PROPERTIES:
+:ID:       328AAB02-1AAC-4A0C-ADCE-54962602181A
+:END:
+#+BEGIN_SRC python :tangle "tests/simulation_tests.py"
+  <<common imports for testing>>
+  from ssa.simulation import *
+  <<random graph test>>
+#+END_SRC
+* Files
+:PROPERTIES:
+:ID:       6270DFA1-A28F-42C5-9E01-A9F9BD77D940
+:END:
+#+BEGIN_SRC xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+             xmlns:ssa="http://raw.github.com/vermiculus/ssa-tool/src/ssa/io/schema"
+             targetNamespace="http://raw.github.com/vermiculus/ssa-tool/src/ssa/io/schema">
+    <xs:complexType name="entity-id" use="required">
+      <xs:simpleType>
+        <xs:annotation>
+          <xs:documentation>
+            The entity type
+          </xs:documentation>
+        </xs:annotation>
+      </xs:simpleType>
+      <xs:simpleType>
+        
+      </xs:simpleType>
+    </xs:complexType>
+  </xs:schema>
+#+END_SRC
+* TODO Items [0/1]
+- [ ] make logical representations not depend on TeX or any
+  documentation, but rather extend one into the other using multiple
+  inheritance.
