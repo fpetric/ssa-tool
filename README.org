@@ -22,8 +22,10 @@ for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-f
   :ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
   :END:
 #+BEGIN_SRC python :tangle example.py
-  import ssa.simulation.generators.random_graph as random_graph
+  from ssa.simulation.generators import random_graph
   import ssa.core.Algorithm as Algorithm
+  from ssa.core.Algorithm import predicate
+  from ssa.core.Algorithm import move
   
   G = random_graph(5, marked='bool(.25)')
   
