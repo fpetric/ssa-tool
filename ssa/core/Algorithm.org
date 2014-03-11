@@ -402,13 +402,13 @@ following is provided for completeness.
 #+END_SRC
 #+BEGIN_SRC python :noweb-ref "test imports"
   import sys
-  sys.path.append('/Users/sean/Dropbox/smp/src')
+  sys.path.append('/Users/sean/github/vermiculus/smppaper/ssa-tool')
   
   import unittest
   from nose.tools import *
-  from core.Algorithm import Algorithm
-  from core.Algorithm import predicate
-  from core.Algorithm import move
+  from ssa.core.Algorithm import Algorithm
+  from ssa.core.Algorithm import predicate
+  from ssa.core.Algorithm import move
 #+END_SRC
 #+BEGIN_SRC python :tangle "Algorithm_test.py"
   <<test imports>>
@@ -434,7 +434,7 @@ following is provided for completeness.
 :END:
 Using the generators module, we can create a few random graphs quite easily.
 #+BEGIN_SRC python :noweb-ref "test imports"
-  from simulation.generators import random_graph
+  from ssa.simulation.generators import random_graph
   import random
 #+END_SRC
 #+BEGIN_SRC python
