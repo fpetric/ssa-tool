@@ -1,3 +1,7 @@
+look at function annotations
+
+have the decorators do the whole copy constructor thing so that
+side-effects are not a thing.  this will make =history= work.
 #+TITLE: Self-Stabilizing Algorithm
 #+AUTHOR: Sean Allred
 #+DATE: [2014-03-09 Sun]
@@ -292,10 +296,12 @@ times to execute the algorithm.  This value defaults to 1.
       <<run documentation>>
       """
       assert count >= 0
-
+  
       history = None
       while count > 0:
           <<run once>>
+          count -= 1
+      return history
   #% end-daemon-run %#
 #+END_SRC
 ** Running it Once
@@ -305,7 +311,7 @@ times to execute the algorithm.  This value defaults to 1.
 We prepare a dictionary of privileged nodes that will store the
 predicates each node satisfies as a list.  That is, if a node =n=
 satisfies =p1=, =p2=, and =p3=, we know that
-=privileged_nodes[n]=[p1,p2,p3]=.
+=privileged_nodes[n]=[p1, p2, p3]=.
 #+BEGIN_SRC python
   privileged_nodes = dict()
 #+END_SRC
