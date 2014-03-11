@@ -295,9 +295,6 @@ with =range= taking place of =int(...)=.
 
 ** Test
 * Tests
-:PROPERTIES:
-:tangle:   generator_tests.py
-:END:
 ** Random Graph Generation
 :PROPERTIES:
 :noweb-ref: random graph test
@@ -314,7 +311,11 @@ We import all those classes that we need to and define a testing class
 to contain the random graph in the correct scope.  After we define a
 few helper functions to look at only one attribute at a time, we then
 make our assertions on what the results /should/ look like.
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle "generator_tests.py"
+  import unittest
+  from nose.tools import *
+  import generators
+
   class RandomGraphTest(unittest.TestCase):
       @classmethod
       def setupClass(cls):
