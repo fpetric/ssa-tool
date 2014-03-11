@@ -3,7 +3,7 @@
 #+Date: [2014-01-04 Sat]
 
 
-[[https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
+[[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
 
 
 This is a set of tools for the representation, creation, and
