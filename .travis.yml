@@ -15,8 +15,7 @@ before_install:
   - sudo apt-get purge emacs23-lucid
   - sudo apt-get purge auctex
   - sudo apt-get purge apel
-  - sudo apt-get install emacs-snapshot emacs-snapshot-el
-  #  - emacs='emacs-snapshot'
+  - sudo apt-get install emacs
   - emacs --version
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
