@@ -4,8 +4,9 @@ python:
   - "3.3"
 before_install:
   # Need at least emacs > 24.0
-  - sudo apt-get update
-  - sudo apt-get upgrade emacs
+  - sudo add-apt-repository ppa:cassou/emacs
+  - sudo apt-get install emacs24 emacs24-el emacs24-common-non-dfsg
+  - emacs='emacs24'
   - emacs --version
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
