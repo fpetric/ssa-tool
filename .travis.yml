@@ -4,7 +4,9 @@ python:
   - "3.3"
 before_install:
   # Need at least emacs > 24.0
+  - sudo apt-get update
   - sudo apt-get upgrade emacs
+  - emacs --version
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
 install:
