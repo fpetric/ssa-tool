@@ -132,10 +132,11 @@ I'm not hopeful about getting any responses.
 #+BEGIN_SRC emacs-lisp :tangle "tangle.el" :shebang "#!/usr/bin/env emacs --script"
   #!/usr/bin/env emacs --script
   
-  (progn (let ((old-dir default-directory))
-           (cd "~/.emacs.d")
-           (normal-top-level-add-subdirs-to-load-path)
-           (cd old-dir)))
+  (ignore-errors
+    (let ((old-dir default-directory))
+      (cd "~/.emacs.d")
+      (normal-top-level-add-subdirs-to-load-path)
+      (cd old-dir)))
   
   (setq python-indent-guess-indent-offset nil)
   
