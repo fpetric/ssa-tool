@@ -44,9 +44,9 @@ actions that they apply to.
 :ID:       EFAAB89D-EF82-4DE4-A144-5268FC1A11F8
 :END:
 #+BEGIN_SRC python :tangle "__init__.py"
-  from Algorithm import Algorithm
-  from Algorithm import predicate
-  from Algorithm import move
+  from .Algorithm import Algorithm
+  from .Algorithm import predicate
+  from .Algorithm import move
 #+END_SRC
 * Self-Stabilizing Algorithm
 #+INCLUDE: Algorithm.org

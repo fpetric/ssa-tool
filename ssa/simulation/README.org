@@ -9,7 +9,7 @@
 :ID:       4FAB9880-8E21-4FCA-8A5C-984F085FDFFF
 :END:
 #+BEGIN_SRC python :tangle "__init__.py"
-  import generators
+  from . import generators
 #+END_SRC
 ** Displaying a Graph
 *** Managing Colors
