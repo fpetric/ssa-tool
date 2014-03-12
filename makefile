@@ -36,10 +36,10 @@ _check:
 	cd ssa && nosetests --with-doctest --verbose
 
 emacs24:
-	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz
+	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz > /dev/null 2>&1 3>&1
 	tar -zxf emacs-24.3.tar.gz
-	cd emacs-24.3 && ./configure --silent --without-all > /dev/null
-	cd emacs-24.3 && make > /dev/null
+	cd emacs-24.3 && ./configure --silent --without-all > /dev/null 2>&1 3>&1
+	cd emacs-24.3 && make > /dev/null 2>&1 3>&1
 
 installemacs24:
-	cd emacs-24.3 && make install > /dev/null
+	cd emacs-24.3 && make install > /dev/null 2>&1 3>&1
