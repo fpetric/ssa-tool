@@ -11,5 +11,5 @@ before_install:
   - sudo apt-get install python-pygame
 install:
   - make tangle
-  - pip install .
+  - sudo pip install .
 script: make _check
