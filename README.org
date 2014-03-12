@@ -140,7 +140,7 @@ I'm not hopeful about getting any responses.
   
   (setq python-indent-guess-indent-offset nil)
   
-  (package-install 'org)
+  ; (package-install 'org)
   
   (require 'org)
   (require 'ob)
