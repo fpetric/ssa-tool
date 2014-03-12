@@ -6,5 +6,6 @@ install:
   # Travis CI uses Ubuntu 12.04 LTS as its OS.
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
+  - pip install .
   - pip install networkx
 script: nosetests --with-doctest
