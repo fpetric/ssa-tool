@@ -38,8 +38,8 @@ _check:
 emacs24:
 	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz
 	tar -zxf emacs-24.3.tar.gz
-	cd emacs-24.3 && ./configure --silent --without-all
-	cd emacs-24.3 && make
+	cd emacs-24.3 && ./configure --silent --without-all > /dev/null
+	cd emacs-24.3 && make > /dev/null
 
 installemacs24:
-	cd emacs-24.3 && make install
+	cd emacs-24.3 && make install > /dev/null
