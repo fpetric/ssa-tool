@@ -130,11 +130,18 @@ I'm not hopeful about getting any responses.
   :ID:       CFE44C5A-2FBB-42A1-A783-881FA2C3BF89
   :END:
 #+BEGIN_SRC emacs-lisp :tangle "tangle.el" :shebang "#!/usr/bin/env emacs --script"
-  (progn (cd "~/.emacs.d") (normal-top-level-add-subdirs-to-load-path))
+  #!/usr/bin/env emacs --script
   
-  (require 'org-install)
+  (progn (let ((old-dir default-directory))
+           (cd "~/.emacs.d")
+           (normal-top-level-add-subdirs-to-load-path)
+           (cd old-dir)))
+  
+  (setq python-indent-guess-indent-offset nil)
+  
   (require 'org)
-  (require 'org-tangle)
+  (require 'ob)
+  (require 'ob-tangle)
   
   ;; http://www.emacswiki.org/emacs/ElispCookbook
   (defun string/ends-with (s ending)
@@ -146,10 +153,11 @@ I'm not hopeful about getting any responses.
   
   ;; http://turingmachine.org/bl/2013-05-29-recursively-listing-directories-in-elisp.html
   (defun directory-files-recursive (directory match maxdepth ignore)
-    "List files in DIRECTORY and in its sub-directories. 
-     Return files that match the regular expression MATCH but ignore     
-     files and directories that match IGNORE (IGNORE is tested before MATCH. Recurse only 
-     to depth MAXDEPTH. If zero or negative, then do not recurse"
+    "List files in DIRECTORY and in its sub-directories.  Return
+     files that match the regular expression MATCH but ignore files
+     and directories that match IGNORE (IGNORE is tested before
+     MATCH).  Recurse only to depth MAXDEPTH.  If zero or negative,
+     then do not recurse"
     (let* ((files-list '())
            (current-directory-list
             (directory-files directory t)))
@@ -180,13 +188,15 @@ I'm not hopeful about getting any responses.
          (setq current-directory-list (cdr current-directory-list)))
          files-list))
   
-  (delq nil
-        (mapcar
-         (lambda (file-path)
-           (if (string/ends-with file-path "org")
-               (org-babel-tangle-file file-path)))
-         (directory-files-recursive "." "" 10 "\\(build\\|dist\\)")))
-  
+  (if nil
+      (delq nil
+            (mapcar
+             (lambda (file-path)
+               (if (string/ends-with file-path "org")
+                   (org-babel-tangle-file (message file-path))))
+             (directory-files-recursive "." "" 10 "\\(build\\|dist\\)")))
+    (mapcar 'org-babel-tangle-file
+            (split-string (shell-command-to-string "find . -name '*.org' -type f"))))
 #+END_SRC
 * Notes
 ** Dijkstra 1974

@@ -2,8 +2,21 @@ documentation:
 	$(info No prepared documentation yet)
 	$(info See src/ssa.org)
 
-install:
-	python src/setup.py
+bootstrap:
+	sed -n '/:shebang/,/#+END_SRC/p' README.org \
+	  | tail -n +2 \
+	  | sed '$$ d' > tangle.el
+
+tangle: bootstrap
+	emacs --script tangle.el
+
+install: tangle
+	python setup.py install
+
+cleaninstall:
+	rm -rf ssa.egg-info
+	rm -rf build
+	rm -rf dist
 
 check:
 	$(info At least one test pops open a window with quick, discontinuous movement.)
@@ -14,13 +27,10 @@ check:
 	nosetests --with-doctest
 
 clean:
-	find src -name *.pyc -type f | while read NAME ; do rm "$${NAME}" ; done
+	rm -f tangle.el temp
+	find . -name '*.py'  -type f -exec rm -rf {} \;
+	find . -name '*.pyc' -type f -exec rm -rf {} \;
+	find . -name '*~'    -type f -exec rm -rf {} \;
 
-cleanall: clean cleanpaper
-	rm -rf src/ssa
-	rm -rf src/tests
-	rm -f  src/setup.py
-	rm -f  src/out.log
-	rm -f  src/ssa.pdf
-	rm -f  src/ssa.tex
-	rm -f  src/ssa.tex~
+check:
+	cd ssa && nosetests --with-doctest --verbose

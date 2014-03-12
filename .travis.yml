@@ -2,10 +2,12 @@ language: python
 python:
   - "3.2"
   - "3.3"
-install:
-  # Travis CI uses Ubuntu 12.04 LTS as its OS.
+before_install:
+  # Need at least emacs > 24.0
+  - sudo apt-get install emacs
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
+install:
+  - make tangle
   - pip install .
-  - pip install networkx
-script: nosetests --with-doctest
+script: make check
