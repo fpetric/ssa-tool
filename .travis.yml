@@ -7,10 +7,8 @@ cache:
   - directories:
     - emacs-24.3
 before_install:
-  - sudo apt-get install python-setuptools python-dev build-essential
-  - sudo easy_install -U mercurial
-  - sudo apt-get install python-pygame
-  - sudo pip install nose hg+http://bitbucket.org/pygame/pygame
+  - brew install sdl sdl_image sdl_mixer sdl_ttf portmidi hg
+  - sudo pip install networkx hg+http://bitbucket.org/pygame/pygame nose
   - make --silent emacs24
   - sudo make --silent installemacs24
   - emacs --version
