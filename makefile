@@ -30,6 +30,9 @@ check:
 	$(info At any rate, these tests are designed to be unattended.)
 	$(info Press enter to confirm that you have read this message, or Ctrl-C out.)
 	@read response
+	$(MAKE) _check
+
+_check:
 	cd ssa && nosetests --with-doctest --verbose
 
 emacs24:

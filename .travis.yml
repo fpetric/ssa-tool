@@ -4,12 +4,12 @@ python:
   - "3.3"
 before_install:
   # Need at least emacs > 24.0
-  - make emacs24
-  - sudo make installemacs24
+  - make --silent emacs24
+  - sudo make --silent installemacs24
   - emacs --version
   # Aptitude will install all dependencies of PyGame.
   - sudo apt-get install python-pygame
 install:
   - make tangle
   - pip install .
-script: echo > make check
+script: make _check
