@@ -35,6 +35,4 @@ check:
 emacs24:
 	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz
 	tar -zxvf emacs-24.3.tar.gz
-	cd emacs-24.3
-	./configure --with-gif=no
-	make
+	cd emacs-24.3 && ./configure --with-gif=no && make
