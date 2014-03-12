@@ -36,10 +36,15 @@ _check:
 	cd ssa && nosetests --with-doctest --verbose
 
 emacs24:
+	$(info Downloading emacs 24)
 	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz > /dev/null 2>&1 3>&1
+	$(info Unzipping)
 	tar -zxf emacs-24.3.tar.gz
+	$(info Configuring --without-all)
 	cd emacs-24.3 && ./configure --silent --without-all > /dev/null 2>&1 3>&1
+	$(info Building)
 	cd emacs-24.3 && make > /dev/null 2>&1 3>&1
 
 installemacs24:
+	$(info Installing)
 	cd emacs-24.3 && make install > /dev/null 2>&1 3>&1
