@@ -17,58 +17,6 @@ for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-f
 [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text editor.
 
 
-* Example
-  :PROPERTIES:
-  :ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
-  :END:
-#+BEGIN_SRC python :tangle example.py
-  from ssa.simulation.generators import random_graph
-  import ssa.core.Algorithm as Algorithm
-  from ssa.core.Algorithm import predicate
-  from ssa.core.Algorithm import move
-  
-  G = random_graph(5, marked='bool(.25)')
-  
-  @predicate(author='Sean Allred', version='1.0')
-  def node_should_unmark(node, neighborhood):
-      """Rule 1
-  
-      "marked"(n) = 1 `land `exists v `in N(n) : "marked"(v) = 1
-  
-      Returns True if the node is marked where a neighbor is also
-      marked.
-  
-      """
-      return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
-  
-  @predicate(author='Sean Allred', version='1.0')
-  def node_should_mark(node, neighborhood):
-      """Rule 2
-  
-      "marked"(n) = 0 `land `forall v `in N(n), "marked"(v) = 0
-  
-      Returns True if the node is not marked and its entire neighborhood
-      is also unmarked.
-  
-      """
-      return not n['marked'] and all(map(lambda v: not v['marked'], neighborhood))
-  
-  @move(author='Sean Allred', version='1.0')
-  def mark_node(node, neighborhood):
-      node['marked'] = True
-      return node, neighborhood
-  
-  @move(author='Sean Allred', version='1.0')
-  def unmark_node(node, neighborhood):
-      node['marked'] = False
-      return node, neighborhood
-  
-  ind_set = Algorithm({
-      node_should_mark: [mark_node],
-      node_should_unmark: [unmark_node]
-  })
-#+END_SRC
-
 * Introduction
 ** Directory Structure
 The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
@@ -125,7 +73,121 @@ It's saying I need a couple files:
 #+END_EXAMPLE
 but what goes in them?  I opened up a [[http://stackoverflow.com/questions/21685430/when-running-setup-py-install-on-my-module-what-needs-to-be-in-submodule-p][question on StackOverflow]], but
 I'm not hopeful about getting any responses.
+* Example
+  :PROPERTIES:
+  :ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
+  :END:
+#+BEGIN_SRC python :tangle example.py
+  from ssa.simulation.generators import random_graph
+  import ssa.core.Algorithm as Algorithm
+  from ssa.core.Algorithm import predicate
+  from ssa.core.Algorithm import move
+  
+  G = random_graph(5, marked='bool(.25)')
+  
+  @predicate(author='Sean Allred', version='1.0')
+  def node_should_unmark(node, neighborhood):
+      """Rule 1
+  
+      "marked"(n) = 1 `land `exists v `in N(n) : "marked"(v) = 1
+  
+      Returns True if the node is marked where a neighbor is also
+      marked.
+  
+      """
+      return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+  
+  @predicate(author='Sean Allred', version='1.0')
+  def node_should_mark(node, neighborhood):
+      """Rule 2
+  
+      "marked"(n) = 0 `land `forall v `in N(n), "marked"(v) = 0
+  
+      Returns True if the node is not marked and its entire neighborhood
+      is also unmarked.
+  
+      """
+      return not n['marked'] and all(map(lambda v: not v['marked'], neighborhood))
+  
+  @move(author='Sean Allred', version='1.0')
+  def mark_node(node, neighborhood):
+      node['marked'] = True
+      return node, neighborhood
+  
+  @move(author='Sean Allred', version='1.0')
+  def unmark_node(node, neighborhood):
+      node['marked'] = False
+      return node, neighborhood
+  
+  ind_set = Algorithm({
+      node_should_mark: [mark_node],
+      node_should_unmark: [unmark_node]
+  })
+#+END_SRC
 
+* Installing
+  :PROPERTIES:
+  :ID:       CFE44C5A-2FBB-42A1-A783-881FA2C3BF89
+  :END:
+#+BEGIN_SRC emacs-lisp :tangle "tangle.el" :shebang "#!/usr/bin/env emacs --script"
+  (progn (cd "~/.emacs.d") (normal-top-level-add-subdirs-to-load-path))
+  
+  (require 'org-install)
+  (require 'org)
+  (require 'org-tangle)
+  
+  ;; http://www.emacswiki.org/emacs/ElispCookbook
+  (defun string/ends-with (s ending)
+        "return non-nil if string S ends with ENDING."
+        (cond ((>= (length s) (length ending))
+               (let ((elength (length ending)))
+                 (string= (substring s (- 0 elength)) ending)))
+              (t nil)))
+  
+  ;; http://turingmachine.org/bl/2013-05-29-recursively-listing-directories-in-elisp.html
+  (defun directory-files-recursive (directory match maxdepth ignore)
+    "List files in DIRECTORY and in its sub-directories. 
+     Return files that match the regular expression MATCH but ignore     
+     files and directories that match IGNORE (IGNORE is tested before MATCH. Recurse only 
+     to depth MAXDEPTH. If zero or negative, then do not recurse"
+    (let* ((files-list '())
+           (current-directory-list
+            (directory-files directory t)))
+      ;; while we are in the current directory
+       (while current-directory-list
+         (let ((f (car current-directory-list)))
+           (cond 
+            ((and
+             ignore ;; make sure it is not nil
+             (string-match ignore f))
+             ; ignore
+              nil)
+            ((and
+              (file-regular-p f)
+              (file-readable-p f)
+              (string-match match f))
+            (setq files-list (cons f files-list)))
+            ((and
+             (file-directory-p f)
+             (file-readable-p f)
+             (not (string-equal ".." (substring f -2)))
+             (not (string-equal "." (substring f -1)))
+             (> maxdepth 0))
+             ;; recurse only if necessary
+             (setq files-list (append files-list (directory-files-recursive f match (- maxdepth -1) ignore)))
+             (setq files-list (cons f files-list)))
+            (t)))
+         (setq current-directory-list (cdr current-directory-list)))
+         files-list))
+  
+  (delq nil
+        (mapcar
+         (lambda (file-path)
+           (if (string/ends-with file-path "org")
+               (org-babel-tangle-file file-path)))
+         (directory-files-recursive "." "" 10 "\\(build\\|dist\\)")))
+  
+#+END_SRC
 * Notes
 ** Dijkstra 1974
 A self-stabilizing network is seen as a graph of state machines.  Each
