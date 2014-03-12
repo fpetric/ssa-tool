@@ -42,7 +42,7 @@
 :ID:       72CC2548-41E1-4A16-A3BA-E3AE9DBA28DB
 :END:
 #+BEGIN_SRC python :tangle "BasicNode.py"
-  from ColorBank import ColorBank
+  from .ColorBank import ColorBank
 
   class BasicNode:
       default_radius = 25
@@ -87,8 +87,8 @@
   import pygame
   import networkx as nx
   
-  from ColorBank import ColorBank
-  from BasicNode import BasicNode
+  from .ColorBank import ColorBank
+  from .BasicNode import BasicNode
   
   class Visualizer:
       def __init__(self, size=(640, 480), graph=nx.Graph(), edge_width = 2):

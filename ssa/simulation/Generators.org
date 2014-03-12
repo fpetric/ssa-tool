@@ -314,7 +314,7 @@ make our assertions on what the results /should/ look like.
 #+BEGIN_SRC python :tangle "generator_tests.py"
   import unittest
   from nose.tools import *
-  import generators
+  import ssa.simulation.generators
 
   class RandomGraphTest(unittest.TestCase):
       @classmethod
