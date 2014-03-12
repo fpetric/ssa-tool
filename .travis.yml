@@ -2,6 +2,10 @@ language: python
 python:
   - "3.2"
   - "3.3"
+cache:
+  - apt
+  - directories:
+    - emacs-24.3
 before_install:
   - sudo apt-get install python-setuptools python-dev build-essential
   - sudo easy_install -U mercurial
