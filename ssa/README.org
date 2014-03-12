@@ -5,4 +5,5 @@
 Everything!
 #+BEGIN_SRC python :tangle "__init__.py"
   from . import core
+  from . import simulation
 #+END_SRC
