@@ -31,3 +31,10 @@ check:
 	$(info Press enter to confirm that you have read this message, or Ctrl-C out.)
 	@read response
 	cd ssa && nosetests --with-doctest --verbose
+
+emacs24:
+	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz
+	tar -zxvf emacs-24.3.tar.gz
+	cd emacs-24.3
+	./configure --with-gif=no
+	make
