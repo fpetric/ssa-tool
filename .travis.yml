@@ -3,12 +3,11 @@ python:
   - "3.2"
   - "3.3"
 before_install:
-  # Need at least emacs > 24.0
+  - sudo pip install nose
+  - sudo apt-get install python-pygame
   - make --silent emacs24
   - sudo make --silent installemacs24
   - emacs --version
-  # Aptitude will install all dependencies of PyGame.
-  - sudo apt-get install python-pygame
 install:
   - make tangle
   - sudo pip install .
