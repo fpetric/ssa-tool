@@ -3,7 +3,9 @@ python:
   - "3.2"
   - "3.3"
 before_install:
-  - sudo apt-get install hg python-pygame
+  - sudo apt-get install python-setuptools python-dev build-essential
+  - sudo easy_install -U mercurial
+  - sudo apt-get install python-pygame
   - sudo pip install nose hg+http://bitbucket.org/pygame/pygame
   - make --silent emacs24
   - sudo make --silent installemacs24
