@@ -107,8 +107,8 @@
           try:
               p = layout_algorithm(self.graph)
           except:
-              print 'Layout algorithm `{!s}` not yet supported.'.format(repr(layout_algorithm).split()[1])
-              print 'Please install the appropriate package.'
+              print('Layout algorithm `{!s}` not yet supported.'.format(repr(layout_algorithm).split()[1]))
+              print('Please install the appropriate package.')
               return
   
           for node, position in zip(p.keys(), p.values()): # in p isn't working: iteration over non-sequence
