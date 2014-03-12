@@ -423,7 +423,7 @@ following is provided for completeness.
           <<create test algorithms>>
   
       def test_metadata(self):
-          pred = self.algorithm['independent set'].ruleset.keys()[0]
+          pred = list(self.algorithm['independent set'].ruleset.keys())[0]
           assert pred.meta['name']      != ''
           assert pred.meta['doc tex']   != ''
           assert pred.meta['doc human'] != ''
