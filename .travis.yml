@@ -6,7 +6,15 @@ before_install:
   # Need at least emacs > 24.0
   - echo > sudo add-apt-repository ppa:cassou/emacs
   - sudo apt-get install
-  - sudo apt-get purge emacs emacs-snapshot-common emacs-snapshot-bin-common emacs-snapshot emacs-snapshot-el emacs-snapshot-gtk emacs23 emacs23-bin-common emacs23-common emacs23-el emacs23-nox emacs23-lucid auctex apel emacs24 emacs24-bin-common emacs24-common emacs24-common-non-dfsg emacs24-el
+  - sudo apt-get purge emacs
+  - sudo apt-get purge emacs23
+  - sudo apt-get purge emacs23-bin-common
+  - sudo apt-get purge emacs23-common
+  - sudo apt-get purge emacs23-el
+  - sudo apt-get purge emacs23-nox
+  - sudo apt-get purge emacs23-lucid
+  - sudo apt-get purge auctex
+  - sudo apt-get purge apel
   - sudo apt-get install emacs24 emacs24-el emacs24-common-non-dfsg
   - emacs='emacs24'
   - emacs --version
