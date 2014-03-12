@@ -314,7 +314,7 @@ make our assertions on what the results /should/ look like.
 #+BEGIN_SRC python :tangle "generator_tests.py"
   import unittest
   from nose.tools import *
-  import ssa.simulation.generators
+  from ssa.simulation.generators import random_graph
 
   class RandomGraphTest(unittest.TestCase):
       @classmethod
@@ -342,7 +342,7 @@ We create a random graph with the following properties:
 - weight :: a random real in [0, 1)
 - age :: a random number between 18 and 65
 #+BEGIN_SRC python
-  generators.random_graph(\
+  random_graph(\
       1000, .7,
       marked='bool(.3)',
       answer=lambda r: r.choice(['yes', 'no', 'maybe']),
@@ -428,12 +428,12 @@ us.  In fact, we should be able to use a few things:
       choices = ['yes', 'no', 'maybe']
       def get_marked(random_instance):
           return random_instance.choice(choices)
-      g = generators.random_graph(15, marked=get_marked)
+      g = random_graph(15, marked=get_marked)
       assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
   
   def test_lambda_func(self):
       choices = ['yes', 'no', 'maybe']
-      g = generators.random_graph(15, marked=lambda r: r.choice(choices))
+      g = random_graph(15, marked=lambda r: r.choice(choices))
       assert all(map(lambda n: g.node[n]['marked'] in choices, g.node))
 #+END_SRC
 and now to test generators:
@@ -442,7 +442,7 @@ and now to test generators:
       def gen_weight(random_instance):
           while True:
               yield random_instance.random()
-      g = generators.random_graph(15, weight=gen_weight)
+      g = random_graph(15, weight=gen_weight)
       assert all(map(lambda n: 0 <= g.node[n]['weight'] < 1, g.node))
   
   def test_generator_func2(self):
@@ -451,6 +451,6 @@ and now to test generators:
           return lambda r: (r.uniform(minimum, maximum)
                             for i in iter(int, True))
   
-      g = generators.random_graph(15, weight=gen_in_range(10, 20))
+      g = random_graph(15, weight=gen_in_range(10, 20))
       assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
 #+END_SRC
