@@ -4,7 +4,7 @@ python:
   - "3.3"
 before_install:
   # Need at least emacs > 24.0
-  - make emacs24
+  - make emacs24 > /dev/null
   - alias emacs='emacs-24.3/src/emacs --no-window-system'
   - emacs --version
   # Aptitude will install all dependencies of PyGame.
