@@ -4,5 +4,5 @@
 :END:
 Everything!
 #+BEGIN_SRC python :tangle "__init__.py"
-  import core
+  from . import core
 #+END_SRC
