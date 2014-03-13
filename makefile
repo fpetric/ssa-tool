@@ -13,7 +13,7 @@ tangle: bootstrap
 install: tangle
 	python setup.py install
 
-cleaninstall:
+install-clean:
 	rm -rf ssa.egg-info
 	rm -rf build
 	rm -rf dist
@@ -35,7 +35,13 @@ check:
 _check:
 	cd ssa && nosetests --with-doctest --verbose
 
-emacs24:
+travis-dependencies:
+	apt-get install python-pygame
+	make --silent _travis-emacs24-build
+	make --silent _travis-emacs24-install
+	emacs --version
+
+_travis-emacs24-build:
 	$(info Downloading emacs 24)
 	wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz > /dev/null 2>&1 3>&1
 	$(info Unzipping)
@@ -45,6 +51,6 @@ emacs24:
 	$(info Building)
 	cd emacs-24.3 && make > /dev/null 2>&1 3>&1
 
-installemacs24:
+_travis-emacs24-install:
 	$(info Installing)
 	cd emacs-24.3 && make install > /dev/null 2>&1 3>&1

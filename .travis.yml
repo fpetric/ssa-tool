@@ -8,10 +8,7 @@ cache:
   - directories:
     - emacs-24.3
 before_install:
-  - sudo apt-get install python-pygame
-  - make --silent emacs24
-  - sudo make --silent installemacs24
-  - emacs --version
+  - sudo make travis-dependencies
 install:
   - make tangle
   - pip install .
