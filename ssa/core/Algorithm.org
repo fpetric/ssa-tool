@@ -29,9 +29,9 @@ The =Algorithm= class is simply defined as a ruleset
           self.ruleset = ruleset
       #% endalgorithm %#
   
-          #% algorithm-ruleset-assertions %#
-          <<class algorithm ensure moveset is proper>>
-          #% end-algorithm-ruleset-assertions %#
+      #% algorithm-ruleset-assertions %#
+      <<miscellaneous>>
+      #% end-algorithm-ruleset-assertions %#
   
       <<construction>>
       <<run>>
@@ -106,6 +106,7 @@ meta-data.  Since this meta-data is sort of 'extra' on top of what a
 self-stabilizing algorithm /needs/ to be, predicates and moves are
 distinguished by Python /decorators/.
 #+BEGIN_SRC python
+  #% predicate %#
   def predicate(author, version, **others):
       """Marks a function as a predicate, providing metadata.
   
@@ -120,6 +121,7 @@ distinguished by Python /decorators/.
           func.meta.update(others)
           return func
       return _predicate
+  #% end-predicate %#
 #+END_SRC
 *** Online Documentation
 :PROPERTIES:
@@ -163,6 +165,7 @@ distinguished by Python /decorators/.
 #+END_SRC
 ** Move
 #+BEGIN_SRC python
+  #% move %#
   def move(author, version, **others):
       """Marks a function as a move, providing metadata.
   
@@ -177,6 +180,7 @@ distinguished by Python /decorators/.
           func.meta.update(others)
           return func
       return _move
+  #% end-move %#
 #+END_SRC
 *** Online Documentation
 :PROPERTIES:
