@@ -27,7 +27,7 @@ The =Algorithm= class is simply defined as a ruleset
       #% algorithm %#
       def __init__(self, ruleset):
           self.ruleset = ruleset
-      #% endalgorithm %#
+      #% end-algorithm %#
   
       #% algorithm-ruleset-assertions %#
       <<miscellaneous>>
@@ -100,6 +100,20 @@ The =Algorithm= class is simply defined as a ruleset
 :PROPERTIES:
 :noweb-ref: predicates and moves
 :END:
+** Metadata
+:PROPERTIES:
+:noweb-ref: define metadata
+:END:
+#+BEGIN_SRC python
+  #% define-metadata %#
+  func.meta = {
+      'author':  author,
+      'version': version
+  }
+  func.meta.update(parsedoc(func))
+  func.meta.update(others)
+  #% end-define-metadata %#
+#+END_SRC
 ** Predicates
 Predicates and moves are simply functions that have associated
 meta-data.  Since this meta-data is sort of 'extra' on top of what a
@@ -113,12 +127,7 @@ distinguished by Python /decorators/.
       <<predicate documentation>>
       """
       def _predicate(func):
-          func.meta = {
-              'author':  author,
-              'version': version
-          }
-          func.meta.update(parsedoc(func))
-          func.meta.update(others)
+          <<define metadata>>
           return func
       return _predicate
   #% end-predicate %#
@@ -172,12 +181,7 @@ distinguished by Python /decorators/.
       <<move documentation>>
       """
       def _move(func):
-          func.meta = {
-              'author':  author,
-              'version': version
-          }
-          func.meta.update(parsedoc(func))
-          func.meta.update(others)
+          <<define metadata>>
           return func
       return _move
   #% end-move %#
@@ -395,6 +399,26 @@ following is provided for completeness.
       while not self.has_stabilized():
           self.run(graph)
 #+END_SRC
+* Saving
+:PROPERTIES:
+:ID:       D097345A-0ECA-4635-9700-8CC0C7CFB1F0
+:END:
+#+BEGIN_SRC xml :tangle "example-save.xml" :padline no
+  <?xml version="1.0" ?>
+  <ssa:algorithm xmlns:ssa="https://github.com/vermiculus/ssa-tool"
+                 name="Independent Set">
+    <ssa:rule description="If a node is marked and
+                           shouldn't be, unmark it."
+              predicate="marked_and_neighbor_marked.py">
+      <ssa:move file="unmark.py" />
+    </ssa:rule>
+    <ssa:rule description="If a node is unmarked and
+                           can be, mark it."
+              predicate="unmarked_and_neighbors_unmarked.py">
+      <ssa:move file="mark.py" />
+    </ssa:rule>
+  </ssa:algorithm>
+#+END_SRC
 * Tests
 :PROPERTIES:
 :ID:       07052652-FE3B-43BC-B448-5A5478626532
@@ -476,6 +500,7 @@ Using the generators module, we can create a few random graphs quite easily.
 :noweb-ref: ind-set declare predicates
 :END:
 #+BEGIN_SRC python
+  #% example-predicate %#
   @predicate(author='Sean Allred', version='1.0')
   def node_should_unmark(node, neighborhood):
       """Rule 1
@@ -487,6 +512,7 @@ Using the generators module, we can create a few random graphs quite easily.
   
       """
       return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+  #% end-example-predicate %#
   
   @predicate(author='Sean Allred', version='1.0')
   def node_should_mark(node, neighborhood):
@@ -505,10 +531,12 @@ Using the generators module, we can create a few random graphs quite easily.
 :noweb-ref: ind-set declare moves
 :END:
 #+BEGIN_SRC python
+  #% example-move %#
   @move(author='Sean Allred', version='1.0')
   def mark_node(node, neighborhood):
       node['marked'] = True
       return node, neighborhood
+  #% end-example-move %#
   
   @move(author='Sean Allred', version='1.0')
   def unmark_node(node, neighborhood):
