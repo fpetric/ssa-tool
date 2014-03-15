@@ -47,7 +47,7 @@ _travis-emacs24-build:
 	$(info Unzipping)
 	tar -zxf emacs-24.3.tar.gz
 	$(info Configuring --without-all)
-	cd emacs-24.3 && ./configure --silent --without-all > /dev/null 2>&1 3>&1
+	cd emacs-24.3 && ./configure --silent --without-all --without-x > /dev/null 2>&1 3>&1
 	$(info Building)
 	cd emacs-24.3 && make > /dev/null 2>&1 3>&1
 
