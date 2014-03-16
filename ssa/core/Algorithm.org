@@ -403,7 +403,7 @@ following is provided for completeness.
 :PROPERTIES:
 :ID:       D097345A-0ECA-4635-9700-8CC0C7CFB1F0
 :END:
-#+BEGIN_SRC xml :tangle "example-save.xml" :padline no
+#+BEGIN_SRC xml :tangle "ind-set.ssax" :padline no
   <?xml version="1.0"?>
   <algorithm xmlns="https://github.com/vermiculus/ssa-tool"
                  name="Independent Set">
@@ -509,9 +509,11 @@ Using the generators module, we can create a few random graphs quite easily.
   
       Returns True if the node is marked where a neighbor is also
       marked.
-  
       """
-      return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+      is_marked = n['marked']
+      neighbor_marked = any(map(lambda v: v['marked'],
+                                neighborhood))
+      return is_marked and neighbor_marked
   #% end-example-predicate %#
   
   @predicate(author='Sean Allred', version='1.0')
@@ -522,9 +524,11 @@ Using the generators module, we can create a few random graphs quite easily.
   
       Returns True if the node is not marked and its entire neighborhood
       is also unmarked.
-  
       """
-      return not n['marked'] and all(map(lambda v: not v['marked'], neighborhood))
+      marked = n['marked']
+      neighbor_marked = any(map(lambda v: v['marked'],
+                                neighborhood))
+      return not (marked or neighbor_marked)
 #+END_SRC
 **** Moves
 :PROPERTIES:

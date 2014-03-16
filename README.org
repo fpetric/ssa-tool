@@ -77,7 +77,7 @@ I'm not hopeful about getting any responses.
   :PROPERTIES:
   :ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
   :END:
-#+BEGIN_SRC python :tangle example.py
+#+BEGIN_SRC python :tangle example.py :padding no
   from ssa.simulation.generators import random_graph
   import ssa.core.Algorithm as Algorithm
   from ssa.core.Algorithm import predicate
@@ -93,9 +93,11 @@ I'm not hopeful about getting any responses.
   
       Returns True if the node is marked where a neighbor is also
       marked.
-  
       """
-      return n['marked'] and any(map(lambda v: v['marked'], neighborhood))
+      marked = n['marked']
+      neighbor_marked = any(map(lambda v: v['marked'],
+                                neighborhood))
+      return marked and neighbor_marked
   
   @predicate(author='Sean Allred', version='1.0')
   def node_should_mark(node, neighborhood):
@@ -105,9 +107,11 @@ I'm not hopeful about getting any responses.
   
       Returns True if the node is not marked and its entire neighborhood
       is also unmarked.
-  
       """
-      return not n['marked'] and all(map(lambda v: not v['marked'], neighborhood))
+      marked = n['marked']
+      neighbor_marked = any(map(lambda v: v['marked'],
+                                neighborhood))
+      return not (marked or neighbor_marked)
   
   @move(author='Sean Allred', version='1.0')
   def mark_node(node, neighborhood):
