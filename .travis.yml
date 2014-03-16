@@ -12,4 +12,5 @@ before_install:
 install:
   - make tangle
   - pip install .
-script: make _check
+script:
+  - make _check
