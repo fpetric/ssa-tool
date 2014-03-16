@@ -51,4 +51,4 @@ _travis-emacs24-build:
 
 _travis-emacs24-install:
 	$(info Installing)
-	cd $(HOME) && cd emacs && make install > /dev/null 2>&1 3>&1
+	cd $(HOME) && cd emacs-24.3 && make install > /dev/null 2>&1 3>&1
