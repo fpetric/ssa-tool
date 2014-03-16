@@ -1,3 +1,5 @@
+PREBUILT_EMACS=https://dl.dropboxusercontent.com/u/17471132/emacs/emacs-24.3__Ubuntu-12.04-LTS.tgz
+
 documentation:
 	$(info No prepared documentation yet)
 	$(info See src/ssa.org)
@@ -43,14 +45,10 @@ travis-dependencies:
 
 _travis-emacs24-build:
 	$(info Downloading emacs 24)
-	cd $(HOME) && wget ftp://ftp.gnu.org/pub/gnu/emacs/emacs-24.3.tar.gz --quiet
+	cd $(HOME) && wget --quiet -O emacs.tgz $(PREBUILT_EMACS)
 	$(info Unzipping)
-	cd $(HOME) && tar -zxf emacs-24.3.tar.gz
-	$(info Configuring --without-all)
-	cd $(HOME) && cd emacs-24.3 && ./configure --silent --without-all --without-x > /dev/null 2>&1 3>&1
-	$(info Building)
-	cd $(HOME) && cd emacs-24.3 && make > /dev/null 2>&1 3>&1
+	cd $(HOME) && tar -zxf emacs.tgz
 
 _travis-emacs24-install:
 	$(info Installing)
-	cd $(HOME) && cd emacs-24.3 && make install > /dev/null 2>&1 3>&1
+	cd $(HOME) && cd emacs && make install > /dev/null 2>&1 3>&1
