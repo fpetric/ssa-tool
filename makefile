@@ -1,8 +1,7 @@
-HOME=`echo $$HOME`
-
 documentation:
 	$(info No prepared documentation yet)
 	$(info See src/ssa.org)
+	$(info $(HOME))
 
 bootstrap:
 	sed -n '/:shebang/,/#+END_SRC/p' README.org \
