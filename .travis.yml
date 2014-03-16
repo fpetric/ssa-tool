@@ -6,7 +6,7 @@ python:
 cache:
   - apt
   - directories:
-    - emacs-24.3
+    - $HOME/emacs-24.3
 before_install:
   - sudo make travis-dependencies
 install:

@@ -56,7 +56,7 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
       'download_url': 'http://github.com/vermiculus/ssa-tool',
       'author_email': 'seallred@smcm.edu',
       'version': '0.1',
-      'install_requires': ['networkx', 'Pygame'],
+      'install_requires': ['networkx'],
       'packages': ['ssa'],
       'scripts': [],
       'name': 'ssa',
