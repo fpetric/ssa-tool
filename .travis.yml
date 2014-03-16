@@ -3,10 +3,6 @@ python:
   - "2.7"
   - "3.2"
   - "3.3"
-cache:
-  - apt
-  - directories:
-    - $HOME/emacs-24.3
 before_install:
   - sudo make travis-dependencies
 install:

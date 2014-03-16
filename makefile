@@ -45,10 +45,10 @@ travis-dependencies:
 
 _travis-emacs24-build:
 	$(info Downloading emacs 24)
-	(cd $(HOME); wget -O emacs.tgz $(PREBUILT_EMACS))
+	wget -O emacs.tgz $(PREBUILT_EMACS)
 	$(info Unzipping)
-	(cd $(HOME); tar -zxf emacs.tgz)
+	tar -zxf emacs.tgz
 
 _travis-emacs24-install:
 	$(info Installing)
-	(cd $(HOME)/emacs-24.3; make install)
+	cd emacs-24.3 && make install
