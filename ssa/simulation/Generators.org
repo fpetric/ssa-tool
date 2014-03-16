@@ -197,7 +197,7 @@ existing functions yields a generator (no pun intended).
   for key in properties:                  
       if hasattr(properties[key], '__call__'):
           check_value = properties[key](r)
-          if hasattr(check_value, 'next'):
+          if hasattr(check_value, '__next__'):
               properties[key] = check_value
 #+END_SRC
 *** Adding Nodes
@@ -243,7 +243,7 @@ we parse =property_value= as a string
     
   if hasattr(property_value, '__call__'):
       new_value = property_value(r)
-  elif hasattr(property_value, 'next'):
+  elif hasattr(property_value, '__next__'):
       try:
           new_value = next(property_value)
       except StopIteration:
