@@ -404,20 +404,20 @@ following is provided for completeness.
 :ID:       D097345A-0ECA-4635-9700-8CC0C7CFB1F0
 :END:
 #+BEGIN_SRC xml :tangle "example-save.xml" :padline no
-  <?xml version="1.0" ?>
-  <ssa:algorithm xmlns:ssa="https://github.com/vermiculus/ssa-tool"
+  <?xml version="1.0"?>
+  <algorithm xmlns="https://github.com/vermiculus/ssa-tool"
                  name="Independent Set">
-    <ssa:rule description="If a node is marked and
+    <rule description="If a node is marked and
                            shouldn't be, unmark it."
               predicate="marked_and_neighbor_marked.py">
-      <ssa:move file="unmark.py" />
-    </ssa:rule>
-    <ssa:rule description="If a node is unmarked and
+      <move file="unmark.py" />
+    </rule>
+    <rule description="If a node is unmarked and
                            can be, mark it."
               predicate="unmarked_and_neighbors_unmarked.py">
-      <ssa:move file="mark.py" />
-    </ssa:rule>
-  </ssa:algorithm>
+      <move file="mark.py" />
+    </rule>
+  </algorithm>
 #+END_SRC
 * Tests
 :PROPERTIES:
