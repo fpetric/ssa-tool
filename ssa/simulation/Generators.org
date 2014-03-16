@@ -199,7 +199,7 @@ existing functions yields a generator (no pun intended).
   for key in properties:                  
       if hasattr(properties[key], '__call__'):
           check_value = properties[key](r)
-          if hasattr(check_value, '__next__'):
+          if isinstance(check_value, types.GeneratorType):
               properties[key] = check_value
 #+END_SRC
 *** Adding Nodes
