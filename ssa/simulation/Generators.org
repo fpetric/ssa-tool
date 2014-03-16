@@ -11,6 +11,8 @@
 #+BEGIN_SRC python :tangle "generators.py"
   import networkx
   import random
+  import types
+
   from itertools import combinations
   
   class BasicNode:
@@ -240,10 +242,10 @@ generator (implements =next=), we retrieve the next value.  Otherwise,
 we parse =property_value= as a string
 #+BEGIN_SRC python
   new_value = None
-    
+  
   if hasattr(property_value, '__call__'):
       new_value = property_value(r)
-  elif hasattr(property_value, '__next__'):
+  elif isinstance(property_value, types.GeneratorType):
       try:
           new_value = next(property_value)
       except StopIteration:
