@@ -34,7 +34,7 @@ check:
 	$(MAKE) _check
 
 _check:
-	cd ssa && nosetests --with-doctest --verbose
+	cd ssa && nosetests --verbose
 
 travis-dependencies:
 	apt-get install python-pygame
