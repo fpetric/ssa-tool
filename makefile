@@ -37,7 +37,6 @@ _check:
 	cd ssa && nosetests --verbose
 
 travis-dependencies:
-	apt-get install python-pygame
 	make --silent _travis-emacs24-build
 	make --silent _travis-emacs24-install
 	emacs --version
