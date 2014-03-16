@@ -371,7 +371,7 @@ and an averaging function to average numerical values:
 #+END_LaTeX
 #+BEGIN_SRC python
   def get_attribute(self, attr):
-      return map(lambda n: self.G.node[n][attr], self.G.node)
+      return list(map(lambda n: self.G.node[n][attr], self.G.node))
   
   def avg(self, attr):
       return float(sum(self.get_attribute(attr)))/len(self.G.nodes())
