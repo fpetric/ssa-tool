@@ -15,6 +15,7 @@ side-effects are not a thing.  this will make =history= work.
 The =Algorithm= class is simply defined as a ruleset
 #+BEGIN_SRC python :tangle "Algorithm.py" :noweb tangle
   <<imports>>
+  import random
 
   <<documentation parsing>>
   <<predicates and moves>>
@@ -30,7 +31,7 @@ The =Algorithm= class is simply defined as a ruleset
       #% end-algorithm %#
   
       #% algorithm-ruleset-assertions %#
-      <<miscellaneous>>
+      <<ruleset assertions>>
       #% end-algorithm-ruleset-assertions %#
   
       <<construction>>
@@ -61,6 +62,7 @@ The =Algorithm= class is simply defined as a ruleset
           human = '\n'.join(doc_lines[newidx+1:])
       except:
           print(locals())
+          raise None
   
       return { 'name':       name.strip(),
                'doc tex':     tex.strip(),
@@ -285,9 +287,14 @@ To look at what the function needs, we load an introspection package.
 #+BEGIN_SRC python :noweb-ref "imports"
   import inspect
 #+END_SRC
-#+BEGIN_SRC python
+#+BEGIN_SRC python :noweb-ref "ruleset assertions"
   def is_valid_function(function):
       return len(inspect.getargspec(function).args) is 2
+#+END_SRC
+#+BEGIN_SRC python
+  @staticmethod
+  def neighbor_data(graph, node):
+      return {node: graph.node[node] for node in graph.neighbors(node)}
 #+END_SRC
 * Running the Algorithm
 :PROPERTIES:
@@ -305,7 +312,7 @@ times to execute the algorithm.  This value defaults to 1.
       """
       assert count >= 0
   
-      history = None
+      history = list()
       while count > 0:
           <<run once>>
           count -= 1
@@ -329,17 +336,23 @@ neighborhood) is privileged.  (Remember that privileges are functions
 of a node and its neighborhood.)
 #+BEGIN_SRC python
   #% daemon-find-privileged-nodes %#
-  for node in graph.nodes:
-      neighborhood = graph.neighbors(node)
+  for node in graph:
+      neighborhood = Algorithm.neighbor_data(graph, node)
       <<run is node privileged>>
   #% end-daemon-find-privileged-nodes %#
 #+END_SRC
+If there are no privileged nodes, break the loop.
+#+BEGIN_SRC python
+  if not privileged_nodes:
+      break
+#+END_SRC
+
 Once we have this collection of all privileged nodes, we pick a random
 node and get a random predicate that it satisfies.
 #+BEGIN_SRC python
   #% daemon-pick-predicate %#
-  node = random.choice(privileged_nodes)
-  neighborhood = graph.neighbors(node)
+  node = random.choice(list(privileged_nodes.keys()))
+  neighborhood = Algorithm.neighbor_data(graph, node)
   satisfied_predicate = random.choice(privileged_nodes[node])
   #% end-daemon-pick-predicate %#
 #+END_SRC
@@ -372,7 +385,7 @@ if necessary).
 #+BEGIN_SRC python
   #% daemon-get-privileges %#
   for predicate in self.ruleset:
-      if predicate(node, neighborhood):
+      if predicate(graph.node[node], neighborhood.values()):
           if node in privileged_nodes:
               privileged_nodes[node] += predicate
           else:
