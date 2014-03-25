@@ -16,6 +16,7 @@ The =Algorithm= class is simply defined as a ruleset
 #+BEGIN_SRC python :tangle "Algorithm.py" :noweb tangle
   <<imports>>
   import random
+  import copy
 
   <<documentation parsing>>
   <<predicates and moves>>
@@ -363,14 +364,22 @@ neighborhood.  (Note that, in practice, it will make more sense for
 the function to simply update the node and neighborhood itself.)
 #+BEGIN_SRC python
   #% daemon-apply-move %#
+  old_node = copy.deepcopy(node)
+  old_node_data = copy.deepcopy(graph.node[node])
+  old_neighborhood = copy.deepcopy(neighborhood)
+
   next_move = random.choice(self.ruleset[satisfied_predicate])
-  new_node, new_neighborhood = next_move(node, neighborhood)
+  next_move(graph.node[node], neighborhood)
   #% end-daemon-apply-move %#
 #+END_SRC
 Add this entire debacle to the history.
 #+BEGIN_SRC python
-  history.add((    node,     neighborhood, next_move,
-               new_node, new_neighborhood))
+  history.append({
+      'chosen node': (old_node, old_node_data),
+      'neighborhood of chosen node': old_neighborhood,
+      'next move': next_move.__name__,
+      'node after move': graph.node[node]
+  })
 #+END_SRC
 **** TODO Can a move cause a node to write to its neighbors?
 *** Is This Node Privileged?
