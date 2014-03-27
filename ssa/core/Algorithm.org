@@ -27,7 +27,7 @@ The =Algorithm= class is simply defined as a ruleset
       <<documentation>>
       """
       #% algorithm %#
-      def __init__(self, ruleset):
+      def __init__(self, ruleset=None):
           self.ruleset = ruleset
       #% end-algorithm %#
   
@@ -38,6 +38,7 @@ The =Algorithm= class is simply defined as a ruleset
       <<construction>>
       <<run>>
       <<stability>>
+      <<read and write>>
       <<miscellaneous>>
 #+END_SRC
 * Documentation Parsing
@@ -424,22 +425,124 @@ following is provided for completeness.
 * Saving
 :PROPERTIES:
 :ID:       D097345A-0ECA-4635-9700-8CC0C7CFB1F0
+:noweb-ref: read and write
 :END:
-#+BEGIN_SRC xml :tangle "ind-set.ssax" :padline no
-  <?xml version="1.0"?>
-  <bundle xmlns="https://github.com/vermiculus/ssa-tool">
-  <algorithm name="Independent Set">
-    <rule description="If a node is marked and shouldn't be, unmark it."
-            predicate="marked_and_neighbor_marked.py">
-      <move file="unmark.py" />
-    </rule>
-    <rule description="If a node is unmarked and can be, mark it."
-            predicate="unmarked_and_neighbors_unmarked.py">
-      <move file="mark.py" />
-    </rule>
-  </algorithm>
-  </bundle>
+#+BEGIN_SRC yaml :tangle ind-set.yaml :padline no :noweb-ref nil
+  #%BUNDLE 1.0
+  - algorithm: Independent Set
+    author: Sean Allred
+    date: 2014-05-17
+    rules:
+      - file: marked-and-neighbor-marked.py
+        author: Sean Allred
+        version: 1.0
+        doc:
+          name: Node should unmark
+          tex: "'marked'(n) = 1 `land `exists v `in N(n) : 'marked'(n) = 1"
+          description: Returns True if the node is marked when a neighbor is also marked.
+        moves:
+          - file: unmark.py
+            doc:
+              name: Unmark this node
+              tex: "'marked'(n) = 0"
+      - file: unmarked-and-neighbor-unmarked.py
+        author: Sean Allred
+        version: 1.0
+        doc:
+          name: Node should mark
+          tex: "'marked'(n) = 0 `land `forall v `in N(n), 'marked'(v) = 0"
+          description: Returns True is the node is unmarked when none of its neighbors are marked.
+        moves:
+          - file: mark.py
+            doc:
+              name: Mark this node
+              tex: "'marked'(n) = 1"
+#+END_SRC
+** Reading Saves
+:PROPERTIES:
+:noweb-ref: read and write
+:END:
+This is honestly the coolest sh*t I've done with Python /to date/.
+We define a static method =Algorithm.read_bundle= that takes the path to any =ssax=-structured directory.
+(See the paper.apdxA for details.)
 
+Called as =algorithms = Algorithm.read_bundle('ind-set.yaml')=.
+#+BEGIN_SRC python
+  @staticmethod
+  def read_bundle(path, descriptor='bundle.yaml'):
+      import yaml
+      with open('{}/{}'.format(path, descriptor), 'r') as f:
+          bundle = yaml.load(f)
+
+      <<sanitize function names>>
+      <<define logic to load a function>>
+      <<parse bundle descriptor>>
+      <<assemble algorithms>>
+      
+      return algorithms
+#+END_SRC
+*** Sanitizing Function Names
+:PROPERTIES:
+:noweb-ref: sanitize function names
+:END:
+#+BEGIN_SRC python
+  import re
+  unsanitary_name = re.compile(r'''[^A-Za-z_]''')
+  def sanitize_function_name(name):
+      return unsanitary_name.sub('_', name)
+#+END_SRC
+*** Function Load Logic
+:PROPERTIES:
+:noweb-ref: define logic to load a function
+:END:
+#+BEGIN_SRC python
+  def load_function(name, folder, filename):
+      name = sanitize_function_name(name)
+
+      with open('{}/{}/{}'.format(path, folder, filename)) as f:
+          lines = f.readlines()
+      lines = ['def {}(v, N):\n'.format(name)] + ['    '+l for l in lines]
+
+      exec("".join(lines)) in globals()
+#+END_SRC
+*** Parsing the Descriptor
+:PROPERTIES:
+:noweb-ref: parse bundle descriptor
+:END:
+#+BEGIN_SRC python
+  algorithm_descriptions = []
+  for entity in bundle:
+      keyset = set(entity.keys())
+      if 'predicate' in keyset:
+          load_function(entity['predicate'], 'predicates', entity['file'])
+      elif 'move' in keyset:
+          load_function(entity['move'], 'moves', entity['file'])
+      elif 'algorithm' in keyset:
+          algorithm_descriptions.append(entity)
+      else:
+          raise IOError('Error in bundle file {!s}.'.format(path),
+                        'No entity matches {!r}.'.format(entity))
+#+END_SRC
+*** Algorithm Assembly
+:PROPERTIES:
+:noweb-ref: assemble algorithms
+:END:
+#+BEGIN_SRC python
+  algorithms = list()
+  for alg_descr in algorithm_descriptions:
+      rules = dict()
+      for rule in alg_descr['rules']:
+          pred = rule['predicate']
+          rules[pred] = list()
+          for move in rule['moves']:
+              move = sanitize_function_name(move)
+              rules[pred].append(globals()[move])
+      algorithms.append(Algorithm(rules))
+#+END_SRC
+** Writing Saves
+#+BEGIN_SRC python
+  def write_yaml(self, path):
+      pass
 #+END_SRC
 * Tests
 :PROPERTIES:
