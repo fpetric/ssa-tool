@@ -532,11 +532,13 @@ Called as =algorithms = Algorithm.read_bundle('ind-set.yaml')=.
   for alg_descr in algorithm_descriptions:
       rules = dict()
       for rule in alg_descr['rules']:
-          pred = rule['predicate']
+          pred = sanitize_function_name(rule['predicate'])
+          pred = globals()[pred]
           rules[pred] = list()
           for move in rule['moves']:
               move = sanitize_function_name(move)
-              rules[pred].append(globals()[move])
+              move = globals()[move]
+              rules[pred].append(move)
       algorithms.append(Algorithm(rules))
 #+END_SRC
 ** Writing Saves
