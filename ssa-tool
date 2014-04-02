@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# -*- mode: sh -*-
+
+python3 ssa-tool.py "$@"

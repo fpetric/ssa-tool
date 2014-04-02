@@ -1,0 +1,23 @@
+!!python/object:networkx.classes.graph.Graph
+adj: &id005
+  0:
+    1: &id001 {}
+    2: &id002 {}
+    3: &id003 {}
+    4: &id004 {}
+  1:
+    0: *id001
+  2:
+    0: *id002
+  3:
+    0: *id003
+  4:
+    0: *id004
+edge: *id005
+graph: {name: star_graph(4)}
+node:
+  0: {marked: false}
+  1: {marked: true}
+  2: {marked: false}
+  3: {marked: false}
+  4: {marked: false}
