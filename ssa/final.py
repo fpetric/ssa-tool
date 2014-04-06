@@ -21,7 +21,6 @@ class Move(SecretYAMLObject):
     yaml_tag = u'!Move'
     yaml_flow_style = False
     ssa_folder = 'moves'
-
     def __init__(self, filename, name, description, author, date, tex):
         self.filename    = filename
         self.name        = name
@@ -38,6 +37,7 @@ class Predicate(SecretYAMLObject):
     yaml_flow_style = False
     ssa_folder = 'predicates'
 
+    
     def __init__(self, filename, name, description, author, date, tex):
         self.filename    = filename
         self.name        = name
@@ -235,3 +235,15 @@ class Bundle:
         yaml.dump_all(self.sorted(),
                       open('{}/{}'.format(path, self.description_document), 'w'),
                       explicit_start=True)
+
+"""
+(local-set-key
+ (kbd "C-c ,")
+ (lambda (key)
+   (interactive "sKey: ")
+   (insert (format "#%% %s %%#\n#%% end-%s %%#" key key))))
+"""
+
+# Local Variables:
+# python-indent-offset: 4
+# End:
