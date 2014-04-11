@@ -81,8 +81,7 @@ class Rule(yaml.YAMLObject, SimpleEquality):
             'node'          : (old_node, old_node_data),
             'neighbors'     : old_neighborhood_data,
             'move'          : move,
-            'new node'      : node,
-            'new neighbors' : neighbor_data(graph, node)
+            'new node'      : node
         }
 
 
