@@ -26,12 +26,10 @@ def parse_args(argv):
             'graphfmt'  : graphfmt
         }
 
-if __name__ == '__main__':
-    print('Welcome to SSA-Tool, version 1.')
-    import sys
-    args = parse_args(sys.argv)
+def non_interactive(args):
+    args = parse_args(args)
     if args['command'] == 'run':
-        print('''Running
+        print('''Running:
   Algorithm: "{algorithm}"
        from: "{bundle}"
          on: "{graph}"
@@ -53,3 +51,12 @@ if __name__ == '__main__':
         pprint(a.run(G, 10))
         print('Stable Graph:')
         pprint(G.nodes(data=True))
+
+print('Welcome to SSA-Tool, version 1.')
+import sys
+if '--non-interactive' in sys.argv:
+    non_interactive(sys.argv)
+else:
+    import gui
+    root = gui.Interface()
+    root.mainloop()

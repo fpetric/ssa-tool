@@ -6,6 +6,12 @@ import networkx as nx
 def neighbor_data(graph, node):
     return {v: graph.node[v] for v in graph.neighbors(node)}
 
+class SimpleEquality:
+    def __eq__(self, other):
+        return self.name == other.name
+    def __hash__(self):
+        return hash(self.name)
+
 class SecretYAMLObject(yaml.YAMLObject):
     hidden_fields = []
     @classmethod
@@ -17,11 +23,11 @@ class SecretYAMLObject(yaml.YAMLObject):
                 cls.yaml_tag, new_data,
                 cls, flow_style=cls.yaml_flow_style)
 
-class Move(SecretYAMLObject):
+class Move(SecretYAMLObject,SimpleEquality):
     yaml_tag = u'!Move'
     yaml_flow_style = False
     ssa_folder = 'moves'
-    def __init__(self, filename, name, description, author, date, tex):
+    def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
         self.filename    = filename
         self.name        = name
         self.description = description
@@ -32,13 +38,13 @@ class Move(SecretYAMLObject):
     def __repr__(self):
         return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
 
-class Predicate(SecretYAMLObject):
+class Predicate(SecretYAMLObject,SimpleEquality):
     yaml_tag = u'!Predicate'
     yaml_flow_style = False
     ssa_folder = 'predicates'
 
     
-    def __init__(self, filename, name, description, author, date, tex):
+    def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
         self.filename    = filename
         self.name        = name
         self.description = description
@@ -50,14 +56,15 @@ class Predicate(SecretYAMLObject):
         return "{!s} '{!s}'".format(self.__class__.__name__.lower(),
                                     self.name)
 
-class Rule(yaml.YAMLObject):
+class Rule(yaml.YAMLObject, SimpleEquality):
     yaml_tag = u'!Rule'
-    def __init__(self, description, author, date, predicate, moves):
+    def __init__(self, name=None, description=None, author=None, date=None, predicate=None, moves=None):
         self.description = description
         self.author      = author
         self.date        = date
         self.predicate   = predicate
         self.moves       = moves
+        self.name        = name
 
     def applies_to(self, v, N):
         return bool(self.predicate(v, N))
@@ -79,12 +86,12 @@ class Rule(yaml.YAMLObject):
         }
 
 
-class Algorithm(yaml.YAMLObject):
+class Algorithm(yaml.YAMLObject, SimpleEquality):
     yaml_tag = u'!Algorithm'
     yaml_flow_style = False
     ssa_folder = None
 
-    def __init__(self, name, author, date, rules):
+    def __init__(self, name=None, author=None, date=None, rules=None):
         self.name   = name
         self.author = author
         self.date   = date
@@ -136,7 +143,6 @@ class Algorithm(yaml.YAMLObject):
         return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
 
 class Bundle:
-
     def __init__(self, initpath=None,
                  move_dir='moves', predicate_dir='predicates',
                  description_document='bundle.yaml'):
@@ -236,6 +242,15 @@ class Bundle:
                       open('{}/{}'.format(path, self.description_document), 'w'),
                       explicit_start=True)
 
+    def types(self, cls):
+        for entity in self.entities:
+            if isinstance(entity, cls):
+                yield entity
+    def lookup(self, cls, name):
+        for entity in self.types(cls):
+            if entity.name == name:
+                yield entity
+
 """
 (local-set-key
  (kbd "C-c ,")
@@ -246,4 +261,5 @@ class Bundle:
 
 # Local Variables:
 # python-indent-offset: 4
+# python-shell-interpreter: "python3"
 # End:

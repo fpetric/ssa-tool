@@ -32,12 +32,14 @@ author: Sean Allred
 date: 2014-05-17
 rules:
   - !Rule
+    name: unmark if touching
     description: if a neighbor is marked, unmark
     author: Sean Allred
     date: 2014-05-17
     predicate: marked and neighbor marked
     moves: [ unmark node ]
   - !Rule
+    name: mark if able
     description: if no neighbors are marked, mark
     author: Sean Allred
     date: 2014-05-17
