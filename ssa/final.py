@@ -7,10 +7,12 @@ def neighbor_data(graph, node):
     return {v: graph.node[v] for v in graph.neighbors(node)}
 
 class SimpleEquality:
-    def __eq__(self, other):
-        return self.name == other.name
-    def __hash__(self):
-        return hash(self.name)
+    pass
+#    def __eq__(self, other):
+#        if not hasattr(other, 'name'): return False
+#        return self.name == other.name
+#    def __hash__(self):
+#        return hash(self.name)
 
 class SecretYAMLObject(yaml.YAMLObject):
     hidden_fields = []
@@ -19,14 +21,17 @@ class SecretYAMLObject(yaml.YAMLObject):
         new_data = copy.deepcopy(data)
         for item in cls.hidden_fields:
             del new_data.__dict__[item]
-            return dumper.represent_yaml_object(
-                cls.yaml_tag, new_data,
-                cls, flow_style=cls.yaml_flow_style)
+        return dumper.represent_yaml_object(
+            cls.yaml_tag, new_data,
+            cls, flow_style=cls.yaml_flow_style)
 
 class Move(SecretYAMLObject,SimpleEquality):
     yaml_tag = u'!Move'
     yaml_flow_style = False
     ssa_folder = 'moves'
+
+    hidden_fields=['definition']
+
     def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
         self.filename    = filename
         self.name        = name
@@ -43,6 +48,7 @@ class Predicate(SecretYAMLObject,SimpleEquality):
     yaml_flow_style = False
     ssa_folder = 'predicates'
 
+    hidden_fields=['definition']
     
     def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
         self.filename    = filename
@@ -102,6 +108,11 @@ class Algorithm(yaml.YAMLObject, SimpleEquality):
         for rule in self.rules:
             rule.predicate = mapping[rule.predicate]
             rule.moves = [mapping[m] for m in rule.moves]
+    def simplify(self):
+        '''undoes resolve_rules for saving'''
+        for rule in self.rules:
+            rule.predicate = rule.predicate.name
+            rule.moves = [m.name for m in rule.moves]
 
     def run(self, graph, count=1):
         assert count >= 0
@@ -140,6 +151,11 @@ class Algorithm(yaml.YAMLObject, SimpleEquality):
 
     def __repr__(self):
         return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
+
+    def lookup(self, name):
+        for rule in self.rules:
+            if rule.name == name:
+                return rule
 
 class Bundle:
     def __init__(self, initpath=None,
@@ -198,7 +214,7 @@ class Bundle:
             with open('/'.join([path, ssa_obj.ssa_folder, ssa_obj.filename])) as f:
                 lines = f.readlines()
 
-            ssa_obj._definition = lines
+            ssa_obj.definition = lines
 
             lines = ['def temp(self, v, N):\n'] + \
                     ['    ' + l for l in lines]
@@ -231,24 +247,37 @@ class Bundle:
 
         for p in predicates:
             with open('/'.join([path, self.predicate_dir, p.filename]), 'w') as f:
-                f.writelines(p._definition)
+                f.writelines(p.definition)
 
         for p in moves:
             with open('/'.join([path, self.move_dir, p.filename]), 'w') as f:
-                f.writelines(p._definition)
+                f.writelines(p.definition)
+
+        for a in algorithms:
+            a.simplify()
 
         yaml.dump_all(self.sorted(),
                       open('{}/{}'.format(path, self.description_document), 'w'),
                       explicit_start=True)
+
+        for a in algorithms:
+            a.resolve_rules(self.entities)
 
     def types(self, cls):
         for entity in self.entities:
             if isinstance(entity, cls):
                 yield entity
     def lookup(self, cls, name):
+        hits = list()
         for entity in self.types(cls):
             if entity.name == name:
-                yield entity
+                hits.append(entity)
+        if not hits:
+            return None
+        elif len(hits) > 1:
+            raise Exception('multiply defined names for {}."{}"'.format(cls.__name__, name))
+        else:
+            return hits[0]
 
 """
 (local-set-key
@@ -257,6 +286,10 @@ class Bundle:
    (interactive "sKey: ")
    (insert (format "#%% %s %%#\n#%% end-%s %%#" key key))))
 """
+
+#bp = '/Users/sean/github/vermiculus/smp/ssa-tool/examples/ind-set.ssax'
+#b = Bundle(bp)
+#b.dump('testy-test.ssax')
 
 # Local Variables:
 # python-indent-offset: 4

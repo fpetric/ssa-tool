@@ -2,16 +2,6 @@ print ('Building interface...')
 
 from gui import *
 
-# DEBUG Widgets bear their names for sanity
-for vd in [fmv, agv, pdv, mvv]:
-    for v in vd:
-        if isinstance(vd[v], StringVar):
-            vd[v].set(v)
-for wd in [fmw, agw, pdw, mvw]:
-    for w in wd:
-        if isinstance(wd[w][1], Listbox):
-            wd[w][1].insert(END, w)
-
 # Place all widgets according to the coordinates given as the first
 # element of the tuple.  If the first element of the tuple evaluates
 # to False (that is, bool(...) is False), then simply pack the widget.
@@ -32,13 +22,14 @@ top.add(agw['tab'][1], text = 'Algorithms')
 top.add(pdw['tab'][1], text = 'Predicates')
 top.add(mvw['tab'][1], text = 'Moves')
 
-agw['move list'][1].insert(END, Test())
-
 top.pack()
 print ('Building interface... Done.')
 
 fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/ssa-tool/examples/ind-set.ssax')
-fmf['refresh']()
+fmf['load bundle']()
+fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/write-test.ssax')
+
+top.select(2)
 
 #root.mainloop()
 
@@ -47,5 +38,5 @@ fmf['refresh']()
 # Local Variables:
 # python-shell-interpreter: "python3"
 # python-indent-offset: 4
-# truncate-lines: nil
+# truncate-lines: t
 # End:
