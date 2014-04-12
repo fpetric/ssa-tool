@@ -21,14 +21,17 @@ def sel_new_rule(x):
         current_rule = core.Rule()
         for attr in ['name', 'author', 'date', 'description']:
             setattr(current_rule, attr, '<%s>' % attr)
-        current_rule.predicate = None
+        current_rule.predicate = ''
         current_rule.moves = []
         current_algorithm.rules.append(current_rule)
 
     agv['rule name'      ].set(current_rule.name)
     agv['rule author'    ].set(current_rule.author)
     agv['rule date'      ].set(current_rule.date)
-    agv['rule predicate' ].set(current_rule.predicate.name)
+    if hasattr(current_rule.predicate, 'name'):
+        agv['rule predicate' ].set(current_rule.predicate.name)
+    else:
+        agv['rule predicate' ].set('')
 
 
 def sel_new_algorithm(x):
@@ -43,19 +46,12 @@ def sel_new_algorithm(x):
     agv['algorithm author' ].set(current_algorithm.author)
     agv['algorithm date'   ].set(current_algorithm.date)
 
-    # TODO: move this to select new bundle
-    # update predicate list
-    w = agw['rule predicate'][1]
-    for pred in bundle.types(core.Predicate):
-        w['menu'].add_command(label=pred.name, command=lambda:print(pred.name))
-    
     # populate rule list
     rule_list = agw['rule list'][1]
     rule_list.delete(0, END)
     for rule in current_algorithm.rules:
         rule_list.insert(END, rule.name)
 
-agf['update predicate based on selection'] = lambda x: print('update predicate based on selection')  # on select predicate (the option menu)
 agf['selected different rule']             = sel_new_rule
 agf['selected different algorithm']        = sel_new_algorithm
 agf['create new algorithm']                = lambda : print('create new algorithm') 
@@ -70,10 +66,6 @@ agv['algorithm date']     = StringVar(root)
 agv['rule name']          = StringVar(root)
 agv['rule author']        = StringVar(root)
 agv['rule date']          = StringVar(root)
-agv['selected predicate'] = StringVar(root)
-agv['rule predicate options']  = []
-
-agv['rule predicate'].set('Select a predicate...')
 
 agf['add algorithm']      = add_new(agw, 'algorithm list', core.Algorithm , bind=agf['create new algorithm'])
 agf['delete algorithm']   = del_sel(agw, 'algorithm list'                 , bind=agf['delete this algorithm'])
@@ -81,6 +73,15 @@ agf['add rule']           = add_new(agw, 'rule list', core.Rule, bind=agf['creat
 agf['delete rule']        = del_sel(agw, 'rule list',            bind=agf['delete rule'])
 agf['add move']           = move   (agw, 'move list', 'move list for rule')
 agf['delete move']        = move   (agw, 'move list for rule', 'move list')
+
+def upd_pr():
+    new_val = agv['rule predicate'].get()
+    if bundle.lookup(core.Predicate, new_val):
+        agw['rule predicate'][1]['foreground'] = 'black'
+    else:
+        agw['rule predicate'][1]['foreground'] = 'red'
+
+agf['upd_pr'] = upd_pr
 
 agw['tab']                =    None ,        Frame(top)
 agw['rule group']         = (   165 ,   40), new(Labelframe, agw, 'tab', text = 'Rules', height=300, width=775)
@@ -90,6 +91,7 @@ agw['date']               = (   340 ,   25), new(Entry,   agw, 'tab',        tex
 agw['rule name']          = (   170 ,    0), new(Entry,   agw, 'rule group', textvariable = agv['rule name'])
 agw['rule date']          = (   170 ,   25), new(Entry,   agw, 'rule group', textvariable = agv['rule date'])
 agw['rule author']        = (   170 ,   50), new(Entry,   agw, 'rule group', textvariable = agv['rule author'])
+agw['rule predicate']     = (   170 ,   75), new(Entry,   agw, 'rule group', textvariable = agv['rule predicate'])
 agw['alg  add']           = (     0 ,  310), new(Button,  agw, 'tab',        text = 'add', command = agf['add algorithm'])
 agw['alg  del']           = (    80 ,  310), new(Button,  agw, 'tab',        text = 'del', command = agf['delete algorithm'])
 agw['rule add']           = (     0 ,  110), new(Button,  agw, 'rule group', text = 'add', command = agf['add rule'])
@@ -100,10 +102,10 @@ agw['algorithm list']     = (     0 ,    0), new(Listbox, agw, 'tab',        hei
 agw['rule list']          = (     0 ,    0), new(Listbox, agw, 'rule group', height = 6)
 agw['move list']          = (     0 ,  140), new(Listbox, agw, 'rule group', height = 7)
 agw['move list for rule'] = (   200 ,  140), new(Listbox, agw, 'rule group', height = 7)
-agw['rule predicate']     = (   170 ,   75), OptionMenu(agw['rule group'][1], agv['rule predicate'], agv['rule predicate'].get(), *agv['rule predicate options'])
 
 bind(agw, 'rule list', '<<ListboxSelect>>', agf['selected different rule'])
 bind(agw, 'algorithm list', '<<ListboxSelect>>', agf['selected different algorithm'])
+agv['rule predicate' ].trace('w', lambda n, i, m: agf['upd_pr']())
 
 # Local Variables:
 # truncate-lines: t
