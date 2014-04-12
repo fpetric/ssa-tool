@@ -132,6 +132,12 @@ agv['algorithm name' ].trace('w', lambda n, i, m: agf['update algorithm name']()
 agv['rule name'      ].trace('w', lambda n, i, m: agf['update rule name']())
 agv['rule predicate' ].trace('w', lambda n, i, m: agf['upd_pr']())
 
+
+def finalize():
+    print('finalizing')
+
+agf['finalize'] = finalize
+
 # Local Variables:
 # truncate-lines: t
 # End:

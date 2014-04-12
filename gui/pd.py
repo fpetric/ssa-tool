@@ -114,6 +114,15 @@ pdw['definition']  = (180 ,  80) , new(SourceText,    pdw, 'tab' , width = 80, h
 
 bind(pdw, 'list', '<<ListboxSelect>>', pdf['on select new'])
 
+def finalize():
+    w = pdw['list'][1]
+    p = w.get(ACTIVE)
+    w.selection_set(ACTIVE)
+    current_predicate = bundle.lookup(core.Predicate, p)
+    print (current_predicate)
+
+pdf['finalize'] = finalize
+
 # Local Variables:
 # truncate-lines: t
 # End:

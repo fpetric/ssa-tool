@@ -21,7 +21,7 @@ def load_bundle():
 
 def refresh():
     """Clears all front-facing data and reloads it from the code-behind"""
-    from gui import agw, pdw, mvw, agv, pdv, mvv
+    from gui import agw, pdw, mvw, agv, pdv, mvv, agf
 
     # clear the widgets
     for wd in [agw, pdw, mvw]:
@@ -42,6 +42,9 @@ def bdl2dsk():
     path = fmv['bundle path'].get()
     msg = 'Saving bundle {}...'.format(path[path.rfind('/')+1:])
     print(msg)
+    for f in [agf, pdf, mvf]:
+        if 'finalize' in f:
+            f['finalize']()
     bundle.dump(path)
     print(msg + ' Done.')
 
