@@ -52,6 +52,26 @@ def sel_new_algorithm(x):
     for rule in current_algorithm.rules:
         rule_list.insert(END, rule.name)
 
+def upd_alg_name():
+    new_name = agv['algorithm name'].get()
+    wgt = agw['algorithm list'][1]
+    if new_name != current_algorithm.name:
+        current_algorithm.name = new_name
+        idx = wgt.curselection()
+        wgt.delete(idx)
+        wgt.insert(idx, new_name)
+        wgt.activate(idx)
+        wgt.selection_set(idx)
+def upd_rule_name():
+    new_name = agv['rule name'].get()
+    wgt = agw['rule list'][1]
+    if current_algorithm and current_rule and new_name != current_rule.name:
+        current_rule.name = new_name
+        idx = wgt.curselection()
+        wgt.delete(idx)
+        wgt.insert(idx, new_name)
+        wgt.activate(idx)
+        wgt.selection_set(idx)
 agf['selected different rule']             = sel_new_rule
 agf['selected different algorithm']        = sel_new_algorithm
 agf['create new algorithm']                = lambda : print('create new algorithm') 
@@ -103,8 +123,13 @@ agw['rule list']          = (     0 ,    0), new(Listbox, agw, 'rule group', hei
 agw['move list']          = (     0 ,  140), new(Listbox, agw, 'rule group', height = 7)
 agw['move list for rule'] = (   200 ,  140), new(Listbox, agw, 'rule group', height = 7)
 
+agf['update algorithm name']               = upd_alg_name
+agf['update rule name']                    = upd_rule_name
+
 bind(agw, 'rule list', '<<ListboxSelect>>', agf['selected different rule'])
 bind(agw, 'algorithm list', '<<ListboxSelect>>', agf['selected different algorithm'])
+agv['algorithm name' ].trace('w', lambda n, i, m: agf['update algorithm name']())
+agv['rule name'      ].trace('w', lambda n, i, m: agf['update rule name']())
 agv['rule predicate' ].trace('w', lambda n, i, m: agf['upd_pr']())
 
 # Local Variables:
