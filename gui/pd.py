@@ -8,13 +8,13 @@ current_predicate = None
 
 def sel_new(x):
     pdf['screen to bundle']()
-    print('switching from ' + current_predicate.name if current_predicate else '(none)')
+    print('switching from ' + (current_predicate.name if current_predicate else '(none)'))
     global current_predicate
     w = pdw['list'][1]
     sel_pd = w.get(w.curselection())
     current_predicate = bundle.lookup(core.Predicate, sel_pd)
 
-    if not current_predicate:        # a new rule was made
+    if not current_predicate:        # a new entity was made
         current_predicate = core.Predicate()
         for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
             setattr(current_predicate, attr, '<%s>' % attr)
@@ -33,7 +33,7 @@ def scr2bdl():
     current_predicate.filename    = pdv['file'].get()
     current_predicate.description = pdv['description'].get()
     current_predicate.tex         = pdv['tex'].get()
-    current_predicate.definition = [l+'\n' for l in pdw['definition'][1].get(1.0, END).split('\n')[:-2]]
+    current_predicate.definition  = [l+'\n' for l in pdw['definition'][1].get(1.0, END).split('\n')[:-2]]
 
 def clrscr():
     pdv['name'        ].set('')
@@ -75,10 +75,8 @@ def update_name():
         w.activate(idx)
         w.selection_set(idx)
 
-def save_def(event=None):
-    print('saving')
-    #current_predicate.definition = [l+'\n' for l in pdw['definition'][1].get(1.0, END).split('\n')[:-2]]
-    
+def sanitize_file():
+    pdv['file'].set(pdv['file'].get().replace(' ', '-'))
 
 pdf['add']              = add_new(pdw, 'list', core.Predicate)
 pdf['remove']           = del_sel(pdw, 'list')
@@ -87,7 +85,7 @@ pdf['bundle to screen'] = bdl2scr
 pdf['screen to bundle'] = scr2bdl
 pdf['clear screen']     = clrscr
 pdf['update name']      = update_name
-pdf['on definition modified'] = save_def
+pdf['sanitize file']    = sanitize_file
 
 pdv['name']        = StringVar(root)
 pdv['file']        = StringVar(root)
@@ -97,6 +95,7 @@ pdv['description'] = StringVar(root)
 pdv['tex']         = StringVar(root)
 
 pdv['name'].trace('w', lambda n, i, m: pdf['update name']())
+pdv['file'].trace('w', lambda n, i, m: pdf['sanitize file']())
 
 pdw['tab']         = None ,        Frame(top)
 pdw['list']        = (0   ,   0) , new(Listbox, pdw, 'tab' , height = 18)
@@ -111,7 +110,6 @@ pdw['remove']      = (80  , 310) , new(Button,  pdw, 'tab' , text = 'remove' , c
 pdw['definition']  = (180 ,  80) , new(Text,    pdw, 'tab' , width = 49, height = 16)
 
 bind(pdw, 'list', '<<ListboxSelect>>', pdf['on select new'])
-bind(pdw, 'definition', '<<Keypress>>', lambda e=None: print('hi'))# pdf['on definition modified'])
 
 # Local Variables:
 # truncate-lines: t
