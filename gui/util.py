@@ -59,6 +59,59 @@ def new(cls, widget_dictionary, name, **kwargs):
     print('Creating widget {0:<14} under {1}'.format(cls.__name__, name))
     return cls(widget_dictionary[name][1], **kwargs)
 
+class SourceText(Text):
+    '''http://stackoverflow.com/a/3781773/1443496'''
+    def __init__(self, *args, **kwargs):
+        Text.__init__(self, wrap='none', undo=True, *args, **kwargs)
+        self.tag_configure('graph value', foreground='#880000')
+        self.tag_configure('constant value', foreground='#00aa00')
+        self.tag_configure('control keyword', foreground='#0000dd')
+        self.tag_configure('function name', foreground='#008888')
+
+        def do_ins(c):          # insert four spaces on tab
+            self.insert(INSERT, '    ')
+            return 'break'
+        self.bind('<Tab>', do_ins)
+
+    def do_hl(self):
+        print('highlighting')
+        self.highlight_pattern('\[.*\]', 'graph value', regexp=True)
+
+        for kw in ['return',
+                   'and', 'or', 'not',
+                   'if', 'else', 'elif', 'def',
+                   'while', 'for', 'continue', 'break',
+                   'lambda']:
+            self.highlight_pattern(' ' + kw + ' ', 'control keyword')
+
+        for vw in ['True', 'False', 'N', 'v']:
+            self.highlight_pattern(vw, 'constant value')
+
+        for fname in ['any', 'all', 'map', 'reduce', 'filter']:
+            self.highlight_pattern(fname, 'function name')
+
+    def highlight_pattern(self, pattern, tag, start="1.0", end="end", regexp=False):
+        '''Apply the given tag to all text that matches the given pattern
+
+        If 'regexp' is set to True, pattern will be treated as a regular expression
+        '''
+
+        start = self.index(start)
+        end = self.index(end)
+        self.mark_set("matchStart",start)
+        self.mark_set("matchEnd",start)
+        self.mark_set("searchLimit", end)
+
+        count = IntVar()
+        while True:
+            index = self.search(pattern, "matchEnd","searchLimit",
+                                count=count, regexp=regexp)
+            if index == "": break
+            self.mark_set("matchStart", index)
+            self.mark_set("matchEnd", "%s+%sc" % (index,count.get()))
+            self.tag_add(tag, "matchStart","matchEnd")
+
+
 # Local Variables:
 # truncate-lines: t
 # End:

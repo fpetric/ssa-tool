@@ -62,6 +62,7 @@ def bdl2scr():
     except:
         pass
     pdw['definition'  ][1].insert(1.0, ''.join(current_predicate.definition))
+    pdw['definition'  ][1].do_hl()
 
 def update_name():
     new_name = pdv['name'].get()
@@ -109,7 +110,7 @@ pdw['description'] = (180 ,  50) , new(Entry,   pdw, 'tab' , textvariable = pdv[
 pdw['tex']         = (360 ,  25) , new(Entry,   pdw, 'tab' , textvariable = pdv['tex'])
 pdw['add']         = (0   , 310) , new(Button,  pdw, 'tab' , text = 'add'    , command = pdf['add'])
 pdw['remove']      = (80  , 310) , new(Button,  pdw, 'tab' , text = 'remove' , command = pdf['remove'])
-pdw['definition']  = (180 ,  80) , new(Text,    pdw, 'tab' , width = 49, height = 16)
+pdw['definition']  = (180 ,  80) , new(SourceText,    pdw, 'tab' , width = 80, height = 16)
 
 bind(pdw, 'list', '<<ListboxSelect>>', pdf['on select new'])
 
