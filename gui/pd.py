@@ -76,7 +76,9 @@ def update_name():
         w.selection_set(idx)
 
 def sanitize_file():
-    pdv['file'].set(pdv['file'].get().replace(' ', '-'))
+    old = pdv['file'].get()
+    new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
+    pdv['file'].set(new)
 
 pdf['add']              = add_new(pdw, 'list', core.Predicate)
 pdf['remove']           = del_sel(pdw, 'list')
