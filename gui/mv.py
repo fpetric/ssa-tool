@@ -62,6 +62,7 @@ def bdl2scr():
     except:
         pass
     mvw['definition'  ][1].insert(1.0, ''.join(current_move.definition))
+    mvw['definition'  ][1].do_hl()
 
 def update_name():
     new_name = mvv['name'].get()
@@ -109,7 +110,7 @@ mvw['description'] = (180 ,  50) , new(Entry,   mvw, 'tab' , textvariable = mvv[
 mvw['tex']         = (360 ,  25) , new(Entry,   mvw, 'tab' , textvariable = mvv['tex'])
 mvw['add']         = (0   , 310) , new(Button,  mvw, 'tab' , text = 'add'    , command = mvf['add'])
 mvw['remove']      = (80  , 310) , new(Button,  mvw, 'tab' , text = 'remove' , command = mvf['remove'])
-mvw['definition']  = (180 ,  80) , new(Text,    mvw, 'tab' , width = 49, height = 16)
+mvw['definition']  = (180 ,  80) , new(SourceText,    mvw, 'tab' , width = 49, height = 16)
 
 bind(mvw, 'list', '<<ListboxSelect>>', mvf['on select new'])
 

@@ -58,5 +58,4 @@ if '--non-interactive' in sys.argv:
     non_interactive(sys.argv)
 else:
     import gui
-    root = gui.Interface()
-    root.mainloop()
+    gui.root.mainloop()
