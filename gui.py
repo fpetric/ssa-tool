@@ -8,13 +8,13 @@ from gui import *
 for widgets in [fmw, agw, pdw, mvw]:
     for widget in widgets:
         if widgets[widget][0]:
-            print('placing {0:<20}   at ({1:>4}, {2:>4})'.format(widget, *widgets[widget][0]))
+            #print('placing {0:<20}   at ({1:>4}, {2:>4})'.format(widget, *widgets[widget][0]))
             pos = widgets[widget][0]
             wgt = widgets[widget][1]
             wgt.place(x=pos[0], y=pos[1])
         else:
             if widget not in ['tab']:
-                print('No coordinates for {}.  Packing instead.'.format(widget))
+                #print('No coordinates for {}.  Packing instead.'.format(widget))
                 widgets[widget][1].pack()
 
 top.add(fmw['tab'][1], text = 'File Manager')
@@ -29,11 +29,12 @@ fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/ssa-tool/examples/ind-
 fmf['load bundle']()
 fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/write-test.ssax')
 
-top.select(2)
+top.select(1)
 
-#root.mainloop()
+pdf['finalize']()
 
-#exit()
+root.mainloop()
+exit()
 
 # Local Variables:
 # python-shell-interpreter: "python3"

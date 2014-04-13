@@ -72,6 +72,9 @@ class Rule(yaml.YAMLObject, SimpleEquality):
         self.moves       = moves
         self.name        = name
 
+    def __repr__(self):
+        return "rule '{!s}'".format(self.name)
+
     def applies_to(self, v, N):
         return bool(self.predicate(v, N))
 

@@ -28,13 +28,15 @@ def refresh():
         for w in wd:
             if isinstance(wd[w][1], Listbox):
                 wd[w][1].delete(0, END)
+    for v in [agv, pdv, mvv]:
+        if isinstance(v, StringVar):
+            v.set('')
 
     # populate the widgets
     for alg in bundle.types(core.Algorithm):
         agw['algorithm list'][1].insert(END, alg.name)
     for move in bundle.types(core.Move):
         mvw['list'][1].insert(END, move.name)
-        agw['move list'][1].insert(END, move.name)
     for pred in bundle.types(core.Predicate):
         pdw['list'][1].insert(END, pred.name)
 
@@ -42,6 +44,7 @@ def bdl2dsk():
     path = fmv['bundle path'].get()
     msg = 'Saving bundle {}...'.format(path[path.rfind('/')+1:])
     print(msg)
+    from gui import agf, pdf, mvf
     for f in [agf, pdf, mvf]:
         if 'finalize' in f:
             f['finalize']()
