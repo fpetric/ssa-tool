@@ -38,13 +38,13 @@ def new_rule():
 
 
 
-def a_onsel(event):
+def a_onsel(event, override = False):
     print('inside a_onsel(event):', event)
     '''
     on select new algorithm, save the existing
     information and load the new information
     '''
-    if agv['current algorithm']: a_scr2bdl()
+    if not override and agv['current algorithm']: a_scr2bdl()
     w = get(agw, 'algorithm list')
     n = w.get(w.curselection())
     agv['current algorithm'] = bundle.lookup(core.Algorithm, n)
@@ -54,7 +54,9 @@ def a_onsel(event):
 
 def r_onsel(event, override=False):
     print('inside r_onsel(event):', event)
-    if not override and agv['current rule']: r_scr2bdl()
+    if not override and agv['current rule']: 
+        print('doing s2b')
+        r_scr2bdl()
     w = get(agw, 'rule list')
     n = w.get(w.curselection())
     print('## selection was', n)
@@ -169,12 +171,31 @@ def del_m():
     active = get(agw, 'move list for rule').get(ACTIVE)
     agv['current rule'].moves.remove(bundle.lookup(core.Move, active))
 
-agf['add algorithm'     ] = add_new(agw, 'algorithm list'     , core.Algorithm       , pre = new_algorithm)
+def do_add_alg():
+    new_algorithm()
+    lb = get(agw, 'algorithm list')
+    lb.insert(END, agv['current algorithm'].name)
+    try:
+        lb.selection_clear(lb.curselection())
+    except:
+        pass
+    lb.selection_set(END)
+    
+    agv['algorithm name'].set(agv['current algorithm'].name)
+    agv['algorithm author'].set(agv['current algorithm'].author)
+    agv['algorithm date'].set(agv['current algorithm'].date)
+
+    get(agw, 'rule list').delete(0, END)
+
+agf['add algorithm'     ] = do_add_alg#add_new(agw, 'algorithm list'     , core.Algorithm       , pre = new_algorithm)
 def do_add_rule():
     new_rule()
     lb = get(agw, 'rule list')
     lb.insert(END, agv['current rule'].name)
-    lb.selection_clear(lb.curselection())
+    try:
+        lb.selection_clear(lb.curselection())
+    except:
+        pass
     lb.selection_set(END)
     r_onsel(None, override=True)
     
@@ -185,11 +206,11 @@ agf['add move'          ] = move   (     'move list'          , 'move list for r
 agf['delete move'       ] = move   (     'move list for rule' , 'move list'          , pre = del_m)
 
 def upd_pr():
-    print('inside upd_pr()')
     new_val = agv['rule predicate'].get()
-    agw['rule predicate'][1]['foreground'] = \
-            'black' if bundle.lookup(core.Predicate, new_val) \
-            else 'red'
+    q = bundle.lookup(core.Predicate, new_val)
+    agw['rule predicate'][1]['foreground'] = 'black' if q else 'red'
+    if q:
+        agv['current rule'].predicate = q
 
 agf['upd_pr'] = upd_pr
 
@@ -219,6 +240,13 @@ get(agw, 'rule list'      ).bind('<<ListboxSelect>>', r_onsel)
 agv['algorithm name'].trace('w', lambda n, i, m: a_update_name())
 agv[     'rule name'].trace('w', lambda n, i, m: r_update_name())
 agv['rule predicate'].trace('w', lambda n, i, m: upd_pr())
+agv['rule date'].trace('w', lambda n, i, m: so_done())
+agv['rule author'].trace('w', lambda n, i, m: so_done2())
+
+def so_done():
+    agv['current rule'].date = agv['rule date'].get()
+def so_done2():
+    agv['current rule'].author = agv['rule author'].get()
 
 # Local Variables:
 # truncate-lines: t

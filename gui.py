@@ -25,14 +25,6 @@ top.add(mvw['tab'][1], text = 'Moves')
 top.pack()
 print ('Building interface... Done.')
 
-fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/ssa-tool/examples/ind-set.ssax')
-fmf['load bundle']()
-fmv['bundle path'].set('/Users/sean/github/vermiculus/smp/write-test.ssax')
-
-top.select(1)
-
-pdf['finalize']()
-
 root.mainloop()
 exit()
 
