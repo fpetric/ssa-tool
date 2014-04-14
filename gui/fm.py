@@ -59,7 +59,7 @@ fmv['bundle path'] = StringVar(root)
 
 fmw['tab']                = None , Frame(top)
 fmw['title']              = (210,  20) , new(Label  , fmw , 'tab' , text = 'SSA TOOL', font=('Helvetica', 24))
-fmw['new bundle']         = (220,  60) , new(Button , fmw , 'tab' , text = 'new bundle')
+#fmw['new bundle']         = (220,  60) , new(Button , fmw , 'tab' , text = 'new bundle')
 fmw['bundle path']        = (190, 170) , new(Entry  , fmw , 'tab' , textvariable = fmv['bundle path'])
 fmw['save bundle']        = (220, 200) , new(Button , fmw , 'tab' , text = 'save bundle' , command = fmf['save bundle'])
 fmw['load bundle']        = (220, 235) , new(Button , fmw , 'tab' , text = 'load bundle' , command = fmf['load bundle'])
