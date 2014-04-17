@@ -47,8 +47,8 @@ class Grapher(tk.Canvas):
         # Tried self.winfo_width/_height, but
         # 'without a geometry manager, this will always return 1'
 
-        wd = 200.0              # TODO
-        dp = 200.0
+        wd = 400.0              # TODO
+        dp = 400.0
         xpad = 30
         ypad = 30
         # need to consider such things as zoom?
@@ -69,14 +69,14 @@ class Grapher(tk.Canvas):
     def plain_edge_painter(canvas, layout, graph, source, sink):
         canvas.create_line(layout[source][0],    layout[source][1],
                            layout[sink]  [0],    layout[sink]  [1],
-                           width=2.0)
+                           width=1.0)
     @staticmethod
     def circle_node_painter(canvas, layout, graph, node):
         r = 10
         x = layout[node][0]
         y = layout[node][1]
-        canvas.create_oval((x-r, y-r, x+r, y+r), fill='white')
-        canvas.create_text((x, y), text=str(node))
+        canvas.create_oval((x-r, y-r, x+r, y+r), fill='white', tags='node')
+        canvas.create_text((x, y), text=str(node), tags='node')
  
 ################################################################################
 ################################################################################
@@ -103,7 +103,7 @@ def marked_node_painter(canvas, layout, graph, node):
 
 root = tk.Tk()
 
-root.title('Graph Painter 2000')
+root.title('Graph Painter 4000')
 root.geometry('640x480+5+5')
 
 grapher = Grapher(root, width=400, height=400, background='gray')
