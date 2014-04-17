@@ -1,0 +1,218 @@
+#+Title: Visualization with SSA-Tool
+#+Author: Sean Allred
+#+Date: [2014-04-17 Thu]
+
+* Introduction and Usage
+For any graphical interface that aspires to be what SSA Tool is, a
+means to actually view a more-or-less interactive graph on-screen is
+invaluable.  In this document, we explore the creation of such a tool.
+
+Manifested as a subclass of the =Canvas= widget in Tkinter, =Grapher=
+will paint any NetworkX-style graph according to a given layout
+algorithm and customizable node/edge-painting functions.  Usage is
+pretty simple:
+#+BEGIN_SRC python :tangle nil
+  import networkx as nx
+  # Note that NetworkX's layout algorithms require the `numpy` module
+  import tkinter as tk
+  from ssa.visualization import Grapher
+
+  root = tk.Tk()
+
+  grapher = Grapher(root)
+
+  graph = nx.hypercube_graph(4)
+
+  grapher.set_layout_algorithm(nx.random_layout)
+  grapher.set_graph(graph)
+
+  graph.pack()
+#+END_SRC
+** Dependencies
+The only hard-and-fast dependency of this component is,
+unsurprisingly, Tkinter.  Given that this project as a whole can't
+hope to implement all of even the most common layout algorithms,
+NetworkX layout algorithms are used throughout this documentation.
+Each and every one of these layout algorithms require the =numpy=
+module, so it is recommended that this is installed if you plan to use
+the =networkx= module.  =Grapher= is designed to work with the format
+it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout algorithms]] for more information.)
+* Overview
+** Definition
+#+BEGIN_SRC python
+  import tkinter as tk
+
+  class Grapher(tk.Canvas):
+      def __init__(self, master,
+                   graph=None,
+                   layout_algorithm=lambda:None,
+                   ,*args, **kwargs):
+          tk.Canvas.__init__(self, master, *args, **kwargs)
+
+          <<initialization>>
+
+      def set_graph(self, graph):
+          <<setting the graph>>
+
+      def paint(self, padx=15, pady=15):
+          <<painting the graph>>
+
+      <<customization>>
+
+      <<presets>>
+#+END_SRC
+** Initialization
+:PROPERTIES:
+:noweb-ref: initialization
+:END:
+Using the functions defined in 
+#+BEGIN_SRC python
+  self.set_graph(graph)
+  self.set_layout_algorithm(layout_algorithm)
+#+END_SRC
+
+#+BEGIN_SRC python
+  self.set_node_painter(Grapher.plain_node_painter)
+  self.set_edge_painter(Grapher.plain_edge_painter)
+#+END_SRC
+
+* Layout Algorithms
+:PROPERTIES:
+:ID:       7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F
+:END:
+* Node Painters
+* Edge Painters
+* Painting the Graph
+#+BEGIN_SRC python
+  self.delete(tk.ALL)
+
+  if self.layout_algorithm is None:
+      raise Exception('No layout algorithm specified.')
+  if self.graph is None:
+      raise Exception('No graph specified.')
+
+  positions = self.layout_algorithm(self.graph)
+     
+  wd = int(self.cget('width'))  + int(padx * .2) # TODO why
+  dp = int(self.cget('height')) + int(pady * 1.2)
+
+  # need to consider such things as zoom?
+  normalized_layout = {tree: (positions[tree][0] * (wd - 2*padx) + padx,
+                              positions[tree][1] * (dp - 2*pady) + pady)
+                       for tree in positions}
+
+  for edge in self.graph.edges():
+      self.paint_edge(normalized_layout, self.graph, *edge)
+  for node in self.graph.nodes():
+      self.paint_node(normalized_layout, self.graph, node)
+#+END_SRC
+* Customization
+:PROPERTIES:
+:noweb-ref: customization
+:END:
+** Graph
+#+BEGIN_SRC python
+  def set_graph(self, graph):
+      """Ensures `graph` is in the appropriate format and stores it"""
+      self.graph = graph
+#+END_SRC
+** Layout Algorithm
+#+BEGIN_SRC python
+  def set_layout_algorithm(self, layout_algorithm):
+      assert callable(layout_algorithm)
+      self.layout_algorithm = layout_algorithm
+#+END_SRC
+** Node Painting
+#+BEGIN_SRC python
+  def set_node_painter(self, node_painter):
+      self.paint_node = lambda layout, graph, node: \
+                        node_painter(self, layout, graph, node)
+#+END_SRC
+When creating functions that are generally useful (say, [[id:0B00DABF-26A1-49CC-A37C-5E011BAE4BB4][a circle with
+variable radius]]), you must create them as functions that take these
+variable values (e.g. =radius=) and returns a function that uses these
+values.
+** Edge Painting
+#+BEGIN_SRC python
+  def set_edge_painter(self, edge_painter):
+      self.paint_edge = lambda layout, graph, source, sink: \
+                        edge_painter(self, layout, graph, source, sink)
+#+END_SRC
+* Presets
+** Plain
+You can refer to the following as minimal examples for how to define
+these functions.  As simple as they are, they are of limited practical
+use.
+
+The following function simply draws the string representation of the
+node at the position specified by =layout=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_node_painter(canvas, layout, graph, node):
+      canvas.create_text((layout[node][0], layout[node][1]), text=str(node))
+#+END_SRC
+
+The following function draws an edge from =source= to =sink=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_edge_painter(canvas, layout, graph, source, sink):
+      canvas.create_line(layout[source][0],    layout[source][1],
+                         layout[sink]  [0],    layout[sink]  [1],
+                         width=1.0)
+#+END_SRC
+** Circle
+:PROPERTIES:
+:ID:       0B00DABF-26A1-49CC-A37C-5E011BAE4BB4
+:END:
+The following node painter will draw a node as a white circle with
+black text.  This text is simply the string representation of the
+given =node=.
+#+BEGIN_SRC python
+  @staticmethod
+  def circle_node_painter(canvas, layout, graph, node):
+      r = 10
+      x = layout[node][0]
+      y = layout[node][1]
+      canvas.create_oval((x-r, y-r, x+r, y+r), fill='white', tags='node')
+      canvas.create_text((x, y), text=str(node), tags='node')
+#+END_SRC
+** TODO Rectangle
+This option is yet to be implemented.
+* Full Example
+#+BEGIN_SRC python
+  import networkx   as nx
+  import generators as gen
+
+  from ssa.visualization import Grapher
+
+  def new_graph():
+      gen.reset_basic_node_counter()
+      grapher.set_graph(gen.sparse_graph(10, marked='bool(.5)'))
+      grapher.paint()
+
+  def marked_node_painter(canvas, layout, graph, node):
+          r = 10
+          x = layout[node][0]
+          y = layout[node][1]
+          canvas.create_oval((x-r, y-r, x+r, y+r),
+                             fill='black' if graph.node[node]['marked'] else 'white',
+                             tags='node')
+          canvas.create_text((x, y), text=str(node),
+                             fill='white' if graph.node[node]['marked'] else 'black',
+                             tags='node')
+
+  root = tk.Tk()
+
+  root.title('Graph Painter 4000')
+
+  grapher = Grapher(root, width=400, height=300, background='gray')
+  grapher.pack()
+  grapher.set_layout_algorithm(nx.circular_layout)
+  grapher.set_node_painter(marked_node_painter)
+
+  new_graph()
+
+  # TODO can totally add event handlers for node clicks since the canvas
+  # is just a collection of items
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+#+END_SRC

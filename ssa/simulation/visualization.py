@@ -33,27 +33,23 @@ class Grapher(tk.Canvas):
         self.paint_edge = lambda layout, graph, source, sink: \
                           edge_painter(self, layout, graph, source, sink)
 
-    def paint(self, layout=None):
+    def paint(self, padx=15, pady=15):
         # clear the screen
         self.delete(tk.ALL)
 
-        if layout is None:
-            if self.layout_algorithm is None:
-                raise Exception('No layout algorithm specified.')
-            layout = self.layout_algorithm
+        if self.layout_algorithm is None:
+            raise Exception('No layout algorithm specified.')
+        if self.graph is None:
+            raise Exception('No graph specified.')
         
-        positions = layout(self.graph)
+        positions = self.layout_algorithm(self.graph)
  
-        # Tried self.winfo_width/_height, but
-        # 'without a geometry manager, this will always return 1'
+        wd = int(self.cget('width'))  + int(padx * .2) # TODO why
+        dp = int(self.cget('height')) + int(pady * 1.2)
 
-        wd = 400.0              # TODO
-        dp = 400.0
-        xpad = 30
-        ypad = 30
         # need to consider such things as zoom?
-        normalized_layout = {tree: (positions[tree][0] * (wd - 2*xpad) + xpad,
-                                    positions[tree][1] * (dp - 2*ypad) + ypad)
+        normalized_layout = {tree: (positions[tree][0] * (wd - 2*padx) + padx,
+                                    positions[tree][1] * (dp - 2*pady) + pady)
                              for tree in positions}
 
         for edge in self.graph.edges():
@@ -104,7 +100,6 @@ def marked_node_painter(canvas, layout, graph, node):
 root = tk.Tk()
 
 root.title('Graph Painter 4000')
-root.geometry('640x480+5+5')
 
 grapher = Grapher(root, width=400, height=400, background='gray')
 grapher.pack()
