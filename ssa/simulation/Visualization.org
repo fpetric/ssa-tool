@@ -516,8 +516,7 @@ the painting of next graphs.
 :END:
 #+BEGIN_SRC python
   def load(self, queue):
-      for item in queue:
-          self.queue.append(item)
+      self.queue.extend(queue)
 #+END_SRC
   
 #+BEGIN_SRC python
