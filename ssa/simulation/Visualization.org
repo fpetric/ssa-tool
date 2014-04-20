@@ -457,6 +457,89 @@ with the animated subclass.
 We can leverage =tk.Canvas.postscript= to support Postscript export.
 This would perhaps be very valuable to TeX export.
 * Animation
-push graphs into a queue and run the animation on a timer
+We now have a means of drawing a graph on-screen in an easy-to-use
+Tkinter widget.  We can paint the graph, change the graph, and repaint
+it effortlessly.  While it is straightforward to do this, it can get
+repetitive.  In their essence, self-stabilizing algorithms operate on
+graphs and change them /continuously/; to see this change, this
+paint--repaint sequence must be executed over and over again while
+going at a slow enough pace to actually /see/ the change.  Clearly,
+there is enough functionality here to encapsulate it in a separate
+=GraphAnimator= class as a subclass of =Grapher=.
 
-subclass of grapher
+The primary thought behind this implementation stems from the natural
+sequence of steps that a self-stabilizing algorithm---or, in fairness,
+/any/ animation---produces.  =GraphAnimator= uses the paradigm of
+stop-motion animation by storing a queue of graphs (or as we shall
+see, a much more compact queue of changes deltas) and painting them
+one after another at specified intervals.
+
+** Definition
+:PROPERTIES:
+:ID:       02B822BC-5430-443F-8C02-08C8154CCD18
+:END:
+#+BEGIN_SRC python :tangle "visualization.py"
+  import threading
+  import collections
+
+  class GraphAnimator(Grapher):
+      def __init__(self, master, interval=1, *args, **kwargs):
+          Grapher.__init__(self, master, *args, **kwargs)
+
+          self.interval = interval
+
+      <<queueing graphs>>
+
+      <<animating>>
+#+END_SRC
+
+** Drawing the Animation
+:PROPERTIES:
+:noweb-ref: animating
+:END:
+By using the =Timer= class from the =threading= module, we daisy-chain
+the painting of next graphs.
+#+BEGIN_SRC python
+  def stop(self):
+      self.should_stop = True
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def start(self):
+      if not self.should_stop:
+          self.paint(self.next_graph, do_layout=False)
+          threading.Timer(self.interval, self.start, [self]).start()
+          self._queue_next_graph()
+#+END_SRC
+
+** Queueing Data for Animation
+:PROPERTIES:
+:noweb-ref: queueing graphs
+:END:
+#+BEGIN_SRC python
+  def load(self, queue):
+      for item in queue:
+          self.queue.append(item)
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def isdelta(self, change):
+      return isinstance(change, dict) and 'new node' in change
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def _queue_next_graph(self):
+      change = self.queue.popleft()
+      # check if new graph is delta
+      if self.isdelta(change):
+          <<modify graph>>
+      else:
+          self.next_graph = change
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "modify graph"
+  node = change['new node'][0]
+  data = change['new node'][1]
+  for key, value in data.keys(), data.values():
+      self.next_graph[node][key] = value
+#+END_SRC
