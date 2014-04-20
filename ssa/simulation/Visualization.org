@@ -485,11 +485,9 @@ one after another at specified intervals.
   class GraphAnimator(Grapher):
       def __init__(self, master, interval=1, *args, **kwargs):
           Grapher.__init__(self, master, *args, **kwargs)
-
           self.interval = interval
 
       <<queueing graphs>>
-
       <<animating>>
 #+END_SRC
 
@@ -530,7 +528,6 @@ the painting of next graphs.
 #+BEGIN_SRC python
   def _queue_next_graph(self):
       change = self.queue.popleft()
-      # check if new graph is delta
       if self.isdelta(change):
           <<modify graph>>
       else:
