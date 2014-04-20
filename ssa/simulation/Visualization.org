@@ -53,11 +53,10 @@ it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout 
 
   class Grapher(tk.Canvas):
       def __init__(self, master,
-                   graph=None,
-                   layout_algorithm=lambda G: {n: (0, 0) for n in G.nodes()},
-                   node_painter=Graph.plain_node_painter,
-                   edge_painter=Graph.plain_edge_painter,
-                   ,*args, **kwargs):
+                   graph            = None,
+                   layout_algorithm = None,
+                   node_painter     = None,
+                   edge_painter     = None, *args, **kwargs):
           tk.Canvas.__init__(self, master, *args, **kwargs)
 
           <<initialization>>
@@ -75,16 +74,35 @@ it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout 
 :noweb-ref: initialization
 :ID:       2B46B8B6-C886-4411-B1AA-52D9890240DA
 :END:
-As you'll recall from the overview above, the constructor takes two
+As you'll recall from the overview above, the constructor takes four
 arguments aside from those related directly to Tkinter:
-- =graph = None= :: a NetworkX-style graph.
-- =layout_algorithm = lambda G: None= :: a function from
-     NetworkX-style graphs to layout dictionaries.  (This format is
-     discussed in [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][Layout Algorithms]].)
-- =node_painter = Graph.plain_node_painter= :: a function to paint a
-     node onto the canvas.  See [[id:839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51][Node Painters]].
-- =edge_painter = Graph.plain_edge_painter= :: a function to paint an
-     edge onto the canvas.  See [[id:25FE8932-BFB7-4F36-AEF3-DA58C6634FBE][Edge Painters]].
+- =graph= :: a NetworkX-style graph.
+- =layout_algorithm= :: a function from NetworkX-style graphs to
+     layout dictionaries.  (This format is discussed in [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][Layout
+     Algorithms]].)
+- =node_painter= :: a function to paint a node onto the canvas.  See
+                    [[id:839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51][Node Painters]].
+- =edge_painter= :: a function to paint an edge onto the canvas.  See
+                    [[id:25FE8932-BFB7-4F36-AEF3-DA58C6634FBE][Edge Painters]].
+
+Since Python evaluates the default arguments at interpretation time
+rather than use-time, we cannot give appropriate default values.  To
+compensate, we set their default values to =None= and then check to
+see if they need to be given the appropriate defaults.
+#+BEGIN_SRC python
+  if layout_algorithm is None:
+      layout_algorithm = lambda G: \
+                         {n: (0, 0) for n in G.nodes()}
+  if node_painter is None:
+      node_painter = Grapher.plain_node_painter
+  if edge_painter is None:
+      edge_painter = Grapher.plain_edge_painter
+#+END_SRC
+You'll notice that =graph= is not handled so; this case is handled
+specially by =paint=.  This decision was made to make this file as
+lean as possible---setting a reasonable default for this value would
+necessitate importing the NetworkX graph manipulation library.
+
 Using the setter functions defined in [[id:E4FB92BE-FD81-4716-8B23-EA63352114F3][Customization]], we use these
 constructor arguments to set the appropriate settings.
 #+BEGIN_SRC python
