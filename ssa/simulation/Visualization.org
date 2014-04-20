@@ -61,7 +61,7 @@ it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout 
 
           <<initialization>>
 
-      def paint(self, padx=15, pady=15):
+      def paint(self, padx=15, pady=15, do_layout=True):
           <<painting the graph>>
 
       <<customization>>
@@ -72,16 +72,29 @@ it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout 
 #+END_SRC
 
 #+BEGIN_SRC python :noweb-ref "test"
-  root = tk.Tk()
   import networkx as nx
-  G = nx.complete_graph(5)
-  grapher = Grapher(root, graph=G,
-                    layout_algorithm=nx.spring_layout,
-                    node_painter=Grapher.circle_node_painter)
-  grapher.pack(fill = 'both', expand = True)
 
   def on_reconfigure(event):
+      grapher.paint(do_layout=not bool(grapher.layout))
+
+  def new_graph():
+      global n
+      n += 1
+      grapher.set_graph(nx.complete_graph(n))
       grapher.paint()
+
+  n = 5
+  G = nx.complete_graph(n)
+
+  root = tk.Tk()
+  grapher = Grapher(root, graph=G,
+                    layout_algorithm=nx.circular_layout,
+                    node_painter=Grapher.circle_node_painter,
+                    background='#dddddd')
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+
+  grapher.pack(fill = 'both', expand = True)
+
   root.bind('<Configure>', on_reconfigure)
 
   grapher.paint()
@@ -217,16 +230,20 @@ order to preserve the raw power of the existing behavior.
 :END:
 Before we proceed, we need to see if we have everything we need to
 paint the graph.  There are two basic components that we need to
-actually paint the graph.  If we have no =layout_algorithm=, then we
-have no way of determining the positions of a given node within a
-graph.  If we have no =graph= to paint, well, hopefully the problem
-here is obvious.  We do some very simple (and incomprehensive)
-preliminary checks to avoid running into problems down the line.
+actually paint the graph.  If we have no =graph= to paint, well,
+hopefully the problem here is obvious.  If we must lay out the graph
+and have no =layout_algorithm=, then we have no way of determining the
+positions of a given node within a graph.  The same applies if we must
+/not/ lay out the graph and have no existing positions to use.  We do
+some very simple (and incomprehensive) preliminary checks to avoid
+running into problems down the line.
 #+BEGIN_SRC python
-  if self.layout_algorithm is None:
-      raise Exception('No layout algorithm specified.')
   if self.graph is None:
       raise Exception('No graph specified.')
+  if do_layout and self.layout_algorithm is None:
+      raise Exception('No layout algorithm specified.')
+  if not do_layout and self.layout is None:
+      raise Exception('Re-layout prohibited and no existing layout in place.')
 #+END_SRC
 
 Additionally, =layout_algorithm= must be a function (or at least,
@@ -257,18 +274,25 @@ dimensions of the widget.
 #+END_SRC
 (Note that =wd= and =dp= are abbreviation for width and depth.)
 
-We then use the layout algorithm that we stored as a member.
+If we were asked to recalculate the layout (the default), then we
+reset =layout= to the results of a fresh run of the
+=layout_algorithm= on =graph=.  Using =wd= and =dp= calculated above,
+we then normalize =layout= to account for the current dimensions of
+the width, using =padx= and =pady= appropriately.
 #+BEGIN_SRC python
-  positions = self.layout_algorithm(self.graph)
+  if do_layout:
+      self.layout = self.layout_algorithm(self.graph)
+
+  normalized_layout = {node: (self.layout[node][0] * (wd - 2*padx) + padx,
+                              self.layout[node][1] * (dp - 2*pady) + pady)
+                       for node in self.layout}
 #+END_SRC
-Recall that this is returned as a dictionary from nodes to relative
-coordinates (as two-tuples)---values in the range (0, 1).  Using the
-width and depth
-#+BEGIN_SRC python
-  normalized_layout = {tree: (positions[tree][0] * (wd - 2*padx) + padx,
-                              positions[tree][1] * (dp - 2*pady) + pady)
-                       for tree in positions}
-#+END_SRC
+Do recall that =layout= is kept as a dictionary from nodes to
+coordinate pairs =(x, y)= where both /x/ and /y/ are kept in the range
+[0, 1].  These values indicate their relative positions on the canvas;
+=0= indicates the far left (or top) where =1= indicates the far right
+(or bottom).  These values are scaled to the current width and depth
+of the widget while with the padding specified by =padx= and =pady=.
 
 **** TODO Zooming
 It would be nice to have the ability to zoom.  Subclass, subclass,
