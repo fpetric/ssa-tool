@@ -67,6 +67,26 @@ it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout 
       <<customization>>
 
       <<presets>>
+
+  <<test>>
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "test"
+  root = tk.Tk()
+  import networkx as nx
+  G = nx.complete_graph(5)
+  grapher = Grapher(root, graph=G,
+                    layout_algorithm=nx.spring_layout,
+                    node_painter=Grapher.circle_node_painter)
+  grapher.pack(fill = 'both', expand = True)
+
+  def on_reconfigure(event):
+      grapher.paint()
+  root.bind('<Configure>', on_reconfigure)
+
+  grapher.paint()
+  root.mainloop()
+  exit()
 #+END_SRC
 
 *** Initialization
@@ -232,8 +252,8 @@ To get the node layout, there are actually a few steps we have to
 take.  Before we do anything, we need to determine the current
 dimensions of the widget.
 #+BEGIN_SRC python
-  wd = int(self.cget('width'))  + int(padx * .2)
-  dp = int(self.cget('height')) + int(pady * 1.2)
+  wd = self.winfo_width()
+  dp = self.winfo_height()
 #+END_SRC
 (Note that =wd= and =dp= are abbreviation for width and depth.)
 
@@ -249,15 +269,6 @@ width and depth
                               positions[tree][1] * (dp - 2*pady) + pady)
                        for tree in positions}
 #+END_SRC
-
-**** TODO Purge Ugly Fine-Tuning
-In the above, we have a couple fine-tuned parameters set to 'look
-right'.  This /really/ doesn't sit well with me, but I need to move
-on.  This should be revisited in maintainance.
-
-**** TODO Test Widget Resizing
-This widget is designed to adjust its working size automatically (with
-=self.cget(...)=), but this behavior has not yet been tested.
 
 **** TODO Zooming
 It would be nice to have the ability to zoom.  Subclass, subclass,
