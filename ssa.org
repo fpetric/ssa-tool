@@ -4,6 +4,10 @@
 #+PROPERTY: noweb tangle
 
 * Introduction
+This is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text
+editor.  This is the only file that is properly tracked; all other
+content is generated from source blocks herein.
+
 SSA-Tool aims to be a robust engine and comprehensive interface for
 the creation, manipulation, evaluation, and distribution of
 self-stabilizing algorithms under both the daemonized and distributed
@@ -21,14 +25,30 @@ visualize a graph on-screen using the GUI framework Tkinter (Tcl/Tk
 bindings for Python) and then develop a Tkinter interface for
 creating, testing, and saving these algorithms, as well as preparing
 graphs to use as test cases.
-#+BEGIN_SRC python :tangle "ssa-tool.py" :shebang "#!/usr/bin/env python3"
+#+BEGIN_SRC python :tangle "ssa.py"
   <<networkx extensions>>
   <<core>>
   <<files>>
   <<visualization>>
+#+END_SRC
+#+BEGIN_SRC python :tangle "gui.py" :shebang "#!/usr/bin/env python3"
   <<gui>>
+#+END_SRC
+#+BEGIN_SRC python :tangle "ssa-tool.py" :shebang "#!/usr/bin/env python3"
   <<cli>>
 #+END_SRC
+Through all of this, tests will be provided in-line with the relevant
+functionality.  While all production code is kept in only a few files,
+test suites will be distributed amond several files prefixed by
+=test_=.  We will be using [[https://nose.readthedocs.org/en/latest/][=nose=]] to automate the testing.
+
+The current build status is:
+[[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
+
+* Contributing
+If you have any questions, suggestions, or feature requests, please
+don't hesitate to open up an issue (or better yet, send a PR).
+
 * File Operations
 In previous iterations of this project, file operations were ignored
 for the purpose of simplification.  During the course of this project,
