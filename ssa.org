@@ -7,12 +7,27 @@
 SSA-Tool aims to be a robust engine and comprehensive interface for
 the creation, manipulation, evaluation, and distribution of
 self-stabilizing algorithms under both the daemonized and distributed
-execution algorithms.
-#+BEGIN_SRC python
+execution algorithms.  To effect this, a few extensions must be made
+to the NetworkX module---the tool this project uses to represent
+graphs.  Then we will continue on to define the core engine, briefly
+discussing what a self-stabilizing algorithm is and how it is
+implemented in this project.  This core engine will support the
+creation and execution of these algorithms while laying the framework
+to easily serialize these algorithms and related data in a plain-text
+format.
+
+When all of this groundwork is complete, we will discuss how to
+visualize a graph on-screen using the GUI framework Tkinter (Tcl/Tk
+bindings for Python) and then develop a Tkinter interface for
+creating, testing, and saving these algorithms, as well as preparing
+graphs to use as test cases.
+#+BEGIN_SRC python :tangle "ssa-tool.py" :shebang "#!/usr/bin/env python3"
   <<networkx extensions>>
   <<core>>
   <<files>>
   <<visualization>>
+  <<gui>>
+  <<cli>>
 #+END_SRC
 * File Operations
 In previous iterations of this project, file operations were ignored
