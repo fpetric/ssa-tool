@@ -9,10 +9,10 @@
 
 [[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
 
-(Never mind the above; I haven't been able to set it up correctly yet.
-Needing to tangle the file makes it a little complicated, and I keep
-getting errors on trying to install PyGame, the visualization library
-I'm using for the simulations.
+Never mind the above; I haven't been able to set it up correctly yet.
+Needing to tangle the file makes it a little complicated.  I intend to
+create a separate =testing= branch---a branch of pre-tangled
+code---that Travis will use.
 
 This is a set of tools for the representation, creation, and
 evaluation of self-stabilizing algorithms.
