@@ -1,4 +1,6 @@
 language: python
 python: "3.3"
-install: pip install .
-script: echo "test"
+branches:
+  only: master
+install: echo "test install"
+script: echo "test script"
