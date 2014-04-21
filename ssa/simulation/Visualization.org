@@ -479,6 +479,17 @@ one after another at specified intervals.
 :PROPERTIES:
 :ID:       02B822BC-5430-443F-8C02-08C8154CCD18
 :END:
+We subclass =Grapher= and a single instance variable:
+- =interval= :: the time, in seconds, between steps of the animation
+To separate the functionality into the logical concept of an 'animated
+graph' and a 'graph animator', we will be creating two classes
+- =AnimatedGraph= :: a new class that operates on a NetworkX graph and
+     provides logic to generate successive graphs through a series of
+     deltas.
+- =GraphAnimator= :: a subclass of =Grapher= to display objects of
+     type =AnimatedGraph=
+We then define logic for queueing these steps and then finally logic
+for performing the actual animation.
 #+BEGIN_SRC python :tangle "visualization.py"
   import threading
   import collections
@@ -490,25 +501,6 @@ one after another at specified intervals.
 
       <<queueing graphs>>
       <<animating>>
-#+END_SRC
-
-** Drawing the Animation
-:PROPERTIES:
-:noweb-ref: animating
-:END:
-By using the =Timer= class from the =threading= module, we daisy-chain
-the painting of next graphs.
-#+BEGIN_SRC python
-  def stop(self):
-      self.should_stop = True
-#+END_SRC
-  
-#+BEGIN_SRC python
-  def start(self):
-      if not self.should_stop:
-          self.paint(self.next_graph, do_layout=False)
-          threading.Timer(self.interval, self.start, [self]).start()
-          self._queue_next_graph()
 #+END_SRC
 
 ** Queueing Data for Animation
@@ -531,12 +523,55 @@ the painting of next graphs.
       if self.isdelta(change):
           <<modify graph>>
       else:
-          self.next_graph = change
+          self.set_graph(change)
 #+END_SRC
 
 #+BEGIN_SRC python :noweb-ref "modify graph"
   node = change['new node'][0]
   data = change['new node'][1]
   for key, value in data.keys(), data.values():
-      self.next_graph[node][key] = value
+      self.graph[node][key] = value
+#+END_SRC
+
+** Drawing the Animation
+:PROPERTIES:
+:noweb-ref: animating
+:END:
+Just as you test the quality of the brakes before the power of an
+engine, we define a flag and setter for stopping the animation.
+#+BEGIN_SRC python
+  def stop(self):
+      self.should_stop = True
+#+END_SRC
+  
+By using the =Timer= class from the =threading= module, we daisy-chain
+the painting of next graphs.  Since =_queue_next_graph= is a
+relatively expensive step, we queue the next step to start before we
+calculate the next graph.
+#+BEGIN_SRC python
+  def start(self):
+      if not self.should_stop:
+          self.paint(self.next_graph, do_layout=False)
+          threading.Timer(self.interval, self.start, [self]).start()
+          self._queue_next_graph()
+#+END_SRC
+Queueing the next frame before calculating it /does/ introduce a race
+condition!  It is possible that the animator could skip a frame---or
+worse, show a partially updated graph---if
+- the interpreter is extraordinarily slow,
+- there are many properties to each node in the graph, or
+- the update interval is extremely short.
+This arises because =next_graph= is altered in-place in
+=_queue_next_graph= /during/ the countdown for the next frame.  If
+this countdown finishes before =next_graph= is ready it will /still be
+painted/, it just may be incorrect.
+
+It would seem that this risk is inherent in multi-threading this
+solution and the risk could be avoided by single-threading.  However,
+this has other consequences that are unacceptable.  The naïve
+single-threaded approach would look similar to the following:
+#+BEGIN_SRC python :tangle nil :noweb-ref nil
+  while not self.should_stop:
+      self.paint(do_layout=False)
+      self._queue_next_graph()
 #+END_SRC
