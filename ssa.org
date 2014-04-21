@@ -1,0 +1,1757 @@
+# -*- mode: org; encoding: utf-8 -*-
+#+TITLE: SSA-Tool
+
+#+PROPERTY: noweb tangle
+
+* Introduction
+This is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text
+editor.  This is the only file that is properly tracked; all other
+content is generated from source blocks herein.
+
+SSA-Tool aims to be a robust engine and comprehensive interface for
+the creation, manipulation, evaluation, and distribution of
+self-stabilizing algorithms under both the daemonized and distributed
+execution algorithms.  To effect this, a few extensions must be made
+to the NetworkX module---the tool this project uses to represent
+graphs.  Then we will continue on to define the core engine, briefly
+discussing what a self-stabilizing algorithm is and how it is
+implemented in this project.  This core engine will support the
+creation and execution of these algorithms while laying the framework
+to easily serialize these algorithms and related data in a plain-text
+format.
+
+When all of this groundwork is complete, we will discuss how to
+visualize a graph on-screen using the GUI framework Tkinter (Tcl/Tk
+bindings for Python) and then develop a Tkinter interface for
+creating, testing, and saving these algorithms, as well as preparing
+graphs to use as test cases.
+#+BEGIN_SRC python :tangle "ssa.py"
+  <<networkx extensions>>
+  <<core>>
+  <<files>>
+  <<visualization>>
+#+END_SRC
+#+BEGIN_SRC python :tangle "gui.py" :shebang "#!/usr/bin/env python3"
+  <<gui>>
+#+END_SRC
+#+BEGIN_SRC python :tangle "ssa-tool.py" :shebang "#!/usr/bin/env python3"
+  <<cli>>
+#+END_SRC
+Through all of this, tests will be provided in-line with the relevant
+functionality.  While all production code is kept in only a few files,
+test suites will be distributed amond several files prefixed by
+=test_=.  We will be using [[https://nose.readthedocs.org/en/latest/][Nose]] to automate the testing.
+
+The current build status is:
+[[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
+
+* Contributing
+If you have any questions, suggestions, or feature requests, please
+don't hesitate to open up an issue (or better yet, send a PR).  It
+doesn't have to be in a literate program, but should be amply
+commented.  It will be converted into a literate program before it is
+merged.
+
+* About the Repository
+Branch description are kept in
+#+BEGIN_SRC sh
+  git config branch.master.description
+  git config branch.testing.description
+  git config branch.literate.description
+#+END_SRC
+- =master= :: The branch used for formal testing and distribution.
+              All code is pre-tangled and, ideally, ready for use.
+- =literate= :: The branch used for development.  All code is tracked
+                and documented as a literate program.  This is the
+                default branch.
+
+* File Operations
+In previous iterations of this project, file operations were ignored
+for the purpose of simplification.  During the course of this project,
+it has become clear that the storage format of these logical objects
+is crucial to understanding how they are set up.
+- why YAML?
+- /brief/ discussion of relevant features of PyYAML
+- discussion of PyYAML shortcomings
+  - all members are serialized
+    - we don't want all members to be serialized; the definition
+      eg. we want to be written to a separate file
+  - reasoning and implementation of =SecretYAMLObject=
+    #+BEGIN_SRC python
+      class SecretYAMLObject(yaml.YAMLObject):
+      hidden_fields = []
+      @classmethod
+      def to_yaml(cls, dumper, data):
+          new_data = copy.deepcopy(data)
+          for item in cls.hidden_fields:
+              del new_data.__dict__[item]
+          return dumper.represent_yaml_object(
+              cls.yaml_tag, new_data,
+              cls, flow_style=cls.yaml_flow_style)
+    #+END_SRC
+- reasoning and implementation of =Bundle=
+#+BEGIN_SRC python
+  class Bundle:
+      def __init__(self, initpath=None,
+                   move_dir='moves', predicate_dir='predicates',
+                   description_document='bundle.yaml'):
+
+          self.entities             = set()
+          self.move_dir             = move_dir
+          self.predicate_dir        = predicate_dir
+          self.description_document = description_document
+
+          self.__len__      = self.entities.__len__
+          self.__contains__ = self.entities.__contains__
+          self.__iter__     = lambda s: iter(s.entities)
+          self.__next__     = iter(self.entities).__next__
+
+          if initpath is not None:
+              self.load(initpath)
+
+      def __len__(self):
+          return len(self.entities)
+
+      def __contains__(self, item):
+          return self.entities.contains(item)
+
+      def __iter__(self):
+          self.__entity_iterator = iter(self.entities)
+          return self.__entity_iterator
+
+      def __next__(self):
+          r = next(self.__entity_iterator)
+
+      def load(self, path):
+          fullpath = '{!s}/{!s}'.format(path, self.description_document)
+          yaml_objects = list(yaml.load_all(open(fullpath, 'r')))
+          [self.load_definition(path, obj) for obj in yaml_objects]
+          for algorithm in yaml_objects:
+              if hasattr(algorithm, 'resolve_rules'):
+                  algorithm.resolve_rules(yaml_objects)
+          self.entities.update(yaml_objects)
+
+      def load_definition(self, path, ssa_obj):
+          if hasattr(ssa_obj, 'filename'):
+              tag   = ssa_obj.__class__.yaml_tag
+              style = ssa_obj.__class__.yaml_flow_style
+
+              # Create new class with inherited YAML attributes
+              ssa_obj.__class__ = type(ssa_obj.__class__.__name__,
+                                       (ssa_obj.__class__,),
+                                       {
+                                           'yaml_tag': tag,
+                                           'yaml_flow_style': style
+                                       })
+
+              # Define call
+              with open('/'.join([path, ssa_obj.ssa_folder, ssa_obj.filename])) as f:
+                  lines = f.readlines()
+
+              ssa_obj.definition = lines
+
+              lines = ['def temp(self, v, N):\n'] + \
+                      ['    ' + l for l in lines]
+              exec("".join(lines), locals())
+              ssa_obj.__class__.__call__ = locals()['temp']
+
+
+      def sorted(self):
+          return sorted(self.entities, reverse=True, key=lambda e: repr(e))
+
+      def to_yaml(self):
+          return yaml.dump_all(self.sorted(), explicit_start=True)
+
+      def dump(self, path):
+          # create path as directory
+          import os
+          os.makedirs(path, exist_ok=True)
+          for subdir in [self.move_dir, self.predicate_dir]:
+              os.makedirs('{!s}/{!s}'.format(path, subdir), exist_ok=True)
+          # gather predicates and moves and set in directories
+          predicates = []
+          moves      = []
+          algorithms = []
+          for entity in self.entities:
+              name = entity.__class__.__name__
+              if   name ==      Move.__name__:      moves.append(entity)
+              elif name == Predicate.__name__: predicates.append(entity)
+              elif name == Algorithm.__name__: algorithms.append(entity)
+              else: raise Exception('Encountered an invalid object: {!r}'.format(name))
+
+          for p in predicates:
+              with open('/'.join([path, self.predicate_dir, p.filename]), 'w') as f:
+                  f.writelines(p.definition)
+
+          for p in moves:
+              with open('/'.join([path, self.move_dir, p.filename]), 'w') as f:
+                  f.writelines(p.definition)
+
+          for a in algorithms:
+              a.simplify()
+
+          yaml.dump_all(self.sorted(),
+                        open('{}/{}'.format(path, self.description_document), 'w'),
+                        explicit_start=True)
+
+          for a in algorithms:
+              a.resolve_rules(self.entities)
+
+      def types(self, cls):
+          for entity in self.entities:
+              if isinstance(entity, cls):
+                  yield entity
+      def lookup(self, cls, name):
+          hits = list()
+          for entity in self.types(cls):
+              if entity.name == name:
+                  hits.append(entity)
+          if not hits:
+              return None
+          elif len(hits) > 1:
+              raise Exception('multiply defined names for {}."{}"'.format(cls.__name__, name))
+          else:
+              return hits[0]
+#+END_SRC
+* Engine
+** Predicates and Moves
+- subclasses of secret object
+- definition loader as utility function
+- only /need/ =name= and =_run_func=
+  - =_run_func= is a function set by the utility function.  this class
+    will define =__call__= to just run this function.  custom-made
+    predicates will still just define =__call__= as normal.
+
+#+BEGIN_SRC python
+  class Move(SecretYAMLObject):
+      yaml_tag = u'!Move'
+      yaml_flow_style = False
+      ssa_folder = 'moves'
+
+      hidden_fields=['definition']
+
+      def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
+          self.filename    = filename
+          self.name        = name
+          self.description = description
+          self.author      = author
+          self.date        = date
+          self.tex         = tex
+
+      def __repr__(self):
+          return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
+
+  class Predicate(SecretYAMLObject,SimpleEquality):
+      yaml_tag = u'!Predicate'
+      yaml_flow_style = False
+      ssa_folder = 'predicates'
+
+      hidden_fields=['definition']
+      
+      def __init__(self, filename=None, name=None, description=None, author=None, date=None, tex=None):
+          self.filename    = filename
+          self.name        = name
+          self.description = description
+          self.author      = author
+          self.date        = date
+          self.tex         = tex
+
+      def __repr__(self):
+          return "{!s} '{!s}'".format(self.__class__.__name__.lower(),
+                                      self.name)
+#+END_SRC
+** Rules
+#+BEGIN_SRC python
+  class Rule(yaml.YAMLObject, SimpleEquality):
+      yaml_tag = u'!Rule'
+      def __init__(self, name=None, description=None, author=None, date=None, predicate=None, moves=None):
+          self.description = description
+          self.author      = author
+          self.date        = date
+          self.predicate   = predicate
+          self.moves       = moves
+          self.name        = name
+
+      def __repr__(self):
+          return "rule '{!s}'".format(self.name)
+
+      def applies_to(self, v, N):
+          return bool(self.predicate(v, N))
+
+      def apply_to(self, graph, node, r=random):
+          move                  = r.choice(self.moves)
+          old_node              = copy.deepcopy(node)
+          old_node_data         = copy.deepcopy(graph.node[node])
+          old_neighborhood_data = copy.deepcopy(neighbor_data(graph, node))
+
+          move(graph.node[node], neighbor_data(graph, node))
+
+          return {
+              'node'          : (old_node, old_node_data),
+              'neighbors'     : old_neighborhood_data,
+              'move'          : move,
+              'new node'      : (node, neighbor_data(graph, node))
+          }
+#+END_SRC
+** Algorithms
+#+BEGIN_SRC python
+  class Algorithm(yaml.YAMLObject, SimpleEquality):
+      yaml_tag = u'!Algorithm'
+      yaml_flow_style = False
+      ssa_folder = None
+
+      def __init__(self, name=None, author=None, date=None, rules=None):
+          self.name   = name
+          self.author = author
+          self.date   = date
+          self.rules  = rules
+
+      def resolve_rules(self, entities):
+          mapping = {entity.name if hasattr(entity, 'name') else repr(entity): entity
+                     for entity in entities}
+          for rule in self.rules:
+              rule.predicate = mapping[rule.predicate]
+              rule.moves = [mapping[m] for m in rule.moves]
+      def simplify(self):
+          '''undoes resolve_rules for saving'''
+          for rule in self.rules:
+              rule.predicate = rule.predicate.name
+              rule.moves = [m.name for m in rule.moves]
+
+      def run(self, graph, count=1):
+          assert count >= 0
+          history = list()
+          while count > 0:
+              privileged_nodes = dict()
+              for node in graph:
+                  neighbors = neighbor_data(graph, node)
+                  for rule in self.rules:
+                      if rule.applies_to(graph.node[node], neighbors.values()):
+                          if node in privileged_nodes:
+                              privileged_nodes[node] += rule
+                          else:
+                              privileged_nodes[node] = [rule]
+              if not privileged_nodes:
+                  break
+              node = random.choice(list(privileged_nodes.keys()))
+              neighbors = neighbor_data(graph, node)
+              applied_rule = random.choice(privileged_nodes[node])
+              log = rule.apply_to(graph, node)
+              history.append(log)
+              count -= 1
+          return history
+
+      def has_stabilized(self, graph):
+          for node in graph:
+              neighbors = neighbor_data(graph, node)
+              for rule in self.rules:
+                  if rule.applies_to(graph.node[node], neighbors.values()):
+                      return False
+          return True
+
+      def stabilize(self, graph):
+          while not self.has_stabilized(graph):
+              self.run(graph)
+
+      def __repr__(self):
+          return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
+
+      def lookup(self, name):
+          for rule in self.rules:
+              if rule.name == name:
+                  return rule
+#+END_SRC
+* NetworkX =Graph= Extensions
+** =neighbor_data=
+#+BEGIN_SRC python
+  def neighbor_data(graph, node):
+      return {v: graph.node[v] for v in graph.neighbors(node)}
+#+END_SRC
+** =AnimatedGraph= acts like a generator
+* Visualization
+** Grapher
+*** Introduction and Usage
+:PROPERTIES:
+:ID:       B29429F4-F571-44D9-88EF-292A64E11412
+:END:
+For any graphical interface that aspires to be what SSA Tool is, a
+means to actually view a more-or-less interactive graph on-screen is
+invaluable.  In this document, we explore the creation of such a tool.
+
+Manifested as a subclass of the =Canvas= widget in Tkinter, =Grapher=
+will paint any NetworkX-style graph according to a given layout
+algorithm and customizable node/edge-painting functions.  Usage is
+pretty simple:
+#+BEGIN_SRC python
+  import networkx as nx
+  # Note that NetworkX's layout algorithms require the `numpy` module
+  import tkinter as tk
+  from ssa.visualization import Grapher
+
+  root = tk.Tk()
+
+  grapher = Grapher(root)
+
+  graph = nx.hypercube_graph(4)
+
+  grapher.set_layout_algorithm(nx.random_layout)
+  grapher.set_graph(graph)
+
+  graph.pack()
+#+END_SRC
+**** Dependencies
+The only hard-and-fast dependency of this component is,
+unsurprisingly, Tkinter.  Given that this project as a whole can't
+hope to implement all of even the most common layout algorithms,
+NetworkX layout algorithms are used throughout this documentation.
+Each and every one of these layout algorithms require the =numpy=
+module, so it is recommended that this is installed if you plan to use
+the =networkx= module.  =Grapher= is designed to work with the format
+it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout algorithms]] for more information.)
+*** Overview
+**** Definition
+:PROPERTIES:
+:ID:       E988954C-7EDC-4840-B0E3-865420731B22
+:END:
+#+BEGIN_SRC python :tangle "visualization.py"
+  import tkinter as tk
+
+  class Grapher(tk.Canvas):
+      def __init__(self, master,
+                   graph            = None,
+                   layout_algorithm = None,
+                   node_painter     = None,
+                   edge_painter     = None, *args, **kwargs):
+          tk.Canvas.__init__(self, master, *args, **kwargs)
+
+          <<initialization>>
+
+      def paint(self, padx=15, pady=15, do_layout=True):
+          <<painting the graph>>
+
+      <<customization>>
+
+      <<presets>>
+
+  <<test>>
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "test"
+  import networkx as nx
+  import generators as gn
+
+  def on_reconfigure(event):
+      grapher.paint(do_layout=not bool(grapher.layout))
+
+  def new_graph():
+      global n
+      n += 1
+      grapher.set_graph(gn.sparse_graph(n, marked='bool(.25)'))
+      grapher.paint()
+
+  n = 5
+
+  root = tk.Tk()
+  grapher = Grapher(root,
+                    layout_algorithm=nx.circular_layout,
+                    node_painter=Grapher.circle_node_painter,
+                    background='#dddddd')
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+
+  grapher.pack(fill = 'both', expand = True)
+
+  root.bind('<Configure>', on_reconfigure)
+
+  new_graph()
+
+  root.mainloop()
+  exit()
+#+END_SRC
+
+**** Initialization
+:PROPERTIES:
+:noweb-ref: initialization
+:ID:       2B46B8B6-C886-4411-B1AA-52D9890240DA
+:END:
+As you'll recall from the overview above, the constructor takes four
+arguments aside from those related directly to Tkinter:
+- =graph= :: a NetworkX-style graph.
+- =layout_algorithm= :: a function from NetworkX-style graphs to
+     layout dictionaries.  (This format is discussed in [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][Layout
+     Algorithms]].)
+- =node_painter= :: a function to paint a node onto the canvas.  See
+                    [[id:839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51][Node Painters]].
+- =edge_painter= :: a function to paint an edge onto the canvas.  See
+                    [[id:25FE8932-BFB7-4F36-AEF3-DA58C6634FBE][Edge Painters]].
+
+Since Python evaluates the default arguments at interpretation time
+rather than use-time, we cannot give appropriate default values.  To
+compensate, we set their default values to =None= and then check to
+see if they need to be given the appropriate defaults.
+#+BEGIN_SRC python
+  if layout_algorithm is None:
+      layout_algorithm = lambda G: \
+                         {n: (0, 0) for n in G.nodes()}
+  if node_painter is None:
+      node_painter = Grapher.plain_node_painter
+  if edge_painter is None:
+      edge_painter = Grapher.plain_edge_painter
+#+END_SRC
+You'll notice that =graph= is not handled so; this case is handled
+specially by =paint=.  This decision was made to make this file as
+lean as possible---setting a reasonable default for this value would
+necessitate importing the NetworkX graph manipulation library.
+
+Using the setter functions defined in [[id:E4FB92BE-FD81-4716-8B23-EA63352114F3][Customization]], we use these
+constructor arguments to set the appropriate settings.
+#+BEGIN_SRC python
+  self.set_graph(graph)
+  self.set_layout_algorithm(layout_algorithm)
+  self.set_node_painter(node_painter)
+  self.set_edge_painter(edge_painter)
+#+END_SRC
+
+**** Layout Algorithms
+:PROPERTIES:
+:ID:       7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F
+:noweb-ref: nil
+:END:
+Along with the painters, layout algorithms are at the core of this
+widget.  Without them, the widget has no hope of success.  Due to
+their varying complexity and ready availability, this widget doesn't
+attempt to provide such algorithms as part of the structure.  Thus,
+there is no useful default.  (There is a default to ensure
+non-crashing behavior with a minimalistic use, but it simply maps all
+nodes to =(0, 0)=.)
+
+So how does this tool expect these layout algorithms to act?  NetworkX
+provides [[http://networkx.lanl.gov/reference/drawing.html#module-networkx.drawing.layout][several layout algorithms]] already (which unfortunately
+require =numpy= as a dependency), so this widget is designed to use
+the output of these algorithms.  These layout algorithms return a very
+simple and sensible structure.
+#+BEGIN_SRC python
+  {
+    node: (x, y),
+    ...
+  }
+#+END_SRC
+As a dictionary of x--y coordinates indexed by node, you can actually
+use any Python structure that mimics such access.
+#+BEGIN_SRC python
+  coordinates = layout[node]
+  x = coordinates[0]
+  y = coordinates[1]
+#+END_SRC
+
+Actually providing these layout algorithms is left up to the user of
+this widget.  Since it has nothing directly to do with really
+/painting/ the graph, it has no particular business in this class.
+
+**** Node and Edge Painters
+:PROPERTIES:
+:ID:       839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51
+:noweb-ref: nil
+:END:
+One of the great strengths of this widget is its ability to be
+customized.  Graphs are capable of holding a lot of data---anything
+can have properties associated with it that this widget has little
+hope of anticipating.  This was recognized from the start---the
+customization of these painters is fully supported.
+
+However, there are a couple things that are worth noting about these
+painters---not the least of which is the signature each painter should
+have:
+#+BEGIN_SRC python
+  def my_node_painter(canvas, layout, graph, node):
+      # paint the node onto the canvas
+  def my_edge_painter(canvas, layout, graph, source, sink):
+      # paint the edge onto the canvas
+#+END_SRC
+A lot of responsibility is given to these functions, and perhaps this
+responsibility should be mitigated.  (See the [[id:DED5600A-3B04-4C03-BA79-76ECBB3001BB]['todo' item]] below.)
+
+See the [[id:8F3C5154-5DD4-495C-BA63-475CF2047455][basic painters]] below to see full, minimal examples of this.  If
+you're unfamiliar with NetworkX's ability to store node data, you
+should check out [[id:59724273-7AA1-42B6-9880-B0DEB3261C07][the example of that below]] as well.
+
+***** TODO Simplify Painting
+:PROPERTIES:
+:ID:       DED5600A-3B04-4C03-BA79-76ECBB3001BB
+:END:
+Right now, customized painting leaves a lot of responsibility to the
+widget user.  It could potentially be simplified by returning a
+dictionary of attributes to use instead and then using this to
+interface directly with the canvas.
+
+In any case, a separate function should provide this interface in
+order to preserve the raw power of the existing behavior.
+
+*** Painting the Graph
+:PROPERTIES:
+:noweb-ref: painting the graph
+:END:
+**** Preliminary Checks
+:PROPERTIES:
+:ID:       0E9E8D58-0736-403D-A22D-58C5FA0BE1F1
+:END:
+Before we proceed, we need to see if we have everything we need to
+paint the graph.  There are two basic components that we need to
+actually paint the graph.  If we have no =graph= to paint, well,
+hopefully the problem here is obvious.  If we must lay out the graph
+and have no =layout_algorithm=, then we have no way of determining the
+positions of a given node within a graph.  The same applies if we must
+/not/ lay out the graph and have no existing positions to use.  We do
+some very simple (and incomprehensive) preliminary checks to avoid
+running into problems down the line.
+#+BEGIN_SRC python
+  if self.graph is None:
+      raise Exception('No graph specified.')
+  if do_layout and self.layout_algorithm is None:
+      raise Exception('No layout algorithm specified.')
+  if not do_layout and self.layout is None:
+      raise Exception('Re-layout prohibited and no existing layout in place.')
+#+END_SRC
+
+Additionally, =layout_algorithm= must be a function (or at least,
+Pythonically speaking, /act/ like one).  We further check to see if
+the member is callable as a function.
+#+BEGIN_SRC python
+  if not callable(self.layout_algorithm):
+      raise Exception('Layout algorithm must be callable.')
+#+END_SRC
+
+**** Preparing to Paint
+:PROPERTIES:
+:ID:       DFADA623-F79E-40F5-9A2D-C8953019D8DB
+:END:
+To paint a clear picture, we first must remove all of the objects that
+we've (potentially) already painted.  We can delete all of these like
+as below.
+#+BEGIN_SRC python
+  self.delete(tk.ALL)
+#+END_SRC
+
+To get the node layout, there are actually a few steps we have to
+take.  Before we do anything, we need to determine the current
+dimensions of the widget.
+#+BEGIN_SRC python
+  wd = self.winfo_width()
+  dp = self.winfo_height()
+#+END_SRC
+(Note that =wd= and =dp= are abbreviation for width and depth.)
+
+If we were asked to recalculate the layout (the default), then we
+reset =layout= to the results of a fresh run of the
+=layout_algorithm= on =graph=.  Using =wd= and =dp= calculated above,
+we then normalize =layout= to account for the current dimensions of
+the width, using =padx= and =pady= appropriately.
+#+BEGIN_SRC python
+  if do_layout:
+      self.layout = self.layout_algorithm(self.graph)
+
+  normalized_layout = {node: (self.layout[node][0] * (wd - 2*padx) + padx,
+                              self.layout[node][1] * (dp - 2*pady) + pady)
+                       for node in self.layout}
+#+END_SRC
+Do recall that =layout= is kept as a dictionary from nodes to
+coordinate pairs =(x, y)= where both /x/ and /y/ are kept in the range
+[0, 1].  These values indicate their relative positions on the canvas;
+=0= indicates the far left (or top) where =1= indicates the far right
+(or bottom).  These values are scaled to the current width and depth
+of the widget while with the padding specified by =padx= and =pady=.
+
+***** TODO Zooming
+It would be nice to have the ability to zoom.  Subclass, subclass,
+subclass!
+**** Painting
+:PROPERTIES:
+:ID:       3CFCD2FB-8B82-4F0E-95E6-83B687ABB24E
+:END:
+#+BEGIN_SRC python
+  for edge in self.graph.edges():
+      self.paint_edge(normalized_layout, self.graph, *edge)
+  for node in self.graph.nodes():
+      self.paint_node(normalized_layout, self.graph, node)
+#+END_SRC
+*** Customization
+:PROPERTIES:
+:noweb-ref: customization
+:ID:       E4FB92BE-FD81-4716-8B23-EA63352114F3
+:END:
+**** Graph
+:PROPERTIES:
+:ID:       FCAD87CF-8016-4644-8EA6-D09FDE35F1A7
+:END:
+#+BEGIN_SRC python
+  def set_graph(self, graph):
+      """Ensures `graph` is in the appropriate format and stores it"""
+      self.graph = graph
+#+END_SRC
+
+**** Layout Algorithm
+:PROPERTIES:
+:ID:       DF682122-82C5-4DFD-8E7B-EEAD63B72FB2
+:END:
+#+BEGIN_SRC python
+  def set_layout_algorithm(self, layout_algorithm):
+      assert callable(layout_algorithm)
+      self.layout_algorithm = layout_algorithm
+#+END_SRC
+
+**** Node Painting
+:PROPERTIES:
+:ID:       C148017D-374D-4788-9E7B-812D85B5636F
+:END:
+#+BEGIN_SRC python
+  def set_node_painter(self, node_painter):
+      self.paint_node = lambda layout, graph, node: \
+                        node_painter(self, layout, graph, node)
+#+END_SRC
+When creating functions that are generally useful (say, [[id:0B00DABF-26A1-49CC-A37C-5E011BAE4BB4][a circle with
+variable radius]]), you have to create them as functions that take these
+variable values (e.g. =radius=) and returns a function that uses these
+values.
+
+**** Edge Painting
+:PROPERTIES:
+:ID:       B4859C46-99B6-47A4-ABC2-E0A6CDA78A0F
+:END:
+#+BEGIN_SRC python
+  def set_edge_painter(self, edge_painter):
+      self.paint_edge = lambda layout, graph, source, sink: \
+                        edge_painter(self, layout, graph, source, sink)
+#+END_SRC
+*** Presets
+:PROPERTIES:
+:noweb-ref: presets
+:END:
+**** Plain
+:PROPERTIES:
+:ID:       8F3C5154-5DD4-495C-BA63-475CF2047455
+:END:
+You can refer to the following as minimal examples for how to define
+these functions.  As simple as they are, they are of limited practical
+use.
+
+The following function simply draws the string representation of the
+node at the position specified by =layout=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_node_painter(canvas, layout, graph, node):
+      canvas.create_text((layout[node][0], layout[node][1]), text=str(node))
+#+END_SRC
+
+The following function draws an edge from =source= to =sink=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_edge_painter(canvas, layout, graph, source, sink):
+      canvas.create_line(layout[source][0],    layout[source][1],
+                         layout[sink]  [0],    layout[sink]  [1],
+                         width=1.0)
+#+END_SRC
+
+**** Circle
+:PROPERTIES:
+:ID:       0B00DABF-26A1-49CC-A37C-5E011BAE4BB4
+:END:
+The following node painter will draw a node as a white circle with
+black text.  This text is simply the string representation of the
+given =node=.
+#+BEGIN_SRC python
+  @staticmethod
+  def circle_node_painter(canvas, layout, graph, node):
+      r = 10
+      x = layout[node][0]
+      y = layout[node][1]
+      canvas.create_oval((x-r, y-r, x+r, y+r), fill='white', tags='node')
+      canvas.create_text((x, y), text=str(node), tags='node')
+#+END_SRC
+
+**** TODO Rectangle
+This option is yet to be implemented.
+
+*** Full Example
+:PROPERTIES:
+:ID:       59724273-7AA1-42B6-9880-B0DEB3261C07
+:END:
+#+BEGIN_SRC python :tangle "example.py" :noweb-ref nil
+  import networkx   as nx
+  import generators as gen
+
+  from ssa.visualization import Grapher
+
+  def new_graph():
+      gen.reset_basic_node_counter()
+      grapher.set_graph(gen.sparse_graph(10, marked='bool(.5)'))
+      grapher.paint()
+
+  def marked_node_painter(canvas, layout, graph, node):
+          r = 10
+          x = layout[node][0]
+          y = layout[node][1]
+          canvas.create_oval((x-r, y-r, x+r, y+r),
+                             fill='black' if graph.node[node]['marked'] else 'white',
+                             tags='node')
+          canvas.create_text((x, y), text=str(node),
+                             fill='white' if graph.node[node]['marked'] else 'black',
+                             tags='node')
+
+  root = tk.Tk()
+
+  root.title('Graph Painter 4000')
+
+  grapher = Grapher(root, width=400, height=300, background='gray')
+  grapher.pack()
+  grapher.set_layout_algorithm(nx.circular_layout)
+  grapher.set_node_painter(marked_node_painter)
+
+  new_graph()
+
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+#+END_SRC
+*** TODO Draggable nodes
+Since the canvas is just a collection of items, we can add event
+handlers for all nodes via the use of tags.  As good as layout
+algorithms are, everybody likes their own setup.
+
+In order to keep class as simple as possible, perhaps this should be
+implemented in a separate subclass.  Given that Python supports
+multiple inheritance (to a point; there are of course
+obvious language-agnostic concerns), we could then just combine this
+with the animated subclass.
+*** TODO Postscript Export
+We can leverage =tk.Canvas.postscript= to support Postscript export.
+This would perhaps be very valuable to TeX export.
+** Animation
+We now have a means of drawing a graph on-screen in an easy-to-use
+Tkinter widget.  We can paint the graph, change the graph, and repaint
+it effortlessly.  While it is straightforward to do this, it can get
+repetitive.  In their essence, self-stabilizing algorithms operate on
+graphs and change them /continuously/; to see this change, this
+paint--repaint sequence must be executed over and over again while
+going at a slow enough pace to actually /see/ the change.  Clearly,
+there is enough functionality here to encapsulate it in a separate
+=GraphAnimator= class as a subclass of =Grapher=.
+
+The primary thought behind this implementation stems from the natural
+sequence of steps that a self-stabilizing algorithm---or, in fairness,
+/any/ animation---produces.  =GraphAnimator= uses the paradigm of
+stop-motion animation by storing a queue of graphs (or as we shall
+see, a much more compact queue of changes deltas) and painting them
+one after another at specified intervals.
+
+*** Definition
+:PROPERTIES:
+:ID:       02B822BC-5430-443F-8C02-08C8154CCD18
+:END:
+We subclass =Grapher= and a single instance variable:
+- =interval= :: the time, in seconds, between steps of the animation
+To separate the functionality into the logical concept of an 'animated
+graph' and a 'graph animator', we will be creating two classes
+- =AnimatedGraph= :: a new class that operates on a NetworkX graph and
+     provides logic to generate successive graphs through a series of
+     deltas.
+- =GraphAnimator= :: a subclass of =Grapher= to display objects of
+     type =AnimatedGraph=
+We then define logic for queueing these steps and then finally logic
+for performing the actual animation.
+#+BEGIN_SRC python :tangle "visualization.py"
+  import threading
+  import collections
+
+  class GraphAnimator(Grapher):
+      def __init__(self, master, interval=1, *args, **kwargs):
+          Grapher.__init__(self, master, *args, **kwargs)
+          self.interval = interval
+
+      <<queueing graphs>>
+      <<animating>>
+#+END_SRC
+
+*** Queueing Data for Animation
+:PROPERTIES:
+:noweb-ref: queueing graphs
+:END:
+#+BEGIN_SRC python
+  def load(self, queue):
+      self.queue.extend(queue)
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def isdelta(self, change):
+      return isinstance(change, dict) and 'new node' in change
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def _queue_next_graph(self):
+      change = self.queue.popleft()
+      if self.isdelta(change):
+          <<modify graph>>
+      else:
+          self.set_graph(change)
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "modify graph"
+  node = change['new node'][0]
+  data = change['new node'][1]
+  for key, value in data.keys(), data.values():
+      self.graph[node][key] = value
+#+END_SRC
+
+*** Drawing the Animation
+:PROPERTIES:
+:noweb-ref: animating
+:END:
+Just as you test the quality of the brakes before the power of an
+engine, we define a flag and setter for stopping the animation.
+#+BEGIN_SRC python
+  def stop(self):
+      self.should_stop = True
+#+END_SRC
+  
+By using the =Timer= class from the =threading= module, we daisy-chain
+the painting of next graphs.  Since =_queue_next_graph= is a
+relatively expensive step, we queue the next step to start before we
+calculate the next graph.
+#+BEGIN_SRC python
+  def start(self):
+      if not self.should_stop:
+          self.paint(self.next_graph, do_layout=False)
+          threading.Timer(self.interval, self.start, [self]).start()
+          self._queue_next_graph()
+#+END_SRC
+Queueing the next frame before calculating it /does/ introduce a race
+condition!  It is possible that the animator could skip a frame---or
+worse, show a partially updated graph---if
+- the interpreter is extraordinarily slow,
+- there are many properties to each node in the graph, or
+- the update interval is extremely short.
+This arises because =next_graph= is altered in-place in
+=_queue_next_graph= /during/ the countdown for the next frame.  If
+this countdown finishes before =next_graph= is ready it will /still be
+painted/, it just may be incorrect.
+
+It would seem that this risk is inherent in multi-threading this
+solution and the risk could be avoided by single-threading.  However,
+this has other consequences that are unacceptable.  The naïve
+single-threaded approach would look similar to the following:
+#+BEGIN_SRC python :tangle nil :noweb-ref nil
+  while not self.should_stop:
+      self.paint(do_layout=False)
+      self._queue_next_graph()
+#+END_SRC
+In this approach, there is no chance for =should_stop= to change and
+the animation would continue /ad infinitum/ with no hope of a graceful
+exit.
+* Graphical User Interface
+** =gui.py=
+#+BEGIN_SRC python
+  print ('Building interface...')
+
+  from gui import *
+
+  # Place all widgets according to the coordinates given as the first
+  # element of the tuple.  If the first element of the tuple evaluates
+  # to False (that is, bool(...) is False), then simply pack the widget.
+  for widgets in [fmw, agw, pdw, mvw]:
+      for widget in widgets:
+          if widgets[widget][0]:
+              #print('placing {0:<20}   at ({1:>4}, {2:>4})'.format(widget, *widgets[widget][0]))
+              pos = widgets[widget][0]
+              wgt = widgets[widget][1]
+              wgt.place(x=pos[0], y=pos[1])
+          else:
+              if widget not in ['tab']:
+                  #print('No coordinates for {}.  Packing instead.'.format(widget))
+                  widgets[widget][1].pack()
+
+  top.add(fmw['tab'][1], text = 'File Manager')
+  top.add(agw['tab'][1], text = 'Algorithms')
+  top.add(pdw['tab'][1], text = 'Predicates')
+  top.add(mvw['tab'][1], text = 'Moves')
+
+  top.pack()
+  print ('Building interface... Done.')
+
+  root.mainloop()
+  exit()
+
+  # Local Variables:
+  # python-shell-interpreter: "python3"
+  # python-indent-offset: 4
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** =gui/__init__.py=
+#+BEGIN_SRC python
+  from .util import *
+  from .fm   import fmf, fmv, fmw
+  from .ag   import agf, agv, agw
+  from .pd   import pdf, pdv, pdw
+  from .mv   import mvf, mvv, mvw
+
+  # Local Variables:
+  # truncate-lines: nil
+  # End:
+#+END_SRC
+** =gui/util.py=
+#+BEGIN_SRC python
+  # http://stackoverflow.com/a/16532192/1443496
+  from tkinter import *
+  from ttk import * # sudo pip3 install pyttk
+
+  import ssa.final as core
+
+  root = Tk()
+  root.title('SSA Graphical Aggregator')
+  root.geometry('600x400+5+5')
+  top = Notebook(root, width=1000, height=400)
+
+  # we only technically deal with one bundle at a time
+  bundle = core.Bundle()
+
+  import time
+
+  class Test:
+      count = 0
+      def __init__(self):
+          self.name = 'test class with str'
+          self.n = Test.count
+          Test.count += 1
+      def __str__(self):
+          return '({!s}) {}'.format(self.n, time.asctime())
+
+  def bind(widget_dictionary, name, event, func):
+      widget_dictionary[name][1].bind(event, func)
+
+  def get(widget_dictionary, name):
+      return widget_dictionary[name][1]
+
+  # by giving the widget dictionary and the name separately, we can
+  # defer the evaulation of the listbox control until such a time as it
+  # is actually created.
+  def add_new(widget_dictionary, name, cls=Test, pre=None, post=None):
+      """Adds a new item"""
+      def f(entity = None):
+          if pre: pre()
+          widget_dictionary[name][1].insert(END, '<name>')
+          if post: post()
+      return f
+  def del_sel(widget_dictionary, name, pre=None, post=None):
+      """Deletes the selected item"""
+      def f():
+          if pre: pre()
+          widget_dictionary[name][1].delete(ACTIVE)
+          if post: post()
+      return f
+  def new(cls, widget_dictionary, name, **kwargs):
+      #print('Creating widget {0:<14} under {1}'.format(cls.__name__, name))
+      return cls(widget_dictionary[name][1], **kwargs)
+
+  class SourceText(Text):
+      '''http://stackoverflow.com/a/3781773/1443496'''
+      def __init__(self, *args, **kwargs):
+          Text.__init__(self, wrap='none', undo=True, *args, **kwargs)
+          self.tag_configure('graph value', foreground='#880000')
+          self.tag_configure('constant value', foreground='#00aa00')
+          self.tag_configure('control keyword', foreground='#0000dd')
+          self.tag_configure('function name', foreground='#008888')
+
+          def do_ins(c):          # insert four spaces on tab
+              self.insert(INSERT, '    ')
+              return 'break'
+          self.bind('<Tab>', do_ins)
+
+      def do_hl(self):
+          print('highlighting')
+          self.highlight_pattern('\[.*\]', 'graph value', regexp=True)
+
+          for kw in ['return',
+                     'and', 'or', 'not',
+                     'if', 'else', 'elif', 'def',
+                     'while', 'for', 'continue', 'break',
+                     'lambda']:
+              self.highlight_pattern(' ' + kw + ' ', 'control keyword')
+
+          for vw in ['True', 'False', 'N', 'v']:
+              self.highlight_pattern(vw, 'constant value')
+
+          for fname in ['any', 'all', 'map', 'reduce', 'filter']:
+              self.highlight_pattern(fname, 'function name')
+
+      def highlight_pattern(self, pattern, tag, start="1.0", end="end", regexp=False):
+          '''Apply the given tag to all text that matches the given pattern
+
+          If 'regexp' is set to True, pattern will be treated as a regular expression
+          '''
+
+          start = self.index(start)
+          end = self.index(end)
+          self.mark_set("matchStart",start)
+          self.mark_set("matchEnd",start)
+          self.mark_set("searchLimit", end)
+
+          count = IntVar()
+          while True:
+              index = self.search(pattern, "matchEnd","searchLimit",
+                                  count=count, regexp=regexp)
+              if index == "": break
+              self.mark_set("matchStart", index)
+              self.mark_set("matchEnd", "%s+%sc" % (index,count.get()))
+              self.tag_add(tag, "matchStart","matchEnd")
+
+
+  def name_updater(widget_dictionary, variable_dictionary, listbox, variable, data):
+      def update_name_according_to_variable():
+          new_name = variable_dictionary[variable].get()
+          if new_name != variable_dictionary[data].name:
+              variable_dictionary[data].name = new_name
+              w = get(widget_dictionary, listbox)
+              i = w.curselection()
+              w.delete(i)
+              w.insert(i, new_name)
+              w.activate(i)
+              w.selection_set(i)
+      return update_name_according_to_variable
+
+
+  # Local Variables:
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** =gui/fm.py=
+#+BEGIN_SRC python
+  from tkinter import *
+  from ttk import * # sudo pip3 install pyttk
+
+  import gui
+  from gui import new, bundle, top, root
+  import ssa.final as core
+
+  fmv = dict()
+  fmf = dict()
+  fmw = dict()
+
+  #/Users/sean/github/vermiculus/smp/ssa-tool/exam/ind-set.ssax
+  def load_bundle():
+      path = fmv['bundle path'].get()
+      msg = 'Loading bundle {}...'.format(path[path.rfind('/')+1:])
+      print(msg)
+      bundle.load(path)
+      print(msg + ' Done.')
+      fmf['bundle to gui']()
+
+
+  def refresh():
+      """Clears all front-facing data and reloads it from the code-behind"""
+      from gui import agw, pdw, mvw, agv, pdv, mvv, agf
+
+      # clear the widgets
+      for wd in [agw, pdw, mvw]:
+          for w in wd:
+              if isinstance(wd[w][1], Listbox):
+                  wd[w][1].delete(0, END)
+      for v in [agv, pdv, mvv]:
+          if isinstance(v, StringVar):
+              v.set('')
+
+      # populate the widgets
+      for alg in bundle.types(core.Algorithm):
+          agw['algorithm list'][1].insert(END, alg.name)
+      for move in bundle.types(core.Move):
+          mvw['list'][1].insert(END, move.name)
+      for pred in bundle.types(core.Predicate):
+          pdw['list'][1].insert(END, pred.name)
+
+  def bdl2dsk():
+      path = fmv['bundle path'].get()
+      msg = 'Saving bundle {}...'.format(path[path.rfind('/')+1:])
+      print(msg)
+      from gui import agf, pdf, mvf
+      for f in [agf, pdf, mvf]:
+          if 'finalize' in f:
+              f['finalize']()
+      bundle.dump(path)
+      print(msg + ' Done.')
+
+  fmf['bundle to gui'] = refresh
+  fmf['save bundle'] = bdl2dsk
+  fmf['load bundle'] = load_bundle
+
+  fmv['bundle path'] = StringVar(root)
+
+  fmw['tab']                = None , Frame(top)
+  fmw['title']              = (210,  20) , new(Label  , fmw , 'tab' , text = 'SSA TOOL', font=('Helvetica', 24))
+  #fmw['new bundle']         = (220,  60) , new(Button , fmw , 'tab' , text = 'new bundle')
+  fmw['bundle path']        = (190, 170) , new(Entry  , fmw , 'tab' , textvariable = fmv['bundle path'])
+  fmw['save bundle']        = (220, 200) , new(Button , fmw , 'tab' , text = 'save bundle' , command = fmf['save bundle'])
+  fmw['load bundle']        = (220, 235) , new(Button , fmw , 'tab' , text = 'load bundle' , command = fmf['load bundle'])
+
+  # Local Variables:
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** =gui/pd.py=
+#+BEGIN_SRC python
+  from gui.util import *
+
+  pdv = dict()
+  pdf = dict()
+  pdw = dict()
+
+  current_predicate = None
+
+  def sel_new(x):
+      pdf['screen to bundle']()
+      print('switching from ' + (current_predicate.name if current_predicate else '(none)'))
+      global current_predicate
+      w = pdw['list'][1]
+      sel_pd = w.get(w.curselection())
+      current_predicate = bundle.lookup(core.Predicate, sel_pd)
+
+      if not current_predicate:        # a new entity was made
+          current_predicate = core.Predicate()
+          for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
+              setattr(current_predicate, attr, '<%s>' % attr)
+          current_predicate.date = '2014-01-01'
+          bundle.entities.add(current_predicate)
+
+      pdf['bundle to screen']()
+
+  def scr2bdl():
+      if not current_predicate:
+          return
+      from datetime import datetime
+      current_predicate.name        = pdv['name'].get()
+      current_predicate.author      = pdv['author'].get()
+      current_predicate.date        = datetime.strptime(pdv['date'].get(), '%Y-%m-%d')
+      current_predicate.filename    = pdv['file'].get()
+      current_predicate.description = pdv['description'].get()
+      current_predicate.tex         = pdv['tex'].get()
+      current_predicate.definition  = [l+'\n' for l in pdw['definition'][1].get(1.0, END).split('\n')[:-2]]
+
+  def clrscr():
+      pdv['name'        ].set('')
+      pdv['author'      ].set('')
+      pdv['date'        ].set('')
+      pdv['file'        ].set('')
+      pdv['description' ].set('')
+      pdv['tex'         ].set('')
+      try:
+          pdw['definition'  ][1].delete(1.0, END)
+      except:
+          pass
+
+  def bdl2scr():
+      pdv['name'        ].set(current_predicate.name)
+      pdv['author'      ].set(current_predicate.author)
+      pdv['file'        ].set(current_predicate.filename)
+      pdv['description' ].set(current_predicate.description)
+      pdv['tex'         ].set(current_predicate.tex)
+      if hasattr(current_predicate.date, 'date'):
+          pdv['date'        ].set(current_predicate.date.date())
+      else:
+          pdv['date'        ].set(current_predicate.date)
+      try:
+          pdw['definition'][1].delete(1.0, END)
+      except:
+          pass
+      pdw['definition'  ][1].insert(1.0, ''.join(current_predicate.definition))
+      pdw['definition'  ][1].do_hl()
+
+  def update_name():
+      new_name = pdv['name'].get()
+      if new_name != current_predicate.name:
+          # BUG: crashes if a word is deleted (as opposed to a single character)
+          current_predicate.name = new_name
+          w = pdw['list'][1]
+          idx = w.curselection()
+          w.delete(idx)
+          w.insert(idx, new_name)
+          w.activate(idx)
+          w.selection_set(idx)
+
+  def sanitize_file():
+      old = pdv['file'].get()
+      new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
+      pdv['file'].set(new)
+
+  pdf['add']              = add_new(pdw, 'list', core.Predicate)
+  pdf['remove']           = del_sel(pdw, 'list')
+  pdf['on select new']    = sel_new
+  pdf['bundle to screen'] = bdl2scr
+  pdf['screen to bundle'] = scr2bdl
+  pdf['clear screen']     = clrscr
+  pdf['update name']      = update_name
+  pdf['sanitize file']    = sanitize_file
+
+  pdv['name']        = StringVar(root)
+  pdv['file']        = StringVar(root)
+  pdv['author']      = StringVar(root)
+  pdv['date']        = StringVar(root)
+  pdv['description'] = StringVar(root)
+  pdv['tex']         = StringVar(root)
+
+  pdv['name'].trace('w', lambda n, i, m: pdf['update name']())
+  pdv['file'].trace('w', lambda n, i, m: pdf['sanitize file']())
+
+  pdw['tab']         = None ,        Frame(top)
+  pdw['list']        = (0   ,   0) , new(Listbox, pdw, 'tab' , height = 18)
+  pdw['name']        = (180 ,   0) , new(Entry,   pdw, 'tab' , textvariable = pdv['name'])
+  pdw['author']      = (360 ,   0) , new(Entry,   pdw, 'tab' , textvariable = pdv['author'])
+  pdw['date']        = (180 ,  25) , new(Entry,   pdw, 'tab' , textvariable = pdv['date'])
+  pdw['file']        = (360 ,  50) , new(Entry,   pdw, 'tab' , textvariable = pdv['file'])
+  pdw['description'] = (180 ,  50) , new(Entry,   pdw, 'tab' , textvariable = pdv['description'])
+  pdw['tex']         = (360 ,  25) , new(Entry,   pdw, 'tab' , textvariable = pdv['tex'])
+  pdw['add']         = (0   , 310) , new(Button,  pdw, 'tab' , text = 'add'    , command = pdf['add'])
+  pdw['remove']      = (80  , 310) , new(Button,  pdw, 'tab' , text = 'remove' , command = pdf['remove'])
+  pdw['definition']  = (180 ,  80) , new(SourceText,    pdw, 'tab' , width = 80, height = 16)
+
+  bind(pdw, 'list', '<<ListboxSelect>>', pdf['on select new'])
+
+  # Local Variables:
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** =gui/mv.py=
+#+BEGIN_SRC python
+  from gui.util import *
+
+  mvv = dict()
+  mvf = dict()
+  mvw = dict()
+
+  current_move = None
+
+  def sel_new(x):
+      mvf['screen to bundle']()
+      print('switching from ' + (current_move.name if current_move else '(none)'))
+      global current_move
+      w = mvw['list'][1]
+      sel_mv = w.get(w.curselection())
+      current_move = bundle.lookup(core.Move, sel_mv)
+
+      if not current_move:        # a new entity was made
+          current_move = core.Move()
+          for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
+              setattr(current_move, attr, '<%s>' % attr)
+          current_move.date = '2014-01-01'
+          bundle.entities.add(current_move)
+
+      mvf['bundle to screen']()
+
+  def scr2bdl():
+      if not current_move:
+          return
+      from datetime import datetime
+      current_move.name        = mvv['name'].get()
+      current_move.author      = mvv['author'].get()
+      current_move.date        = datetime.strptime(mvv['date'].get(), '%Y-%m-%d')
+      current_move.filename    = mvv['file'].get()
+      current_move.description = mvv['description'].get()
+      current_move.tex         = mvv['tex'].get()
+      current_move.definition  = [l+'\n' for l in mvw['definition'][1].get(1.0, END).split('\n')[:-2]]
+
+  def clrscr():
+      mvv['name'        ].set('')
+      mvv['author'      ].set('')
+      mvv['date'        ].set('')
+      mvv['file'        ].set('')
+      mvv['description' ].set('')
+      mvv['tex'         ].set('')
+      try:
+          mvw['definition'  ][1].delete(1.0, END)
+      except:
+          pass
+
+  def bdl2scr():
+      mvv['name'        ].set(current_move.name)
+      mvv['author'      ].set(current_move.author)
+      mvv['file'        ].set(current_move.filename)
+      mvv['description' ].set(current_move.description)
+      mvv['tex'         ].set(current_move.tex)
+      if hasattr(current_move.date, 'date'):
+          mvv['date'        ].set(current_move.date.date())
+      else:
+          mvv['date'        ].set(current_move.date)
+      try:
+          mvw['definition'][1].delete(1.0, END)
+      except:
+          pass
+      mvw['definition'  ][1].insert(1.0, ''.join(current_move.definition))
+      mvw['definition'  ][1].do_hl()
+
+  def update_name():
+      new_name = mvv['name'].get()
+      if new_name != current_move.name:
+          # BUG: crashes if a word is deleted (as opposed to a single character)
+          current_move.name = new_name
+          w = mvw['list'][1]
+          idx = w.curselection()
+          w.delete(idx)
+          w.insert(idx, new_name)
+          w.activate(idx)
+          w.selection_set(idx)
+
+  def sanitize_file():
+      old = mvv['file'].get()
+      new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
+      mvv['file'].set(new)
+
+  mvf['add']              = add_new(mvw, 'list', core.Move)
+  mvf['remove']           = del_sel(mvw, 'list')
+  mvf['on select new']    = sel_new
+  mvf['bundle to screen'] = bdl2scr
+  mvf['screen to bundle'] = scr2bdl
+  mvf['clear screen']     = clrscr
+  mvf['update name']      = update_name
+  mvf['sanitize file']    = sanitize_file
+
+  mvv['name']        = StringVar(root)
+  mvv['file']        = StringVar(root)
+  mvv['author']      = StringVar(root)
+  mvv['date']        = StringVar(root)
+  mvv['description'] = StringVar(root)
+  mvv['tex']         = StringVar(root)
+
+  mvv['name'].trace('w', lambda n, i, m: mvf['update name']())
+  mvv['file'].trace('w', lambda n, i, m: mvf['sanitize file']())
+
+  mvw['tab']         = None ,        Frame(top)
+  mvw['list']        = (0   ,   0) , new(Listbox, mvw, 'tab' , height = 18)
+  mvw['name']        = (180 ,   0) , new(Entry,   mvw, 'tab' , textvariable = mvv['name'])
+  mvw['author']      = (360 ,   0) , new(Entry,   mvw, 'tab' , textvariable = mvv['author'])
+  mvw['date']        = (180 ,  25) , new(Entry,   mvw, 'tab' , textvariable = mvv['date'])
+  mvw['file']        = (360 ,  50) , new(Entry,   mvw, 'tab' , textvariable = mvv['file'])
+  mvw['description'] = (180 ,  50) , new(Entry,   mvw, 'tab' , textvariable = mvv['description'])
+  mvw['tex']         = (360 ,  25) , new(Entry,   mvw, 'tab' , textvariable = mvv['tex'])
+  mvw['add']         = (0   , 310) , new(Button,  mvw, 'tab' , text = 'add'    , command = mvf['add'])
+  mvw['remove']      = (80  , 310) , new(Button,  mvw, 'tab' , text = 'remove' , command = mvf['remove'])
+  mvw['definition']  = (180 ,  80) , new(SourceText,    mvw, 'tab' , width = 49, height = 16)
+
+  bind(mvw, 'list', '<<ListboxSelect>>', mvf['on select new'])
+
+  # Local Variables:
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** =gui/ag.py=
+#+BEGIN_SRC python
+  # (setq-default truncate-lines t)
+  from gui.util import *
+  from gui import bundle
+
+  agv = dict()
+  agf = dict()
+  agw = dict()
+
+  agv['current algorithm'] = None
+  agv['current rule'] = None
+
+  def dd():
+      for v in ['current algorithm', 'current rule']:
+          print('\t', v, agv[v])
+      if agv['current rule']:
+          print('\t algorithm rules:', agv['current algorithm'].rules)
+
+  def new_algorithm():
+      print('inside new_algorithm()')
+      agv['current algorithm']        = core.Algorithm()
+      agv['current algorithm'].name   = '<name>'
+      agv['current algorithm'].author = '<author>'
+      agv['current algorithm'].date   = '<date>'
+      agv['current algorithm'].rules  = list()
+      agv['current rule']             = None
+      bundle.entities.add(agv['current algorithm'])
+  def new_rule():
+      print('inside new_rule()')
+      agv['current rule']             = core.Rule()
+      agv['current rule'].name        = '<name>'
+      agv['current rule'].author      = '<author>'
+      agv['current rule'].date        = '2014-01-01'
+      agv['current rule'].predicate   = core.Predicate(name='<predicate>')
+      agv['current rule'].moves       = []
+      print('appending new rule')
+      agv['current algorithm'].rules.append(agv['current rule'])
+      dd()
+
+
+
+  def a_onsel(event, override = False):
+      print('inside a_onsel(event):', event)
+      '''
+      on select new algorithm, save the existing
+      information and load the new information
+      '''
+      if not override and agv['current algorithm']: a_scr2bdl()
+      w = get(agw, 'algorithm list')
+      n = w.get(w.curselection())
+      agv['current algorithm'] = bundle.lookup(core.Algorithm, n)
+      a_bdl2scr()
+
+
+
+  def r_onsel(event, override=False):
+      print('inside r_onsel(event):', event)
+      if not override and agv['current rule']: 
+          print('doing s2b')
+          r_scr2bdl()
+      w = get(agw, 'rule list')
+      n = w.get(w.curselection())
+      print('## selection was', n)
+      dd()
+      agv['current rule'] = agv['current algorithm'].lookup(n)
+      r_bdl2scr()
+
+
+
+  def a_bdl2scr():
+      print('inside a_bdl2scr()')
+      '''
+      creates a new algorithm if necessary,
+      and copies the algorithm data
+      into the graphical interface.
+
+      this algorithm data includes rule names for the list,
+      but the population from this list is left to r_bdl2scr.
+      '''
+      if not agv['current algorithm']:
+          new_algorithm()
+      agv['algorithm name'   ].set(agv['current algorithm'].name   )
+      agv['algorithm date'   ].set(agv['current algorithm'].date   )
+      agv['algorithm author' ].set(agv['current algorithm'].author )
+      get(agw, 'move list').delete(0, END)
+      get(agw, 'move list for rule').delete(0, END)
+      rl = get(agw, 'rule list')
+      rl.delete(0, END)
+      for r in agv['current algorithm'].rules:
+          rl.insert(END, r.name)
+
+
+
+  def a_scr2bdl():
+      print('inside a_scr2bdl()')
+      '''
+      copies data from the interface into the underlying algorithm.
+      '''
+      if not agv['current algorithm']: return
+      agv['current algorithm'].name   = agv['algorithm name'   ].get()
+      agv['current algorithm'].author = agv['algorithm author' ].get()
+      agv['current algorithm'].date   = agv['algorithm date'   ].get()
+      if agv['current rule']: r_scr2bdl()
+
+
+
+  def r_bdl2scr():
+      print('inside r_bdl2scr()')
+
+      agv['rule name'      ].set(agv['current rule'].name      )
+      agv['rule author'    ].set(agv['current rule'].author    )
+      agv['rule date'      ].set(agv['current rule'].date      )
+      agv['rule predicate' ].set(agv['current rule'].predicate.name )
+
+      get(agw, 'move list').delete(0, END)
+      get(agw, 'move list for rule').delete(0, END)
+
+      for m in bundle.types(core.Move):
+          lb = get(agw, 'move list for rule'
+                        if m in agv['current rule'].moves
+                        else 'move list')
+          lb.insert(END, m.name)
+
+
+
+  def r_scr2bdl():
+      print('inside r_scr2bdl()')
+      agv['current rule'].name      = agv['rule name'      ].get()
+      agv['current rule'].author    = agv['rule author'    ].get()
+      agv['current rule'].date      = agv['rule date'      ].get()
+      agv['current rule'].predicate = bundle.lookup(core.Predicate, agv['rule predicate' ].get())
+
+  a_update_name = name_updater(agw , agv , 'algorithm list' , 'algorithm name' , 'current algorithm' )
+  r_update_name = name_updater(agw , agv , 'rule list'      , 'rule name'      , 'current rule'      )
+
+  agv['current algorithm' ] = None
+  agv['current rule'      ] = None
+  agv['rule predicate'    ] = StringVar(root)
+  agv['algorithm name'    ] = StringVar(root)
+  agv['algorithm author'  ] = StringVar(root)
+  agv['algorithm date'    ] = StringVar(root)
+  agv['rule name'         ] = StringVar(root)
+  agv['rule author'       ] = StringVar(root)
+  agv['rule date'         ] = StringVar(root)
+
+  def move(lb1, lb2, pre=None, post=None):
+      """Moves the ACTIVE item from lb1 to lb2
+
+      lb1 and lb2 are names that are in the widget_dictionary
+      """
+      def f():
+          active = get(agw, lb1).get(ACTIVE)
+          if str(active) != '':   # to avoid moving empty items
+              if pre: pre()
+              get(agw, lb1).delete(ACTIVE)
+              get(agw, lb2).insert(END, active)
+              if post: post()
+      return f
+
+  def add_a():
+      pass
+  def del_a():
+      pass
+  def add_r():
+      pass
+  def del_r():
+      pass
+  def add_m():
+      active = get(agw, 'move list').get(ACTIVE)
+      agv['current rule'].moves.append(bundle.lookup(core.Move, active))
+  def del_m():
+      active = get(agw, 'move list for rule').get(ACTIVE)
+      agv['current rule'].moves.remove(bundle.lookup(core.Move, active))
+
+  def do_add_alg():
+      new_algorithm()
+      lb = get(agw, 'algorithm list')
+      lb.insert(END, agv['current algorithm'].name)
+      try:
+          lb.selection_clear(lb.curselection())
+      except:
+          pass
+      lb.selection_set(END)
+      
+      agv['algorithm name'].set(agv['current algorithm'].name)
+      agv['algorithm author'].set(agv['current algorithm'].author)
+      agv['algorithm date'].set(agv['current algorithm'].date)
+
+      get(agw, 'rule list').delete(0, END)
+
+  agf['add algorithm'     ] = do_add_alg#add_new(agw, 'algorithm list'     , core.Algorithm       , pre = new_algorithm)
+  def do_add_rule():
+      new_rule()
+      lb = get(agw, 'rule list')
+      lb.insert(END, agv['current rule'].name)
+      try:
+          lb.selection_clear(lb.curselection())
+      except:
+          pass
+      lb.selection_set(END)
+      r_onsel(None, override=True)
+      
+  agf['add rule'          ] = do_add_rule# add_new(agw, 'rule list'          , core.Rule            , pre = new_rule, post=lambda:get(agw, 'rule list').selection_set(END))
+  agf['delete algorithm'  ] = del_sel(agw, 'algorithm list'                            , pre = del_a)
+  agf['delete rule'       ] = del_sel(agw, 'rule list'                                 , pre = del_r)
+  agf['add move'          ] = move   (     'move list'          , 'move list for rule' , pre = add_m)
+  agf['delete move'       ] = move   (     'move list for rule' , 'move list'          , pre = del_m)
+
+  def upd_pr():
+      new_val = agv['rule predicate'].get()
+      q = bundle.lookup(core.Predicate, new_val)
+      agw['rule predicate'][1]['foreground'] = 'black' if q else 'red'
+      if q:
+          agv['current rule'].predicate = q
+
+  agf['upd_pr'] = upd_pr
+
+  agw['tab']                =    None ,        Frame(top)
+  agw['rule group']         = (   165 ,   40), new(Labelframe , agw , 'tab'        ,         text =     'Rules',            height=300, width=775)
+  agw['name']               = (   165 ,    0), new(Entry      , agw , 'tab'        , textvariable = agv['algorithm name']   )
+  agw['author']             = (   340 ,    0), new(Entry      , agw , 'tab'        , textvariable = agv['algorithm author'] )
+  agw['date']               = (   340 ,   25), new(Entry      , agw , 'tab'        , textvariable = agv['algorithm date']   )
+  agw['rule name']          = (   170 ,    0), new(Entry      , agw , 'rule group' , textvariable = agv['rule name']        )
+  agw['rule date']          = (   170 ,   25), new(Entry      , agw , 'rule group' , textvariable = agv['rule date']        )
+  agw['rule author']        = (   170 ,   50), new(Entry      , agw , 'rule group' , textvariable = agv['rule author']      )
+  agw['rule predicate']     = (   170 ,   75), new(Entry      , agw , 'rule group' , textvariable = agv['rule predicate']   )
+  agw['alg  add']           = (     0 ,  310), new(Button     , agw , 'tab'        ,         text =     'add'               , command = agf[   'add algorithm'] )
+  agw['alg  del']           = (    80 ,  310), new(Button     , agw , 'tab'        ,         text =     'del'               , command = agf['delete algorithm'] )
+  agw['rule add']           = (     0 ,  110), new(Button     , agw , 'rule group' ,         text =     'add'               , command = agf[   'add rule']      )
+  agw['rule del']           = (    80 ,  110), new(Button     , agw , 'rule group' ,         text =     'del'               , command = agf['delete rule']      )
+  agw['move add']           = (   140 ,  175), new(Button     , agw , 'rule group' ,         text =     '>'                 , command = agf[   'add move']      )
+  agw['move del']           = (   140 ,  200), new(Button     , agw , 'rule group' ,         text =     '<'                 , command = agf['delete move']      )
+  agw['algorithm list']     = (     0 ,    0), new(Listbox    , agw , 'tab'        ,       height = 18                      )
+  agw['rule list']          = (     0 ,    0), new(Listbox    , agw , 'rule group' ,       height =  6                      )
+  agw['move list']          = (     0 ,  140), new(Listbox    , agw , 'rule group' ,       height =  7                      )
+  agw['move list for rule'] = (   200 ,  140), new(Listbox    , agw , 'rule group' ,       height =  7                      )
+
+  get(agw, 'algorithm list' ).bind('<<ListboxSelect>>', a_onsel)
+  get(agw, 'rule list'      ).bind('<<ListboxSelect>>', r_onsel)
+
+  agv['algorithm name'].trace('w', lambda n, i, m: a_update_name())
+  agv[     'rule name'].trace('w', lambda n, i, m: r_update_name())
+  agv['rule predicate'].trace('w', lambda n, i, m: upd_pr())
+  agv['rule date'].trace('w', lambda n, i, m: so_done())
+  agv['rule author'].trace('w', lambda n, i, m: so_done2())
+
+  def so_done():
+      agv['current rule'].date = agv['rule date'].get()
+  def so_done2():
+      agv['current rule'].author = agv['rule author'].get()
+
+  # Local Variables:
+  # truncate-lines: t
+  # End:
+#+END_SRC
+* Command Line Interface
+#+BEGIN_SRC python
+  #!/usr/bin/env python3
+  import ssa
+  import networkx as nx
+
+  # ./ssa-tool.py run "independent set" from ind-set.ssax on test.gexf
+
+  def parse_args(argv):
+      if argv[1] == 'run':
+          assert (argv[1], argv[3], argv[5]) == ('run', 'from', 'on')
+          
+          algorithm = argv[2]
+          bundle    = argv[4]
+          graph     = argv[6]
+
+          graphfmt = graph.split('.')[-1]
+          if graphfmt == graph:
+              raise Exception('no graph format given')
+          if graphfmt not in ['gexf', 'gml', 'yaml']:
+              raise Exception('unrecognized graph format')
+
+          return {
+              'command'   : 'run',
+              'bundle'    : bundle,
+              'algorithm' : algorithm,
+              'graph'     : graph,
+              'graphfmt'  : graphfmt
+          }
+
+  def non_interactive(args):
+      args = parse_args(args)
+      if args['command'] == 'run':
+          print('''Running:
+    Algorithm: "{algorithm}"
+         from: "{bundle}"
+           on: "{graph}"
+      (format: "{graphfmt}")'''.format(**args))
+          b = ssa.Bundle(args['bundle'])
+          # add from_name to Bundle
+          a = list(filter(lambda e: e.name == args['algorithm'],
+                          b.entities))[0]
+
+          reader = {'gexf': nx.read_gexf, # require pyparsing
+                    'gml': nx.read_gml,
+                    'yaml': nx.read_yaml
+          }[args['graphfmt']]
+          G = reader(args['graph'])
+          from pprint import pprint
+          print('Read Graph:')
+          pprint(G.nodes(data=True))
+          print('History:')
+          pprint(a.run(G, 10))
+          print('Stable Graph:')
+          pprint(G.nodes(data=True))
+
+  print('Welcome to SSA-Tool, version 1.')
+  import sys
+  if '--non-interactive' in sys.argv:
+      non_interactive(sys.argv)
+  else:
+      import gui
+      gui.root.mainloop()
+#+END_SRC

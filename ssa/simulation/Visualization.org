@@ -1,0 +1,577 @@
+#+Title: Visualization with SSA-Tool
+#+Author: Sean Allred
+#+Date: [2014-04-17 Thu]
+
+#+PROPERTY: noweb tangle
+
+* Grapher
+** Introduction and Usage
+:PROPERTIES:
+:ID:       B29429F4-F571-44D9-88EF-292A64E11412
+:END:
+For any graphical interface that aspires to be what SSA Tool is, a
+means to actually view a more-or-less interactive graph on-screen is
+invaluable.  In this document, we explore the creation of such a tool.
+
+Manifested as a subclass of the =Canvas= widget in Tkinter, =Grapher=
+will paint any NetworkX-style graph according to a given layout
+algorithm and customizable node/edge-painting functions.  Usage is
+pretty simple:
+#+BEGIN_SRC python
+  import networkx as nx
+  # Note that NetworkX's layout algorithms require the `numpy` module
+  import tkinter as tk
+  from ssa.visualization import Grapher
+
+  root = tk.Tk()
+
+  grapher = Grapher(root)
+
+  graph = nx.hypercube_graph(4)
+
+  grapher.set_layout_algorithm(nx.random_layout)
+  grapher.set_graph(graph)
+
+  graph.pack()
+#+END_SRC
+*** Dependencies
+The only hard-and-fast dependency of this component is,
+unsurprisingly, Tkinter.  Given that this project as a whole can't
+hope to implement all of even the most common layout algorithms,
+NetworkX layout algorithms are used throughout this documentation.
+Each and every one of these layout algorithms require the =numpy=
+module, so it is recommended that this is installed if you plan to use
+the =networkx= module.  =Grapher= is designed to work with the format
+it uses.  (See the section on [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][layout algorithms]] for more information.)
+** Overview
+*** Definition
+:PROPERTIES:
+:ID:       E988954C-7EDC-4840-B0E3-865420731B22
+:END:
+#+BEGIN_SRC python :tangle "visualization.py"
+  import tkinter as tk
+
+  class Grapher(tk.Canvas):
+      def __init__(self, master,
+                   graph            = None,
+                   layout_algorithm = None,
+                   node_painter     = None,
+                   edge_painter     = None, *args, **kwargs):
+          tk.Canvas.__init__(self, master, *args, **kwargs)
+
+          <<initialization>>
+
+      def paint(self, padx=15, pady=15, do_layout=True):
+          <<painting the graph>>
+
+      <<customization>>
+
+      <<presets>>
+
+  <<test>>
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "test"
+  import networkx as nx
+  import generators as gn
+
+  def on_reconfigure(event):
+      grapher.paint(do_layout=not bool(grapher.layout))
+
+  def new_graph():
+      global n
+      n += 1
+      grapher.set_graph(gn.sparse_graph(n, marked='bool(.25)'))
+      grapher.paint()
+
+  n = 5
+
+  root = tk.Tk()
+  grapher = Grapher(root,
+                    layout_algorithm=nx.circular_layout,
+                    node_painter=Grapher.circle_node_painter,
+                    background='#dddddd')
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+
+  grapher.pack(fill = 'both', expand = True)
+
+  root.bind('<Configure>', on_reconfigure)
+
+  new_graph()
+
+  root.mainloop()
+  exit()
+#+END_SRC
+
+*** Initialization
+:PROPERTIES:
+:noweb-ref: initialization
+:ID:       2B46B8B6-C886-4411-B1AA-52D9890240DA
+:END:
+As you'll recall from the overview above, the constructor takes four
+arguments aside from those related directly to Tkinter:
+- =graph= :: a NetworkX-style graph.
+- =layout_algorithm= :: a function from NetworkX-style graphs to
+     layout dictionaries.  (This format is discussed in [[id:7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F][Layout
+     Algorithms]].)
+- =node_painter= :: a function to paint a node onto the canvas.  See
+                    [[id:839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51][Node Painters]].
+- =edge_painter= :: a function to paint an edge onto the canvas.  See
+                    [[id:25FE8932-BFB7-4F36-AEF3-DA58C6634FBE][Edge Painters]].
+
+Since Python evaluates the default arguments at interpretation time
+rather than use-time, we cannot give appropriate default values.  To
+compensate, we set their default values to =None= and then check to
+see if they need to be given the appropriate defaults.
+#+BEGIN_SRC python
+  if layout_algorithm is None:
+      layout_algorithm = lambda G: \
+                         {n: (0, 0) for n in G.nodes()}
+  if node_painter is None:
+      node_painter = Grapher.plain_node_painter
+  if edge_painter is None:
+      edge_painter = Grapher.plain_edge_painter
+#+END_SRC
+You'll notice that =graph= is not handled so; this case is handled
+specially by =paint=.  This decision was made to make this file as
+lean as possible---setting a reasonable default for this value would
+necessitate importing the NetworkX graph manipulation library.
+
+Using the setter functions defined in [[id:E4FB92BE-FD81-4716-8B23-EA63352114F3][Customization]], we use these
+constructor arguments to set the appropriate settings.
+#+BEGIN_SRC python
+  self.set_graph(graph)
+  self.set_layout_algorithm(layout_algorithm)
+  self.set_node_painter(node_painter)
+  self.set_edge_painter(edge_painter)
+#+END_SRC
+
+*** Layout Algorithms
+:PROPERTIES:
+:ID:       7DC6B787-4AE5-45FF-9D78-8ABE8FD3E38F
+:noweb-ref: nil
+:END:
+Along with the painters, layout algorithms are at the core of this
+widget.  Without them, the widget has no hope of success.  Due to
+their varying complexity and ready availability, this widget doesn't
+attempt to provide such algorithms as part of the structure.  Thus,
+there is no useful default.  (There is a default to ensure
+non-crashing behavior with a minimalistic use, but it simply maps all
+nodes to =(0, 0)=.)
+
+So how does this tool expect these layout algorithms to act?  NetworkX
+provides [[http://networkx.lanl.gov/reference/drawing.html#module-networkx.drawing.layout][several layout algorithms]] already (which unfortunately
+require =numpy= as a dependency), so this widget is designed to use
+the output of these algorithms.  These layout algorithms return a very
+simple and sensible structure.
+#+BEGIN_SRC python
+  {
+    node: (x, y),
+    ...
+  }
+#+END_SRC
+As a dictionary of x--y coordinates indexed by node, you can actually
+use any Python structure that mimics such access.
+#+BEGIN_SRC python
+  coordinates = layout[node]
+  x = coordinates[0]
+  y = coordinates[1]
+#+END_SRC
+
+Actually providing these layout algorithms is left up to the user of
+this widget.  Since it has nothing directly to do with really
+/painting/ the graph, it has no particular business in this class.
+
+*** Node and Edge Painters
+:PROPERTIES:
+:ID:       839E1EA2-74A4-4EB1-A79A-54FA6E7A1A51
+:noweb-ref: nil
+:END:
+One of the great strengths of this widget is its ability to be
+customized.  Graphs are capable of holding a lot of data---anything
+can have properties associated with it that this widget has little
+hope of anticipating.  This was recognized from the start---the
+customization of these painters is fully supported.
+
+However, there are a couple things that are worth noting about these
+painters---not the least of which is the signature each painter should
+have:
+#+BEGIN_SRC python
+  def my_node_painter(canvas, layout, graph, node):
+      # paint the node onto the canvas
+  def my_edge_painter(canvas, layout, graph, source, sink):
+      # paint the edge onto the canvas
+#+END_SRC
+A lot of responsibility is given to these functions, and perhaps this
+responsibility should be mitigated.  (See the [[id:DED5600A-3B04-4C03-BA79-76ECBB3001BB]['todo' item]] below.)
+
+See the [[id:8F3C5154-5DD4-495C-BA63-475CF2047455][basic painters]] below to see full, minimal examples of this.  If
+you're unfamiliar with NetworkX's ability to store node data, you
+should check out [[id:59724273-7AA1-42B6-9880-B0DEB3261C07][the example of that below]] as well.
+
+**** TODO Simplify Painting
+:PROPERTIES:
+:ID:       DED5600A-3B04-4C03-BA79-76ECBB3001BB
+:END:
+Right now, customized painting leaves a lot of responsibility to the
+widget user.  It could potentially be simplified by returning a
+dictionary of attributes to use instead and then using this to
+interface directly with the canvas.
+
+In any case, a separate function should provide this interface in
+order to preserve the raw power of the existing behavior.
+
+** Painting the Graph
+:PROPERTIES:
+:noweb-ref: painting the graph
+:END:
+*** Preliminary Checks
+:PROPERTIES:
+:ID:       0E9E8D58-0736-403D-A22D-58C5FA0BE1F1
+:END:
+Before we proceed, we need to see if we have everything we need to
+paint the graph.  There are two basic components that we need to
+actually paint the graph.  If we have no =graph= to paint, well,
+hopefully the problem here is obvious.  If we must lay out the graph
+and have no =layout_algorithm=, then we have no way of determining the
+positions of a given node within a graph.  The same applies if we must
+/not/ lay out the graph and have no existing positions to use.  We do
+some very simple (and incomprehensive) preliminary checks to avoid
+running into problems down the line.
+#+BEGIN_SRC python
+  if self.graph is None:
+      raise Exception('No graph specified.')
+  if do_layout and self.layout_algorithm is None:
+      raise Exception('No layout algorithm specified.')
+  if not do_layout and self.layout is None:
+      raise Exception('Re-layout prohibited and no existing layout in place.')
+#+END_SRC
+
+Additionally, =layout_algorithm= must be a function (or at least,
+Pythonically speaking, /act/ like one).  We further check to see if
+the member is callable as a function.
+#+BEGIN_SRC python
+  if not callable(self.layout_algorithm):
+      raise Exception('Layout algorithm must be callable.')
+#+END_SRC
+
+*** Preparing to Paint
+:PROPERTIES:
+:ID:       DFADA623-F79E-40F5-9A2D-C8953019D8DB
+:END:
+To paint a clear picture, we first must remove all of the objects that
+we've (potentially) already painted.  We can delete all of these like
+as below.
+#+BEGIN_SRC python
+  self.delete(tk.ALL)
+#+END_SRC
+
+To get the node layout, there are actually a few steps we have to
+take.  Before we do anything, we need to determine the current
+dimensions of the widget.
+#+BEGIN_SRC python
+  wd = self.winfo_width()
+  dp = self.winfo_height()
+#+END_SRC
+(Note that =wd= and =dp= are abbreviation for width and depth.)
+
+If we were asked to recalculate the layout (the default), then we
+reset =layout= to the results of a fresh run of the
+=layout_algorithm= on =graph=.  Using =wd= and =dp= calculated above,
+we then normalize =layout= to account for the current dimensions of
+the width, using =padx= and =pady= appropriately.
+#+BEGIN_SRC python
+  if do_layout:
+      self.layout = self.layout_algorithm(self.graph)
+
+  normalized_layout = {node: (self.layout[node][0] * (wd - 2*padx) + padx,
+                              self.layout[node][1] * (dp - 2*pady) + pady)
+                       for node in self.layout}
+#+END_SRC
+Do recall that =layout= is kept as a dictionary from nodes to
+coordinate pairs =(x, y)= where both /x/ and /y/ are kept in the range
+[0, 1].  These values indicate their relative positions on the canvas;
+=0= indicates the far left (or top) where =1= indicates the far right
+(or bottom).  These values are scaled to the current width and depth
+of the widget while with the padding specified by =padx= and =pady=.
+
+**** TODO Zooming
+It would be nice to have the ability to zoom.  Subclass, subclass,
+subclass!
+*** Painting
+:PROPERTIES:
+:ID:       3CFCD2FB-8B82-4F0E-95E6-83B687ABB24E
+:END:
+#+BEGIN_SRC python
+  for edge in self.graph.edges():
+      self.paint_edge(normalized_layout, self.graph, *edge)
+  for node in self.graph.nodes():
+      self.paint_node(normalized_layout, self.graph, node)
+#+END_SRC
+** Customization
+:PROPERTIES:
+:noweb-ref: customization
+:ID:       E4FB92BE-FD81-4716-8B23-EA63352114F3
+:END:
+*** Graph
+:PROPERTIES:
+:ID:       FCAD87CF-8016-4644-8EA6-D09FDE35F1A7
+:END:
+#+BEGIN_SRC python
+  def set_graph(self, graph):
+      """Ensures `graph` is in the appropriate format and stores it"""
+      self.graph = graph
+#+END_SRC
+
+*** Layout Algorithm
+:PROPERTIES:
+:ID:       DF682122-82C5-4DFD-8E7B-EEAD63B72FB2
+:END:
+#+BEGIN_SRC python
+  def set_layout_algorithm(self, layout_algorithm):
+      assert callable(layout_algorithm)
+      self.layout_algorithm = layout_algorithm
+#+END_SRC
+
+*** Node Painting
+:PROPERTIES:
+:ID:       C148017D-374D-4788-9E7B-812D85B5636F
+:END:
+#+BEGIN_SRC python
+  def set_node_painter(self, node_painter):
+      self.paint_node = lambda layout, graph, node: \
+                        node_painter(self, layout, graph, node)
+#+END_SRC
+When creating functions that are generally useful (say, [[id:0B00DABF-26A1-49CC-A37C-5E011BAE4BB4][a circle with
+variable radius]]), you have to create them as functions that take these
+variable values (e.g. =radius=) and returns a function that uses these
+values.
+
+*** Edge Painting
+:PROPERTIES:
+:ID:       B4859C46-99B6-47A4-ABC2-E0A6CDA78A0F
+:END:
+#+BEGIN_SRC python
+  def set_edge_painter(self, edge_painter):
+      self.paint_edge = lambda layout, graph, source, sink: \
+                        edge_painter(self, layout, graph, source, sink)
+#+END_SRC
+** Presets
+:PROPERTIES:
+:noweb-ref: presets
+:END:
+*** Plain
+:PROPERTIES:
+:ID:       8F3C5154-5DD4-495C-BA63-475CF2047455
+:END:
+You can refer to the following as minimal examples for how to define
+these functions.  As simple as they are, they are of limited practical
+use.
+
+The following function simply draws the string representation of the
+node at the position specified by =layout=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_node_painter(canvas, layout, graph, node):
+      canvas.create_text((layout[node][0], layout[node][1]), text=str(node))
+#+END_SRC
+
+The following function draws an edge from =source= to =sink=.
+#+BEGIN_SRC python
+  @staticmethod
+  def plain_edge_painter(canvas, layout, graph, source, sink):
+      canvas.create_line(layout[source][0],    layout[source][1],
+                         layout[sink]  [0],    layout[sink]  [1],
+                         width=1.0)
+#+END_SRC
+
+*** Circle
+:PROPERTIES:
+:ID:       0B00DABF-26A1-49CC-A37C-5E011BAE4BB4
+:END:
+The following node painter will draw a node as a white circle with
+black text.  This text is simply the string representation of the
+given =node=.
+#+BEGIN_SRC python
+  @staticmethod
+  def circle_node_painter(canvas, layout, graph, node):
+      r = 10
+      x = layout[node][0]
+      y = layout[node][1]
+      canvas.create_oval((x-r, y-r, x+r, y+r), fill='white', tags='node')
+      canvas.create_text((x, y), text=str(node), tags='node')
+#+END_SRC
+
+*** TODO Rectangle
+This option is yet to be implemented.
+
+** Full Example
+:PROPERTIES:
+:ID:       59724273-7AA1-42B6-9880-B0DEB3261C07
+:END:
+#+BEGIN_SRC python :tangle "example.py" :noweb-ref nil
+  import networkx   as nx
+  import generators as gen
+
+  from ssa.visualization import Grapher
+
+  def new_graph():
+      gen.reset_basic_node_counter()
+      grapher.set_graph(gen.sparse_graph(10, marked='bool(.5)'))
+      grapher.paint()
+
+  def marked_node_painter(canvas, layout, graph, node):
+          r = 10
+          x = layout[node][0]
+          y = layout[node][1]
+          canvas.create_oval((x-r, y-r, x+r, y+r),
+                             fill='black' if graph.node[node]['marked'] else 'white',
+                             tags='node')
+          canvas.create_text((x, y), text=str(node),
+                             fill='white' if graph.node[node]['marked'] else 'black',
+                             tags='node')
+
+  root = tk.Tk()
+
+  root.title('Graph Painter 4000')
+
+  grapher = Grapher(root, width=400, height=300, background='gray')
+  grapher.pack()
+  grapher.set_layout_algorithm(nx.circular_layout)
+  grapher.set_node_painter(marked_node_painter)
+
+  new_graph()
+
+  tk.Button(root, text='New Graph', command=new_graph).pack()
+#+END_SRC
+** TODO Draggable nodes
+Since the canvas is just a collection of items, we can add event
+handlers for all nodes via the use of tags.  As good as layout
+algorithms are, everybody likes their own setup.
+
+In order to keep class as simple as possible, perhaps this should be
+implemented in a separate subclass.  Given that Python supports
+multiple inheritance (to a point; there are of course
+obvious language-agnostic concerns), we could then just combine this
+with the animated subclass.
+** TODO Postscript Export
+We can leverage =tk.Canvas.postscript= to support Postscript export.
+This would perhaps be very valuable to TeX export.
+* Animation
+We now have a means of drawing a graph on-screen in an easy-to-use
+Tkinter widget.  We can paint the graph, change the graph, and repaint
+it effortlessly.  While it is straightforward to do this, it can get
+repetitive.  In their essence, self-stabilizing algorithms operate on
+graphs and change them /continuously/; to see this change, this
+paint--repaint sequence must be executed over and over again while
+going at a slow enough pace to actually /see/ the change.  Clearly,
+there is enough functionality here to encapsulate it in a separate
+=GraphAnimator= class as a subclass of =Grapher=.
+
+The primary thought behind this implementation stems from the natural
+sequence of steps that a self-stabilizing algorithm---or, in fairness,
+/any/ animation---produces.  =GraphAnimator= uses the paradigm of
+stop-motion animation by storing a queue of graphs (or as we shall
+see, a much more compact queue of changes deltas) and painting them
+one after another at specified intervals.
+
+** Definition
+:PROPERTIES:
+:ID:       02B822BC-5430-443F-8C02-08C8154CCD18
+:END:
+We subclass =Grapher= and a single instance variable:
+- =interval= :: the time, in seconds, between steps of the animation
+To separate the functionality into the logical concept of an 'animated
+graph' and a 'graph animator', we will be creating two classes
+- =AnimatedGraph= :: a new class that operates on a NetworkX graph and
+     provides logic to generate successive graphs through a series of
+     deltas.
+- =GraphAnimator= :: a subclass of =Grapher= to display objects of
+     type =AnimatedGraph=
+We then define logic for queueing these steps and then finally logic
+for performing the actual animation.
+#+BEGIN_SRC python :tangle "visualization.py"
+  import threading
+  import collections
+
+  class GraphAnimator(Grapher):
+      def __init__(self, master, interval=1, *args, **kwargs):
+          Grapher.__init__(self, master, *args, **kwargs)
+          self.interval = interval
+
+      <<queueing graphs>>
+      <<animating>>
+#+END_SRC
+
+** Queueing Data for Animation
+:PROPERTIES:
+:noweb-ref: queueing graphs
+:END:
+#+BEGIN_SRC python
+  def load(self, queue):
+      self.queue.extend(queue)
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def isdelta(self, change):
+      return isinstance(change, dict) and 'new node' in change
+#+END_SRC
+  
+#+BEGIN_SRC python
+  def _queue_next_graph(self):
+      change = self.queue.popleft()
+      if self.isdelta(change):
+          <<modify graph>>
+      else:
+          self.set_graph(change)
+#+END_SRC
+
+#+BEGIN_SRC python :noweb-ref "modify graph"
+  node = change['new node'][0]
+  data = change['new node'][1]
+  for key, value in data.keys(), data.values():
+      self.graph[node][key] = value
+#+END_SRC
+
+** Drawing the Animation
+:PROPERTIES:
+:noweb-ref: animating
+:END:
+Just as you test the quality of the brakes before the power of an
+engine, we define a flag and setter for stopping the animation.
+#+BEGIN_SRC python
+  def stop(self):
+      self.should_stop = True
+#+END_SRC
+  
+By using the =Timer= class from the =threading= module, we daisy-chain
+the painting of next graphs.  Since =_queue_next_graph= is a
+relatively expensive step, we queue the next step to start before we
+calculate the next graph.
+#+BEGIN_SRC python
+  def start(self):
+      if not self.should_stop:
+          self.paint(self.next_graph, do_layout=False)
+          threading.Timer(self.interval, self.start, [self]).start()
+          self._queue_next_graph()
+#+END_SRC
+Queueing the next frame before calculating it /does/ introduce a race
+condition!  It is possible that the animator could skip a frame---or
+worse, show a partially updated graph---if
+- the interpreter is extraordinarily slow,
+- there are many properties to each node in the graph, or
+- the update interval is extremely short.
+This arises because =next_graph= is altered in-place in
+=_queue_next_graph= /during/ the countdown for the next frame.  If
+this countdown finishes before =next_graph= is ready it will /still be
+painted/, it just may be incorrect.
+
+It would seem that this risk is inherent in multi-threading this
+solution and the risk could be avoided by single-threading.  However,
+this has other consequences that are unacceptable.  The naïve
+single-threaded approach would look similar to the following:
+#+BEGIN_SRC python :tangle nil :noweb-ref nil
+  while not self.should_stop:
+      self.paint(do_layout=False)
+      self._queue_next_graph()
+#+END_SRC
