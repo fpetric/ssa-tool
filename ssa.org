@@ -47,7 +47,23 @@ The current build status is:
 
 * Contributing
 If you have any questions, suggestions, or feature requests, please
-don't hesitate to open up an issue (or better yet, send a PR).
+don't hesitate to open up an issue (or better yet, send a PR).  It
+doesn't have to be in a literate program, but should be amply
+commented.  It will be converted into a literate program before it is
+merged.
+
+* About the Repository
+Branch description are kept in
+#+BEGIN_SRC sh
+  git config branch.master.description
+  git config branch.testing.description
+  git config branch.literate.description
+#+END_SRC
+- =master= :: The branch used for formal testing and distribution.
+              All code is pre-tangled and, ideally, ready for use.
+- =literate= :: The branch used for development.  All code is tracked
+                and documented as a literate program.  This is the
+                default branch.
 
 * File Operations
 In previous iterations of this project, file operations were ignored
