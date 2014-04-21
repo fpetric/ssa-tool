@@ -612,3 +612,6 @@ single-threaded approach would look similar to the following:
       self.paint(do_layout=False)
       self._queue_next_graph()
 #+END_SRC
+In this approach, there is no chance for =should_stop= to change and
+the animation would continue /ad infinitum/ with no hope of a graceful
+exit.
