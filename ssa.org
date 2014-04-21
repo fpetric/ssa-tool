@@ -39,7 +39,7 @@ is crucial to understanding how they are set up.
 ** Algorithms
 * NetworkX =Graph= Extensions
 - =neighbor_data=
-- =AnimatedGraph=
+- =AnimatedGraph= acts like a generator
 * Visualization
 ** Grapher
 *** Introduction and Usage
