@@ -1,4 +1,4 @@
 language: python
 python: "3.3"
 install: pip install .
-script: nosetests
+script: echo "test"
