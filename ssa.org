@@ -40,7 +40,7 @@ graphs to use as test cases.
 Through all of this, tests will be provided in-line with the relevant
 functionality.  While all production code is kept in only a few files,
 test suites will be distributed amond several files prefixed by
-=test_=.  We will be using =[[https://nose.readthedocs.org/en/latest/][nose]]= to automate the testing.
+=test_=.  We will be using [[https://nose.readthedocs.org/en/latest/][Nose]] to automate the testing.
 
 The current build status is:
 [[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
