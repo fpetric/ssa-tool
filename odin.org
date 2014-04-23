@@ -1,0 +1,573 @@
+# -*- mode: org ; encoding: utf-8 -*-
+#+Title: SSA-Tool
+
+#+STARTUP: indent
+#+PROPERTY: noweb tangle
+
+#+TODO: TODO | DONE POSTPONED IDEA
+
+* Introduction
+:PROPERTIES:
+:ID:       1A23DFC9-015C-4ADE-B684-18067EF90281
+:END:
+#+BEGIN_SRC python :tangle "odin.py"
+  <<graphs>>
+  <<core>>
+  <<fio>>
+  <<cli>>
+  <<gui>>
+  # Local Variables:
+  # python-shell-interpreter: "python3"
+  # truncate-lines: t
+  # End:
+#+END_SRC
+** Noweb Prefixes
+- =graphs= :: Graph Generation and Manipulation
+- =core= :: Core Engine: Self-Stabilizing Algorithms
+- =fio= :: File Input and Output
+- =cli= :: Command Line Interface
+- =gui= :: Graphical User Interface
+
+* File Input and Output
+:PROPERTIES:
+:noweb-ref: fio
+:END:
+
+#+BEGIN_SRC python
+  pass # io
+#+END_SRC
+
+** YAML
+
+** Bundles
+* Self-Stabilizing Algorithms [0/3]
+:PROPERTIES:
+:noweb-ref: core
+:END:
+#+BEGIN_SRC python
+  <<core/pm>>
+#+END_SRC
+** TODO Predicates and Moves
+:PROPERTIES:
+:noweb-ref: core/pm
+:END:
+#+BEGIN_SRC python
+  class Predicate(SelectiveYAML):
+      yaml_tag = u'!Predicate'
+      ssa_folder = 'predicates'
+      <<core/pm/common>>
+
+  class Move(SelectiveYAML):
+      yaml_tag = u'!Move'
+      ssa_folder = 'moves'
+      <<core/pm/common>>
+#+END_SRC
+#+BEGIN_SRC python :noweb-ref core/pm/common
+  yaml_flow_style = False
+  hidden_fields=['definition', '_run_func']
+
+  def __init__(self, name, filename, description=None, author=None, date=None, tex=None):
+      self.filename    = filename
+      self.name        = name
+      self.description = description
+      self.author      = author
+      self.date        = date
+      self.tex         = tex
+
+  def __repr__(self):
+      return "{!s} '{!s}'".format(self.__class__.__name__.lower(), self.name)
+
+  def __call__(self, vertex, neighborhood):
+      assert hasattr(self, '_run_func') and self._run_func
+      return self._run_func(vertex, neighborhood)
+#+END_SRC
+** TODO Rules
+
+** TODO Algorithms
+
+* Graph Generation and Manipulation [3/3]
+:PROPERTIES:
+:noweb-ref: graphs
+:END:
+
+#+BEGIN_SRC python
+  <<graphs/ani>>
+  <<graphs/gen>>
+  <<graphs/util>>
+#+END_SRC
+
+** DONE Animated Graphs [3/3]
+:PROPERTIES:
+:ID:       A037B209-3ECF-4752-AB0F-A52EB203AF42
+:noweb-ref: graphs/ani
+:END:
+Set up similarly to GIF animations; only change what you need to change.
+#+BEGIN_SRC python
+  import networkx as nx
+  import copy
+  class AnimatedGraph:
+      class Delta:
+          <<graphs/ani/delta>>
+      def __init__(self, graph, *deltas):
+          self.base_graph = copy.deepcopy(graph)
+          self.deltas = list(deltas)
+      <<graphs/ani/implementation>>
+#+END_SRC
+
+*** DONE Implementation
+:PROPERTIES:
+:noweb-ref: graphs/ani/implementation
+:ID:       8B53B97B-8F0C-48AC-A46C-10BC2A21DE53
+:END:
+#+BEGIN_SRC python
+  def __iter__(self):
+      graph = self.base()
+      yield graph
+      for delta in self.deltas:
+          delta.apply_to(graph)
+          yield graph
+  def __getitem__(self, idx):
+      current = 0
+      track = iter(self)
+      G = next(track)
+      while current != idx:
+          G = next(track)
+          current += 1
+      return G if G else self.base()
+#+END_SRC
+#+BEGIN_SRC python
+  def __len__(self):
+      return len(self.deltas)
+  def base(self):
+      return copy.deepcopy(self.base_graph)
+#+END_SRC
+
+**** TODO Find a better name for =base_graph=
+
+*** DONE Deltas
+:PROPERTIES:
+:noweb-ref: graphs/ani/delta
+:ID:       EE514D38-DF43-4BF5-BF4F-0882D8215461
+:END:
+#+BEGIN_SRC python
+  def __init__(self, changes):
+      self.changes = changes
+      """
+      changes =>
+      { 1: {'marked': True},
+        3: {'marked': False} }
+      """
+  def apply_to(self, graph):
+      assert all(lambda n: n in graph,
+                 self.changes.keys())
+      for node, properties in self.changes.items():
+          for key, value in properties.items():
+              graph.node[node][key] = value
+#+END_SRC
+*** POSTPONED Export
+** DONE Generators [4/4]
+:PROPERTIES:
+:noweb-ref: graphs/gen
+:ID:       7912B946-580B-4B70-9B2B-ACF8012FBDFC
+:END:
+#+BEGIN_SRC python
+  import random
+  import itertools
+  import types
+  class Generators:
+      @staticmethod
+      def random_graph(degree, edge_probability=0.5, factory=None, **properties):
+          <<graphs/gen/random>>
+      @staticmethod
+      def sparse_graph(degree, extra_paths=None, factory=None, **properties):
+          <<graphs/gen/sparse>>
+      @staticmethod
+      def broad_tree(degree, factory=None, breadth_factor=.5, **properties):
+          <<graphs/gen/broad>>
+      @staticmethod
+      def deep_tree(degree, factory=None, **properties):
+          <<graphs/gen/deep>>
+#+END_SRC
+
+*** DONE Random Graphs
+:PROPERTIES:
+:noweb-ref: graphs/gen/random
+:ID:       C315D9D2-BE1C-447A-8961-4080AFD9B648
+:END:
+To thoroughly test graph algorithms (in lieu of or in preparation for
+proof), it is very useful to have a means to create randomized graphs
+with certain characteristics.  NetworkX has a few generators at its
+disposal for creating graphs with deeper properties than I have
+knowledge of, but the following function is able to create a random
+graph with nodes having randomized properties.
+#+BEGIN_SRC python
+  """Generates a random graph of `degree` nodes, a specified
+  probability for edges, and a number of random properties.
+
+  <<graphs/gen/random/documentation>>
+  """
+  <<graphs/gen/random/ensure types>>
+  <<graphs/gen/random/check if degree is range>>
+  <<graphs/gen/random/check for dynamically-created generators>>
+  for n in range(degree):
+      <<graphs/gen/random/add node>>
+  <<graphs/gen/random/add edges>>
+  return G
+#+END_SRC
+**** Documentation
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/documentation
+:ID:       EA6DC1E5-538A-4371-A254-444B7145A4F4
+:END:
+#+BEGIN_SRC markdown
+  <<graphs/gen/random/summary>>
+  <<graphs/gen/random/basic usage>>
+  <<graphs/gen/random/errors>>
+#+END_SRC
+***** Summary
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/summary
+:ID:       8B74D6F0-01A1-4F02-A72F-BCF638CAFA3A
+:END:
+#+BEGIN_SRC markdown
+  If `degree` is a tuple, it is assumed to be a (min, max) tuple
+  defining an inclusive range of possible degrees.
+    
+  Each `properties` value can be a function of a random number
+  generator.  If the value does not have `__call__` defined, it will be
+  assumed a string unless, as a string, it is one of the following:
+    
+  - 'int(n,m)' :: a random integer in [n, m]
+  - 'float()'  :: a random floating point number in [0, 1)
+  - 'bool(n)'  :: a random boolean with a probability of truth between 0
+                  and 1 inclusive (where 1 is True).
+    
+  If the property value is neither callable nor a string of this form,
+  then the value is simply set raw.
+#+END_SRC
+***** Basic Usage
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/doctest basic usage
+:ID:       B7DEB09C-A4BA-41E8-B0C3-FBE857CD3768
+:END:
+#+BEGIN_SRC markdown
+  Pass in a single argument, the degree of the graph, to get the
+  bare-minimum graph (with a certain edge probability):
+    
+      >>> G = random_graph(50)
+      >>> len(G.nodes())
+      50
+  
+  Pass in a tuple to get a range of values:
+    
+      >>> G = random_graph((40, 60))
+      >>> len(G.nodes()) in range(40, 60 + 1)
+      True
+    
+  You can also use a few intelligent arguments, such as bool(n):
+  
+      >>> G = random_graph(10, marked='bool(1)')
+      >>> all(map(lambda n: G.node[n]['marked'], G.node))
+      True
+      >>> G = random_graph(10, marked='bool(0)')
+      >>> any(map(lambda n: G.node[n]['marked'], G.node))
+      False
+    
+  float():
+  
+      >>> G = random_graph(1000, weight='float()')
+      >>> .45 < sum(map(lambda n: G.node[n]['weight'], G.node)) / 1000 < .55
+      True
+    
+  and int(min, max):
+    
+      >>> G = random_graph(10, age='int(40, 50)')
+      >>> all(map(lambda n: G.node[n]['age'] in range(40, 50 + 1), G.node))
+      True
+  
+  For any attribute, you can specify a function or a generator.  You can
+  even supply a function that *returns* a generator.  All functions must
+  take exactly one required argument, a random number generator, as its
+  first parameter.
+  
+  (ref:smp - optionify random thingy)
+  
+  Consider the following:
+  
+      >>> graph = random_graph(5, weight=(i for i in range(5)))
+      >>> sorted([graph.node[n]['weight'] for n in graph.nodes()])
+      [0, 1, 2, 3, 4]
+  
+                                                                           (ref:)
+#+END_SRC
+
+***** Possible Errors
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/doctest errors
+:ID:       7BABC0FD-E60F-482F-881F-1D666178A53F
+:END:
+#+BEGIN_SRC markdown
+  Be careful about the arguments you pass.  If you want a range of
+  possible values for the degree, ensure you pass an iterable of exactly
+  two elements.
+    
+      >>> random_graph((1,2,3))
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Wrong number of values for (min, max) degree
+    
+  Mind the arguments for the keywords 'bool', 'int', and 'float'.
+    
+      >>> random_graph(5, marked='int(3,4,5)')
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      ValueError: Wrong number of arguments for int.
+  
+  If you are using generators, keep in mind that *each* node must be
+  given a value.  If the generator produces less values than you give
+  the graph nodes, an exception will be raised:
+  
+      >>> n = 5
+      >>> g = random_graph(n + 1, weight=(i for i in range(n)))
+      Traceback (most recent call last):
+        File "<stdin>", line 1, in ?
+      Exception: Ran out of iterations for the generator given by 'weight'
+#+END_SRC
+**** Code
+***** Type Checking
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/ensure types
+:ID:       1D75116D-4891-4DCB-86E0-AC45591AD245
+:END:
+#+BEGIN_SRC python
+  r = random.Random()
+  G = nx.Graph()
+  if factory is None:
+      def naturals():
+          i = 0
+          while True:
+              yield i
+              i += 1
+      factory = naturals()
+  assert hasattr(factory, '__next__')
+#+END_SRC
+***** Check Degree
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/check if degree is range
+:ID:       7FECCB59-E127-4732-9040-4E3751124122
+:END:
+#+BEGIN_SRC python
+  if hasattr(degree, '__getitem__'):
+      if len(degree) is not 2:
+          raise ValueError('Wrong number of values for (min, max) degree')
+      degree = r.randint(*degree)
+#+END_SRC
+***** Check for Dynamic Generators
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/check for dynamically-created generators
+:ID:       7BC11AE8-2368-406A-8328-ED4899AB62F4
+:END:
+In playing with the tool for a while, I've come to see a few use cases
+for the ability to create 'on the fly' generators with lambda
+expressions.  The code currently checks for functions by checking if
+they define =__call__=, and this is good behavior.  However, it is
+possible that such a function could return a generator object, so we
+need to run through each property /first/ to check if calling any
+existing functions yields a generator (no pun intended).
+#+BEGIN_SRC python
+  for key in properties:                  
+      if hasattr(properties[key], '__call__'):
+          check_value = properties[key](r)
+          if isinstance(check_value, types.GeneratorType):
+              properties[key] = check_value
+#+END_SRC
+***** Adding Nodes
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/add node
+:ID:       55DB7E3C-1E8B-46CE-A152-7E2A6F3169DD
+:END:
+#+BEGIN_SRC python
+  new_node = next(factory)
+  G.add_node(new_node)
+  for key in properties:
+      property_key = str(key)
+      property_value = properties[key]
+      <<graphs/gen/random/check for property overwrite>>
+      <<graphs/gen/random/parse and set property value>>
+#+END_SRC
+****** Property Overwrite
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/check for property overwrite
+:ID:       3EAF3EE2-1960-455C-99B6-E7565E117359
+:END:
+#+BEGIN_SRC python
+  # Avoid overwriting properties.  This could happen if the
+  # user passes in something that is a dictionary rather
+  # than a traditional KV list.  We'll accept anything that
+  # has __str__, but __str__ is not meant to be unique.
+  if hasattr(new_node, property_key): 
+      raise Exception('Did not overwrite duplicate property')
+#+END_SRC
+****** Property Set
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/parse and set property value
+:ID:       D47028B9-01B3-42A6-AE7D-D6A4A7EB6C21
+:END:
+The new value can be a couple things.  If it is a callable function
+(implements =__call__=), we assume it is some function that expects a
+=random.Random= object as its single required parameter.  If it is a
+generator (implements =next=), we retrieve the next value.  Otherwise,
+we parse =property_value= as a string
+#+BEGIN_SRC python
+  new_value = None
+  if hasattr(property_value, '__call__'):
+      new_value = property_value(r)
+  elif isinstance(property_value, types.GeneratorType):
+      try:
+          new_value = next(property_value)
+      except StopIteration:
+          raise Exception('Ran out of iterations for the generator given by {!r}'\
+                              .format(property_key))
+  elif '(' in property_value and ')' in property_value: # val is a func
+      func = property_value[:property_value.index('(')]
+      args = eval(property_value[property_value.index('('):])
+      ex = lambda t: ValueError('Wrong number of arguments for {}.'.format(t))
+      if func == 'float':
+          if len(args) is not 0: raise ex('float')
+          new_value = r.random()
+      elif func == 'int':
+          if len(args) is not 2: raise ex('int')
+          new_value = r.randint(*args)
+      elif func == 'bool':
+          new_value = r.random() <= float(args)
+  else:
+      new_value = property_value
+  G.node[new_node][property_key] = new_value
+#+END_SRC
+******* TODO Enhance security
+We have the line =args=eval(property_value[...])=.  This should be
+fine given the audience, but it is terribly unsafe.  Find a better way.
+
+Perhaps we can represent arguments as tuples, LISP-style?
+#+BEGIN_EXAMPLE
+  random_graph(15,
+    marked = ('bool', .3)
+    weight = ('float',)
+    ranged = ('float', 5, 7)
+    more_r = ('range', 1, 10))
+#+END_EXAMPLE
+with =range= taking place of =int(...)=.
+***** Adding Edges
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/add edges
+:ID:       36B4C2F6-1310-44CB-8936-1D282A666619
+:END:
+#+BEGIN_SRC python
+  for src, dst in itertools.combinations(G.nodes(), 2):
+      if r.random() <= edge_probability:
+          G.add_edge(src, dst)
+#+END_SRC
+****** TODO perhaps
+add switch to check for __call__(node_a, node_b) to determine
+probability
+
+*** DONE Sparse Graphs
+:PROPERTIES:
+:noweb-ref: graphs/gen/sparse
+:END:
+#+BEGIN_SRC python
+  G = Generators.deep_tree(degree=degree, factory=factory, **properties)
+  if extra_paths is None:
+      extra_paths = int(degree * 1.5)
+  for i in range(extra_paths):
+      to_connect = random.sample(G.nodes(), 2)
+      G.add_edge(*to_connect)
+  return G
+#+END_SRC
+*** DONE Deep Trees
+:PROPERTIES:
+:noweb-ref: graphs/gen/deep
+:END:
+#+BEGIN_SRC python
+  G = Generators.random_graph(degree=degree, edge_probability=0, factory=factory, **properties)
+  while not nx.is_connected(G):
+      to_connect = random.sample(nx.connected_components(G), 2)
+      u = random.choice(to_connect[0])
+      v = random.choice(to_connect[1])
+      G.add_edge(u, v)
+  return G
+#+END_SRC
+
+*** POSTPONED Broad Trees
+:PROPERTIES:
+:ID:       F582A16B-6C32-4C18-AC54-A71E4EDA1B0E
+:noweb-ref: graphs/gen/broad
+:END:
+#+BEGIN_SRC python
+  G = random_graph(degree=degree, edge_probability=0, factory=factory, **properties)
+  while not nx.is_connected(G):
+      nodes = G.nodes()
+      root = random.choice(nodes)
+      nodes.remove(root)
+      children = list()
+      while nodes:
+          n = nodes.pop()
+          if random.random() > breadth_factor:
+              children.push(n)
+      to_connect = random.sample(nx.connected_components(G), 2)
+      u = random.choice(to_connect[0])
+      v = random.choice(to_connect[1])
+      G.add_edge(u, v)
+  return G
+#+END_SRC
+
+** DONE Utility Functions [1/1]
+:PROPERTIES:
+:noweb-ref: graphs/util
+:END:
+*** DONE Getting Data from Neighbors
+This function returns a mapping from vertices to their data for every
+vertex =v= in the neighborhood of =node=.
+#+BEGIN_SRC python
+  def neighbor_data(graph, node):
+      return {v: graph.node[v]
+              for v in graph.neighbors(node)}
+#+END_SRC
+
+* Command Line Interface
+:PROPERTIES:
+:noweb-ref: cli
+:END:
+
+#+BEGIN_SRC python
+  pass # cli
+#+END_SRC
+
+** Bundling
+
+** Testing
+
+* Graphical User Interface
+:PROPERTIES:
+:noweb-ref: gui
+:END:
+
+#+BEGIN_SRC python
+  pass # gui
+#+END_SRC
+
+** Predicate / Move Creation
+
+** Rule Creation
+
+** Algorithm Assembly
+
+** Testing
+
+*** Graph Visualization
+
+**** Basic Grapher
+
+**** Draggable Grapher
+
+**** Animated Grapher
