@@ -21,10 +21,18 @@
   # truncate-lines: t
   # End:
 #+END_SRC
-** Noweb Prefixes
+** TODO Noweb Prefixes
 - =graphs= :: Graph Generation and Manipulation
 - =core= :: Core Engine: Self-Stabilizing Algorithms
+  - =pm= :: Predicates and Moves
+    - =common= :: common logic
+  - =rule= :: Rules
+  - =algorithm= :: Algorithm
 - =fio= :: File Input and Output
+  - =selective yaml= :: a YAML object that can hide members from being
+       dumped by PyYAML
+  - =bundle= :: a container for SSA components and a loader/dumper for
+                bundles on-disk
 - =cli= :: Command Line Interface
 - =gui= :: Graphical User Interface
 
@@ -791,7 +799,17 @@ vertex =v= in the neighborhood of =node=.
 :END:
 
 #+BEGIN_SRC python
-  <<gui/test>>
+  def gui():
+      import ttk
+      root = tk.Tk()
+      root.title('SSA Graphical Aggregator and Tester')
+
+      <<gui/test/vis>>
+      <<gui/util>>
+      <<gui/pm>>
+      <<gui/assemble tabs>>
+
+      root.mainloop()
 #+END_SRC
 
 ** Organization
@@ -830,6 +848,9 @@ There are five tabs:
      with a maximum iteration count.  Algorithm is run and then an
      =AnimatedGraph= is loaded into a =AnimatedGrapher= widget below.
 ******** Graphical User Interface
+:PROPERTIES:
+:noweb-ref: null
+:END:
 ********* =gui.py=
 #+BEGIN_SRC python
   print ('Building interface...')
@@ -897,113 +918,6 @@ There are five tabs:
   bundle = core.Bundle()
 
   import time
-
-  class Test:
-      count = 0
-      def __init__(self):
-          self.name = 'test class with str'
-          self.n = Test.count
-          Test.count += 1
-      def __str__(self):
-          return '({!s}) {}'.format(self.n, time.asctime())
-
-  def bind(widget_dictionary, name, event, func):
-      widget_dictionary[name][1].bind(event, func)
-
-  def get(widget_dictionary, name):
-      return widget_dictionary[name][1]
-
-  # by giving the widget dictionary and the name separately, we can
-  # defer the evaulation of the listbox control until such a time as it
-  # is actually created.
-  def add_new(widget_dictionary, name, cls=Test, pre=None, post=None):
-      """Adds a new item"""
-      def f(entity = None):
-          if pre: pre()
-          widget_dictionary[name][1].insert(END, '<name>')
-          if post: post()
-      return f
-  def del_sel(widget_dictionary, name, pre=None, post=None):
-      """Deletes the selected item"""
-      def f():
-          if pre: pre()
-          widget_dictionary[name][1].delete(ACTIVE)
-          if post: post()
-      return f
-  def new(cls, widget_dictionary, name, **kwargs):
-      #print('Creating widget {0:<14} under {1}'.format(cls.__name__, name))
-      return cls(widget_dictionary[name][1], **kwargs)
-
-  class SourceText(Text):
-      '''http://stackoverflow.com/a/3781773/1443496'''
-      def __init__(self, *args, **kwargs):
-          Text.__init__(self, wrap='none', undo=True, *args, **kwargs)
-          self.tag_configure('graph value', foreground='#880000')
-          self.tag_configure('constant value', foreground='#00aa00')
-          self.tag_configure('control keyword', foreground='#0000dd')
-          self.tag_configure('function name', foreground='#008888')
-
-          def do_ins(c):          # insert four spaces on tab
-              self.insert(INSERT, '    ')
-              return 'break'
-          self.bind('<Tab>', do_ins)
-
-      def do_hl(self):
-          print('highlighting')
-          self.highlight_pattern('\[.*\]', 'graph value', regexp=True)
-
-          for kw in ['return',
-                     'and', 'or', 'not',
-                     'if', 'else', 'elif', 'def',
-                     'while', 'for', 'continue', 'break',
-                     'lambda']:
-              self.highlight_pattern(' ' + kw + ' ', 'control keyword')
-
-          for vw in ['True', 'False', 'N', 'v']:
-              self.highlight_pattern(vw, 'constant value')
-
-          for fname in ['any', 'all', 'map', 'reduce', 'filter']:
-              self.highlight_pattern(fname, 'function name')
-
-      def highlight_pattern(self, pattern, tag, start="1.0", end="end", regexp=False):
-          '''Apply the given tag to all text that matches the given pattern
-
-          If 'regexp' is set to True, pattern will be treated as a regular expression
-          '''
-
-          start = self.index(start)
-          end = self.index(end)
-          self.mark_set("matchStart",start)
-          self.mark_set("matchEnd",start)
-          self.mark_set("searchLimit", end)
-
-          count = IntVar()
-          while True:
-              index = self.search(pattern, "matchEnd","searchLimit",
-                                  count=count, regexp=regexp)
-              if index == "": break
-              self.mark_set("matchStart", index)
-              self.mark_set("matchEnd", "%s+%sc" % (index,count.get()))
-              self.tag_add(tag, "matchStart","matchEnd")
-
-
-  def name_updater(widget_dictionary, variable_dictionary, listbox, variable, data):
-      def update_name_according_to_variable():
-          new_name = variable_dictionary[variable].get()
-          if new_name != variable_dictionary[data].name:
-              variable_dictionary[data].name = new_name
-              w = get(widget_dictionary, listbox)
-              i = w.curselection()
-              w.delete(i)
-              w.insert(i, new_name)
-              w.activate(i)
-              w.selection_set(i)
-      return update_name_according_to_variable
-
-
-  # Local Variables:
-  # truncate-lines: t
-  # End:
 #+END_SRC
 ********* =gui/fm.py=
 #+BEGIN_SRC python
@@ -1578,14 +1492,334 @@ There are five tabs:
   # End:
 #+END_SRC
 
-** Utility
+** Utilities [3/3]
+:PROPERTIES:
+:noweb-ref: gui/util
+:END:
+#+BEGIN_SRC 
+  <<gui/util/widget accessors>>
+  <<gui/util/syntax highlighter>>
+#+END_SRC
+*** DONE Widget Creators, Accessors, and Binders
+:PROPERTIES:
+:noweb-ref: gui/util/widget accessors
+:END:
+#+BEGIN_SRC python
+  def new(cls, widget_dictionary, name, **kwargs):
+      return cls(widget_dictionary[name][1], **kwargs)
+#+END_SRC
+#+BEGIN_SRC python
+  def get(widget_dictionary, name):
+      return widget_dictionary[name][1]
+#+END_SRC
+#+BEGIN_SRC python
+  def bind(widget_dictionary, name, event, func):
+      widget_dictionary[name][1].bind(event, func)
+#+END_SRC
+*** DONE Syntax Highlighting
+:PROPERTIES:
+:noweb-ref: gui/util/syntax highlighting
+:END:
+#+BEGIN_SRC python
+  class SourceText(Text):
+      '''http://stackoverflow.com/a/3781773/1443496'''
+      def __init__(self, *args, **kwargs):
+          Text.__init__(self, wrap='none', undo=True, *args, **kwargs)
+          self.tag_configure('graph value', foreground='#880000')
+          self.tag_configure('constant value', foreground='#00aa00')
+          self.tag_configure('control keyword', foreground='#0000dd')
+          self.tag_configure('function name', foreground='#008888')
 
-*** Widget Accessors
+          def do_ins(c):          # insert four spaces on tab
+              self.insert(INSERT, '    ')
+              return 'break'
+          self.bind('<Tab>', do_ins)
 
-*** Syntax Highlighting
+      def do_hl(self):
+          print('highlighting')
+          self.highlight_pattern('\[.*\]', 'graph value', regexp=True)
+
+          for kw in ['return',
+                     'and', 'or', 'not',
+                     'if', 'else', 'elif', 'def',
+                     'while', 'for', 'continue', 'break',
+                     'lambda']:
+              self.highlight_pattern(' ' + kw + ' ', 'control keyword')
+
+          for vw in ['True', 'False', 'N', 'v']:
+              self.highlight_pattern(vw, 'constant value')
+
+          for fname in ['any', 'all', 'map', 'reduce', 'filter']:
+              self.highlight_pattern(fname, 'function name')
+
+      def highlight_pattern(self, pattern, tag, start="1.0", end="end", regexp=False):
+          '''Apply the given tag to all text that matches the given pattern
+
+          If 'regexp' is set to True, pattern will be treated as a regular expression
+          '''
+
+          start = self.index(start)
+          end = self.index(end)
+          self.mark_set("matchStart",start)
+          self.mark_set("matchEnd",start)
+          self.mark_set("searchLimit", end)
+
+          count = IntVar()
+          while True:
+              index = self.search(pattern, "matchEnd","searchLimit",
+                                  count=count, regexp=regexp)
+              if index == "": break
+              self.mark_set("matchStart", index)
+              self.mark_set("matchEnd", "%s+%sc" % (index,count.get()))
+              self.tag_add(tag, "matchStart","matchEnd")
+#+END_SRC
+*** DONE Common Widget Functionality
+
+**** Adding
+By giving the widget dictionary and the name separately, we can defer
+the evaulation of the listbox control until such a time as it is
+actually created.
+#+BEGIN_SRC python
+  def add_new(widget_dictionary, name, pre=None, post=None):
+      """Adds a new item"""
+      def f(entity = None):
+          if pre: pre()
+          widget_dictionary[name][1].insert(END, '<name>')
+          if post: post()
+      return f
+#+END_SRC
+
+***** TODO bugfix
+make something more unique than =<name>= to get rid of that bug
+**** Deleting
+#+BEGIN_SRC python
+  def del_sel(widget_dictionary, name, pre=None, post=None):
+      """Deletes the selected item"""
+      def f():
+          if pre: pre()
+          widget_dictionary[name][1].delete(ACTIVE)
+          if post: post()
+      return f
+#+END_SRC
+
+**** Name Updating
+#+BEGIN_SRC python
+  def name_updater(widget_dictionary, variable_dictionary, listbox, variable, data):
+      def update_name_according_to_variable():
+          new_name = variable_dictionary[variable].get()
+          if new_name != variable_dictionary[data].name:
+              variable_dictionary[data].name = new_name
+              w = get(widget_dictionary, listbox)
+              i = w.curselection()
+              w.delete(i)
+              w.insert(i, new_name)
+              w.activate(i)
+              w.selection_set(i)
+      return update_name_according_to_variable
+#+END_SRC
 
 ** Predicate / Move Creation
+:PROPERTIES:
+:noweb-ref: gui/pm
+:END:
+The predicate and move tabs are extremely similar.
+#+BEGIN_SRC python
+cls, w, v, f = Predicate, pdw, pdv, pdf
+<<gui/pm/define>>
+cls, w, v, f = Move,      mvw, mvv, mvf
+<<gui/pm/define>>
+#+END_SRC
 
+#+BEGIN_SRC python :noweb-ref "gui/pm/define"
+  <<gui/pm/define/variables>>
+  <<gui/pm/define/functions>>
+  <<gui/pm/define/widgets>>
+  <<gui/pm/define/bindings>>
+#+END_SRC
+
+*** Define Variables
+:PROPERTIES:
+:noweb-ref: gui/pm/define/variables
+:END:
+#+BEGIN_SRC python
+  v['current'] = None
+  v['name']        = StringVar(root)
+  v['file']        = StringVar(root)
+  v['author']      = StringVar(root)
+  v['date']        = StringVar(root)
+  v['description'] = StringVar(root)
+  v['tex']         = StringVar(root)
+#+END_SRC
+
+**** Traces
+#+BEGIN_SRC python
+  v['name'].trace('w', lambda n, i, m: f['update name']())
+  v['file'].trace('w', lambda n, i, m: f['sanitize file']())
+#+END_SRC
+
+*** Functions
+:PROPERTIES:
+:noweb-ref: gui/pm/define/functions
+:END:
+#+BEGIN_SRC python
+  def scr2bdl():
+      <<gui/pm/define/screen to logic>>
+  f['screen to bundle'] = scr2bdl
+#+END_SRC
+#+BEGIN_SRC python
+  def bdl2scr():
+      <<gui/pm/define/logic to screen>>
+  f['bundle to screen'] = bdl2scr
+#+END_SRC
+#+BEGIN_SRC python
+  def clrscr():
+      <<gui/pm/define/clearing the screen>>
+  f['clear screen'] = clrscr
+#+END_SRC
+#+BEGIN_SRC python
+  def update_name():
+      <<gui/pm/define/real-time name updating>>
+  f['update name'] = update_name
+#+END_SRC
+#+BEGIN_SRC python
+  def sanitize_file():
+      <<gui/pm/define/file name sanitization>>
+  f['sanitize file'] = sanitize_file
+#+END_SRC
+#+BEGIN_SRC python
+  def sel_new(event):
+      <<gui/pm/define/on selection>>
+  f['on select new'] = sel_new
+#+END_SRC
+#+BEGIN_SRC python
+  f['add']              = add_new(w, 'list', cls)
+  f['remove']           = del_sel(w, 'list')
+#+END_SRC
+
+**** Screen To Logic
+:PROPERTIES:
+:noweb-ref: gui/pm/define/screen to logic
+:END:
+#+BEGIN_SRC python
+  if not v['current']:
+      return
+  from datetime import datetime
+  v['current'].name        = v['name'].get()
+  v['current'].author      = v['author'].get()
+  v['current'].date        = datetime.strptime(v['date'].get(), '%Y-%m-%d')
+  v['current'].filename    = v['file'].get()
+  v['current'].description = v['description'].get()
+  v['current'].tex         = v['tex'].get()
+  v['current'].definition  = [l+'\n' for l in w['definition'][1].get(1.0, END).split('\n')[:-2]]
+#+END_SRC
+**** Name Updating
+:PROPERTIES:
+:noweb-ref: gui/pm/define/real-time name updating
+:END:
+#+BEGIN_SRC python
+  new_name = v['name'].get()
+  if new_name != v['current'].name:
+      # BUG: crashes if a word is deleted (as opposed to a single character)
+      v['current'].name = new_name
+      w = w['list'][1]
+      idx = w.curselection()
+      w.delete(idx)
+      w.insert(idx, new_name)
+      w.activate(idx)
+      w.selection_set(idx)
+#+END_SRC
+**** File Sanitization
+:PROPERTIES:
+:noweb-ref: gui/pm/define/file name sanitization
+:END:
+#+BEGIN_SRC python
+  old = v['file'].get()
+  new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
+  v['file'].set(new)
+#+END_SRC
+**** Logic To Screen
+:PROPERTIES:
+:noweb-ref: gui/pm/define/logic to screen
+:END:
+#+BEGIN_SRC python
+  v['name'        ].set(v['current'].name)
+  v['author'      ].set(v['current'].author)
+  v['file'        ].set(v['current'].filename)
+  v['description' ].set(v['current'].description)
+  v['tex'         ].set(v['current'].tex)
+  if hasattr(v['current'].date, 'date'):
+      v['date'        ].set(v['current'].date.date())
+  else:
+      v['date'        ].set(v['current'].date)
+  try:
+      w['definition'][1].delete(1.0, END)
+  except:
+      pass
+  w['definition'  ][1].insert(1.0, ''.join(v['current'].definition))
+  w['definition'  ][1].do_hl()
+#+END_SRC
+
+**** Clearing the Screen
+:PROPERTIES:
+:noweb-ref: gui/pm/define/clearing the screen
+:END:
+#+BEGIN_SRC python
+  v['name'        ].set('')
+  v['author'      ].set('')
+  v['date'        ].set('')
+  v['file'        ].set('')
+  v['description' ].set('')
+  v['tex'         ].set('')
+  try:
+      w['definition'  ][1].delete(1.0, END)
+  except:
+      pass
+#+END_SRC
+**** Selection
+:PROPERTIES:
+:noweb-ref: gui/pm/define/on selection
+:END:
+#+BEGIN_SRC python
+  f['screen to bundle']()
+  w = w['list'][1]
+  selected = w.get(w.curselection())
+  v['current'] = bundle.lookup(cls, selected)
+
+  if not v['current']:        # a new entity was made
+      v['current'] = cls()
+      for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
+          setattr(v['current'], attr, '<%s>' % attr)
+      v['current'].date = '2014-01-01'
+      bundle.entities.add(v['current'])
+
+  f['bundle to screen']()
+#+END_SRC
+
+*** Widgets
+:PROPERTIES:
+:noweb-ref: gui/pm/define/widgets
+:END:
+#+BEGIN_SRC python
+  w['tab']         = None ,        Frame(top)
+  w['list']        = (0   ,   0) , new(Listbox,    w, 'tab' , height = 18)
+  w['name']        = (180 ,   0) , new(Entry,      w, 'tab' , textvariable = v['name'])
+  w['author']      = (360 ,   0) , new(Entry,      w, 'tab' , textvariable = v['author'])
+  w['date']        = (180 ,  25) , new(Entry,      w, 'tab' , textvariable = v['date'])
+  w['file']        = (360 ,  50) , new(Entry,      w, 'tab' , textvariable = v['file'])
+  w['description'] = (180 ,  50) , new(Entry,      w, 'tab' , textvariable = v['description'])
+  w['tex']         = (360 ,  25) , new(Entry,      w, 'tab' , textvariable = v['tex'])
+  w['add']         = (0   , 310) , new(Button,     w, 'tab' , text = 'add'    , command = f['add'])
+  w['remove']      = (80  , 310) , new(Button,     w, 'tab' , text = 'remove' , command = f['remove'])
+  w['definition']  = (180 ,  80) , new(SourceText, w, 'tab' , width = 80, height = 16)
+#+END_SRC
+
+*** Bindings
+:PROPERTIES:
+:noweb-ref: gui/pm/define/bindings
+:END:
+#+BEGIN_SRC python :noweb no
+  bind(w, 'list', '<'+'<ListboxSelect>>', f['on select new'])
+#+END_SRC
 ** Rule Creation
 
 ** Algorithm Assembly
@@ -1595,7 +1829,7 @@ There are five tabs:
 :noweb-ref: gui/test
 :END:
 #+BEGIN_SRC python
-  <<gui/test/vis>>
+  pass # test gui
 #+END_SRC
 *** Graph Visualization
 :PROPERTIES:
@@ -2026,10 +2260,7 @@ This option is yet to be implemented.
   import tkinter as tk
   from odin import *
 
-  from ssa import Grapher
-
   def new_graph():
-      gen.reset_basic_node_counter()
       grapher.set_graph(Generators.sparse_graph(10, marked='bool(.5)'))
       grapher.paint()
 
