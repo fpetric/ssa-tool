@@ -799,12 +799,12 @@ vertex =v= in the neighborhood of =node=.
 :END:
 
 #+BEGIN_SRC python
+  <<gui/util/custom widgets>>
   def gui():
       import ttk
       root = tk.Tk()
       root.title('SSA Graphical Aggregator and Tester')
 
-      <<gui/test/vis>>
       <<gui/util>>
       <<gui/pm>>
       <<gui/assemble tabs>>
@@ -1492,7 +1492,7 @@ There are five tabs:
   # End:
 #+END_SRC
 
-** Utilities [3/3]
+** Utilities [4/4]
 :PROPERTIES:
 :noweb-ref: gui/util
 :END:
@@ -1617,232 +1617,18 @@ make something more unique than =<name>= to get rid of that bug
               w.selection_set(i)
       return update_name_according_to_variable
 #+END_SRC
-
-** Predicate / Move Creation
+*** DONE Graph Visualization
 :PROPERTIES:
-:noweb-ref: gui/pm
-:END:
-The predicate and move tabs are extremely similar.
-#+BEGIN_SRC python
-cls, w, v, f = Predicate, pdw, pdv, pdf
-<<gui/pm/define>>
-cls, w, v, f = Move,      mvw, mvv, mvf
-<<gui/pm/define>>
-#+END_SRC
-
-#+BEGIN_SRC python :noweb-ref "gui/pm/define"
-  <<gui/pm/define/variables>>
-  <<gui/pm/define/functions>>
-  <<gui/pm/define/widgets>>
-  <<gui/pm/define/bindings>>
-#+END_SRC
-
-*** Define Variables
-:PROPERTIES:
-:noweb-ref: gui/pm/define/variables
+:noweb-ref: gui/util/custom widgets
 :END:
 #+BEGIN_SRC python
-  v['current'] = None
-  v['name']        = StringVar(root)
-  v['file']        = StringVar(root)
-  v['author']      = StringVar(root)
-  v['date']        = StringVar(root)
-  v['description'] = StringVar(root)
-  v['tex']         = StringVar(root)
-#+END_SRC
-
-**** Traces
-#+BEGIN_SRC python
-  v['name'].trace('w', lambda n, i, m: f['update name']())
-  v['file'].trace('w', lambda n, i, m: f['sanitize file']())
-#+END_SRC
-
-*** Functions
-:PROPERTIES:
-:noweb-ref: gui/pm/define/functions
-:END:
-#+BEGIN_SRC python
-  def scr2bdl():
-      <<gui/pm/define/screen to logic>>
-  f['screen to bundle'] = scr2bdl
-#+END_SRC
-#+BEGIN_SRC python
-  def bdl2scr():
-      <<gui/pm/define/logic to screen>>
-  f['bundle to screen'] = bdl2scr
-#+END_SRC
-#+BEGIN_SRC python
-  def clrscr():
-      <<gui/pm/define/clearing the screen>>
-  f['clear screen'] = clrscr
-#+END_SRC
-#+BEGIN_SRC python
-  def update_name():
-      <<gui/pm/define/real-time name updating>>
-  f['update name'] = update_name
-#+END_SRC
-#+BEGIN_SRC python
-  def sanitize_file():
-      <<gui/pm/define/file name sanitization>>
-  f['sanitize file'] = sanitize_file
-#+END_SRC
-#+BEGIN_SRC python
-  def sel_new(event):
-      <<gui/pm/define/on selection>>
-  f['on select new'] = sel_new
-#+END_SRC
-#+BEGIN_SRC python
-  f['add']              = add_new(w, 'list', cls)
-  f['remove']           = del_sel(w, 'list')
-#+END_SRC
-
-**** Screen To Logic
-:PROPERTIES:
-:noweb-ref: gui/pm/define/screen to logic
-:END:
-#+BEGIN_SRC python
-  if not v['current']:
-      return
-  from datetime import datetime
-  v['current'].name        = v['name'].get()
-  v['current'].author      = v['author'].get()
-  v['current'].date        = datetime.strptime(v['date'].get(), '%Y-%m-%d')
-  v['current'].filename    = v['file'].get()
-  v['current'].description = v['description'].get()
-  v['current'].tex         = v['tex'].get()
-  v['current'].definition  = [l+'\n' for l in w['definition'][1].get(1.0, END).split('\n')[:-2]]
-#+END_SRC
-**** Name Updating
-:PROPERTIES:
-:noweb-ref: gui/pm/define/real-time name updating
-:END:
-#+BEGIN_SRC python
-  new_name = v['name'].get()
-  if new_name != v['current'].name:
-      # BUG: crashes if a word is deleted (as opposed to a single character)
-      v['current'].name = new_name
-      w = w['list'][1]
-      idx = w.curselection()
-      w.delete(idx)
-      w.insert(idx, new_name)
-      w.activate(idx)
-      w.selection_set(idx)
-#+END_SRC
-**** File Sanitization
-:PROPERTIES:
-:noweb-ref: gui/pm/define/file name sanitization
-:END:
-#+BEGIN_SRC python
-  old = v['file'].get()
-  new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
-  v['file'].set(new)
-#+END_SRC
-**** Logic To Screen
-:PROPERTIES:
-:noweb-ref: gui/pm/define/logic to screen
-:END:
-#+BEGIN_SRC python
-  v['name'        ].set(v['current'].name)
-  v['author'      ].set(v['current'].author)
-  v['file'        ].set(v['current'].filename)
-  v['description' ].set(v['current'].description)
-  v['tex'         ].set(v['current'].tex)
-  if hasattr(v['current'].date, 'date'):
-      v['date'        ].set(v['current'].date.date())
-  else:
-      v['date'        ].set(v['current'].date)
-  try:
-      w['definition'][1].delete(1.0, END)
-  except:
-      pass
-  w['definition'  ][1].insert(1.0, ''.join(v['current'].definition))
-  w['definition'  ][1].do_hl()
-#+END_SRC
-
-**** Clearing the Screen
-:PROPERTIES:
-:noweb-ref: gui/pm/define/clearing the screen
-:END:
-#+BEGIN_SRC python
-  v['name'        ].set('')
-  v['author'      ].set('')
-  v['date'        ].set('')
-  v['file'        ].set('')
-  v['description' ].set('')
-  v['tex'         ].set('')
-  try:
-      w['definition'  ][1].delete(1.0, END)
-  except:
-      pass
-#+END_SRC
-**** Selection
-:PROPERTIES:
-:noweb-ref: gui/pm/define/on selection
-:END:
-#+BEGIN_SRC python
-  f['screen to bundle']()
-  w = w['list'][1]
-  selected = w.get(w.curselection())
-  v['current'] = bundle.lookup(cls, selected)
-
-  if not v['current']:        # a new entity was made
-      v['current'] = cls()
-      for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
-          setattr(v['current'], attr, '<%s>' % attr)
-      v['current'].date = '2014-01-01'
-      bundle.entities.add(v['current'])
-
-  f['bundle to screen']()
-#+END_SRC
-
-*** Widgets
-:PROPERTIES:
-:noweb-ref: gui/pm/define/widgets
-:END:
-#+BEGIN_SRC python
-  w['tab']         = None ,        Frame(top)
-  w['list']        = (0   ,   0) , new(Listbox,    w, 'tab' , height = 18)
-  w['name']        = (180 ,   0) , new(Entry,      w, 'tab' , textvariable = v['name'])
-  w['author']      = (360 ,   0) , new(Entry,      w, 'tab' , textvariable = v['author'])
-  w['date']        = (180 ,  25) , new(Entry,      w, 'tab' , textvariable = v['date'])
-  w['file']        = (360 ,  50) , new(Entry,      w, 'tab' , textvariable = v['file'])
-  w['description'] = (180 ,  50) , new(Entry,      w, 'tab' , textvariable = v['description'])
-  w['tex']         = (360 ,  25) , new(Entry,      w, 'tab' , textvariable = v['tex'])
-  w['add']         = (0   , 310) , new(Button,     w, 'tab' , text = 'add'    , command = f['add'])
-  w['remove']      = (80  , 310) , new(Button,     w, 'tab' , text = 'remove' , command = f['remove'])
-  w['definition']  = (180 ,  80) , new(SourceText, w, 'tab' , width = 80, height = 16)
-#+END_SRC
-
-*** Bindings
-:PROPERTIES:
-:noweb-ref: gui/pm/define/bindings
-:END:
-#+BEGIN_SRC python :noweb no
-  bind(w, 'list', '<'+'<ListboxSelect>>', f['on select new'])
-#+END_SRC
-** Rule Creation
-
-** Algorithm Assembly
-
-** Integrated Testing
-:PROPERTIES:
-:noweb-ref: gui/test
-:END:
-#+BEGIN_SRC python
-  pass # test gui
-#+END_SRC
-*** Graph Visualization
-:PROPERTIES:
-:noweb-ref: gui/test/vis
-:END:
-#+BEGIN_SRC python
-  <<gui/test/vis/basic>>
-  <<gui/test/vis/draggable>>
-  <<gui/test/vis/animated>>
+  <<gui/util/custom widgets/basic>>
+  <<gui/util/custom widgets/draggable>>
+  <<gui/util/custom widgets/animated>>
 #+END_SRC
 **** Basic Grapher
 :PROPERTIES:
-:noweb-ref: gui/test/vis/basic
+:noweb-ref: gui/util/custom widgets/basic
 :END:
 #+BEGIN_SRC python
   import tkinter as tk
@@ -1855,14 +1641,14 @@ cls, w, v, f = Move,      mvw, mvv, mvf
                    edge_painter     = None, *args, **kwargs):
           tk.Canvas.__init__(self, master, *args, **kwargs)
 
-          <<gui/test/vis/basic/initialization>>
+          <<gui/util/custom widgets/basic/initialization>>
 
       def paint(self, padx=15, pady=15, do_layout=True):
-          <<gui/test/vis/basic/painting the graph>>
+          <<gui/util/custom widgets/basic/painting the graph>>
 
-      <<gui/test/vis/basic/customization>>
+      <<gui/util/custom widgets/basic/customization>>
 
-      <<gui/test/vis/basic/presets>>
+      <<gui/util/custom widgets/basic/presets>>
 #+END_SRC
 
 ***** Introduction and Usage
@@ -1949,7 +1735,7 @@ pressed, will create a new sparse graph of increasing size.
 ***** Overview
 ****** Initialization
 :PROPERTIES:
-:noweb-ref: gui/test/vis/basic/initialization
+:noweb-ref: gui/util/custom widgets/basic/initialization
 :ID:       2B46B8B6-C886-4411-B1AA-52D9890240DA
 :END:
 As you'll recall from the overview above, the constructor takes four
@@ -2069,7 +1855,7 @@ order to preserve the raw power of the existing behavior.
 
 ***** Painting the Graph
 :PROPERTIES:
-:noweb-ref: gui/test/vis/basic/painting the graph
+:noweb-ref: gui/util/custom widgets/basic/painting the graph
 :END:
 ****** Preliminary Checks
 :PROPERTIES:
@@ -2156,7 +1942,7 @@ subclass!
 #+END_SRC
 ***** Customization
 :PROPERTIES:
-:noweb-ref: gui/test/vis/basic/customization
+:noweb-ref: gui/util/custom widgets/basic/customization
 :ID:       E4FB92BE-FD81-4716-8B23-EA63352114F3
 :END:
 ****** Graph
@@ -2204,7 +1990,7 @@ values.
 #+END_SRC
 ***** Presets
 :PROPERTIES:
-:noweb-ref: gui/test/vis/basic/presets
+:noweb-ref: gui/util/custom widgets/basic/presets
 :END:
 ****** Plain
 :PROPERTIES:
@@ -2323,7 +2109,7 @@ one after another at specified intervals.
 ***** Definition
 :PROPERTIES:
 :ID:       02B822BC-5430-443F-8C02-08C8154CCD18
-:noweb-ref: gui/test/vis/animated
+:noweb-ref: gui/util/custom widgets/animated
 :END:
 We subclass =Grapher= and a single instance variable:
 - =interval= :: the time, in seconds, between steps of the animation
@@ -2345,13 +2131,13 @@ for performing the actual animation.
           Grapher.__init__(self, master, *args, **kwargs)
           self.interval = interval
 
-      <<gui/test/vis/animated/queueing graphs>>
-      <<gui/test/vis/animated/animating>>
+      <<gui/util/custom widgets/animated/queueing graphs>>
+      <<gui/util/custom widgets/animated/animating>>
 #+END_SRC
 
 ***** Queueing Data for Animation
 :PROPERTIES:
-:noweb-ref: gui/test/vis/animated/queueing graphs
+:noweb-ref: gui/util/custom widgets/animated/queueing graphs
 :END:
 #+BEGIN_SRC python
   def load(self, queue):
@@ -2367,12 +2153,12 @@ for performing the actual animation.
   def _queue_next_graph(self):
       change = self.queue.popleft()
       if self.isdelta(change):
-          <<gui/test/vis/animated/modify graph>>
+          <<gui/util/custom widgets/animated/modify graph>>
       else:
           self.set_graph(change)
 #+END_SRC
 
-#+BEGIN_SRC python :noweb-ref "gui/test/vis/animated/modify graph"
+#+BEGIN_SRC python :noweb-ref "gui/util/custom widgets/animated/modify graph"
   node = change['new node'][0]
   data = change['new node'][1]
   for key, value in data.keys(), data.values():
@@ -2381,7 +2167,7 @@ for performing the actual animation.
 
 ***** Drawing the Animation
 :PROPERTIES:
-:noweb-ref: gui/test/vis/animated/animating
+:noweb-ref: gui/util/custom widgets/animated/animating
 :ID:       55D924C7-536E-4403-AC34-75FD637F18C5
 :END:
 Just as you test the quality of the brakes before the power of an
@@ -2425,3 +2211,232 @@ single-threaded approach would look similar to the following:
 In this approach, there is no chance for =should_stop= to change and
 the animation would continue /ad infinitum/ with no hope of a graceful
 exit.
+
+** DONE Predicate / Move Creation [4/4]
+:PROPERTIES:
+:noweb-ref: gui/pm
+:END:
+The predicate and move tabs are extremely similar.  Luckily, the
+dictionary-based approach also permits us to go over their definition
+only once.  By giving this function the relevant class, widgets,
+variables, and functions, we are able to effectively populate these
+dictionaries without repeating ourselves or cluttering scope in the
+slightest.
+
+#+BEGIN_SRC python
+  def Construct_PM_Tab(cls, w, v, f):
+      <<gui/pm/define>>
+#+END_SRC
+
+Once this function is defined, we can simply use it with the
+appropriate values.
+#+BEGIN_SRC python
+Construct_PM_Tab(Predicate, pdw, pdv, pdf)
+Construct_PM_Tab(Move     , mvw, mvv, mvf)
+#+END_SRC
+
+=Create_PM_Tab= completes four distinct tasks.  After setting up the
+three dictionaries, it continues on to bind on-screen actions to the
+appropriate functions.  Each of these steps is discussed in-depth
+below.
+#+BEGIN_SRC python :noweb-ref "gui/pm/define"
+  <<gui/pm/define/variables>>
+  <<gui/pm/define/functions>>
+  <<gui/pm/define/widgets>>
+  <<gui/pm/define/bindings>>
+#+END_SRC
+
+*** DONE Define Variables
+:PROPERTIES:
+:noweb-ref: gui/pm/define/variables
+:END:
+#+BEGIN_SRC python
+  v['current'] = None
+  v['name']        = StringVar(root)
+  v['file']        = StringVar(root)
+  v['author']      = StringVar(root)
+  v['date']        = StringVar(root)
+  v['description'] = StringVar(root)
+  v['tex']         = StringVar(root)
+#+END_SRC
+
+**** Traces
+#+BEGIN_SRC python
+  v['name'].trace('w', lambda n, i, m: f['update name']())
+  v['file'].trace('w', lambda n, i, m: f['sanitize file']())
+#+END_SRC
+
+*** DONE Functions
+:PROPERTIES:
+:noweb-ref: gui/pm/define/functions
+:END:
+#+BEGIN_SRC python
+  def scr2bdl():
+      <<gui/pm/define/screen to logic>>
+  f['screen to bundle'] = scr2bdl
+#+END_SRC
+#+BEGIN_SRC python
+  def bdl2scr():
+      <<gui/pm/define/logic to screen>>
+  f['bundle to screen'] = bdl2scr
+#+END_SRC
+#+BEGIN_SRC python
+  def clrscr():
+      <<gui/pm/define/clearing the screen>>
+  f['clear screen'] = clrscr
+#+END_SRC
+#+BEGIN_SRC python
+  def update_name():
+      <<gui/pm/define/real-time name updating>>
+  f['update name'] = update_name
+#+END_SRC
+#+BEGIN_SRC python
+  def sanitize_file():
+      <<gui/pm/define/file name sanitization>>
+  f['sanitize file'] = sanitize_file
+#+END_SRC
+#+BEGIN_SRC python
+  def sel_new(event):
+      <<gui/pm/define/on selection>>
+  f['on select new'] = sel_new
+#+END_SRC
+#+BEGIN_SRC python
+  f['add']              = add_new(w, 'list', cls)
+  f['remove']           = del_sel(w, 'list')
+#+END_SRC
+
+**** Screen To Logic
+:PROPERTIES:
+:noweb-ref: gui/pm/define/screen to logic
+:END:
+#+BEGIN_SRC python
+  if not v['current']:
+      return
+  from datetime import datetime
+  v['current'].name        = v['name'].get()
+  v['current'].author      = v['author'].get()
+  v['current'].date        = datetime.strptime(v['date'].get(), '%Y-%m-%d')
+  v['current'].filename    = v['file'].get()
+  v['current'].description = v['description'].get()
+  v['current'].tex         = v['tex'].get()
+  v['current'].definition  = [l+'\n' for l in w['definition'][1].get(1.0, END).split('\n')[:-2]]
+#+END_SRC
+**** Name Updating
+:PROPERTIES:
+:noweb-ref: gui/pm/define/real-time name updating
+:END:
+#+BEGIN_SRC python
+  new_name = v['name'].get()
+  if new_name != v['current'].name:
+      # BUG: crashes if a word is deleted (as opposed to a single character)
+      v['current'].name = new_name
+      widget = w['list'][1]
+      idx = widget.curselection()
+      widget.delete(idx)
+      widget.insert(idx, new_name)
+      widget.activate(idx)
+      widget.selection_set(idx)
+#+END_SRC
+**** File Sanitization
+:PROPERTIES:
+:noweb-ref: gui/pm/define/file name sanitization
+:END:
+#+BEGIN_SRC python
+  old = v['file'].get()
+  new = old.replace(' ', '-') + ('.py' if not old.endswith('.py') else '')
+  v['file'].set(new)
+#+END_SRC
+**** Logic To Screen
+:PROPERTIES:
+:noweb-ref: gui/pm/define/logic to screen
+:END:
+#+BEGIN_SRC python
+  v['name'        ].set(v['current'].name)
+  v['author'      ].set(v['current'].author)
+  v['file'        ].set(v['current'].filename)
+  v['description' ].set(v['current'].description)
+  v['tex'         ].set(v['current'].tex)
+  if hasattr(v['current'].date, 'date'):
+      v['date'        ].set(v['current'].date.date())
+  else:
+      v['date'        ].set(v['current'].date)
+  try:
+      w['definition'][1].delete(1.0, END)
+  except:
+      pass
+  w['definition'  ][1].insert(1.0, ''.join(v['current'].definition))
+  w['definition'  ][1].do_hl()
+#+END_SRC
+
+**** Clearing the Screen
+:PROPERTIES:
+:noweb-ref: gui/pm/define/clearing the screen
+:END:
+#+BEGIN_SRC python
+  v['name'        ].set('')
+  v['author'      ].set('')
+  v['date'        ].set('')
+  v['file'        ].set('')
+  v['description' ].set('')
+  v['tex'         ].set('')
+  try:
+      w['definition'  ][1].delete(1.0, END)
+  except:
+      pass
+#+END_SRC
+**** Selection
+:PROPERTIES:
+:noweb-ref: gui/pm/define/on selection
+:END:
+#+BEGIN_SRC python
+  f['screen to bundle']()
+  widget = w['list'][1]
+  selected = widget.get(w.curselection())
+  v['current'] = bundle.lookup(cls, selected)
+
+  if not v['current']:        # a new entity was made
+      v['current'] = cls()
+      for attr in ['name', 'author', 'date', 'description', 'filename', 'tex', 'definition']:
+          setattr(v['current'], attr, '<%s>' % attr)
+      v['current'].date = '2014-01-01'
+      bundle.entities.add(v['current'])
+
+  f['bundle to screen']()
+#+END_SRC
+
+*** DONE Widgets
+:PROPERTIES:
+:noweb-ref: gui/pm/define/widgets
+:END:
+#+BEGIN_SRC python
+  w['tab']         = None ,        Frame(top)
+  w['list']        = (0   ,   0) , new(Listbox,    w, 'tab' , height = 18)
+  w['name']        = (180 ,   0) , new(Entry,      w, 'tab' , textvariable = v['name'])
+  w['author']      = (360 ,   0) , new(Entry,      w, 'tab' , textvariable = v['author'])
+  w['date']        = (180 ,  25) , new(Entry,      w, 'tab' , textvariable = v['date'])
+  w['file']        = (360 ,  50) , new(Entry,      w, 'tab' , textvariable = v['file'])
+  w['description'] = (180 ,  50) , new(Entry,      w, 'tab' , textvariable = v['description'])
+  w['tex']         = (360 ,  25) , new(Entry,      w, 'tab' , textvariable = v['tex'])
+  w['add']         = (0   , 310) , new(Button,     w, 'tab' , text = 'add'    , command = f['add'])
+  w['remove']      = (80  , 310) , new(Button,     w, 'tab' , text = 'remove' , command = f['remove'])
+  w['definition']  = (180 ,  80) , new(SourceText, w, 'tab' , width = 80, height = 16)
+#+END_SRC
+
+*** DONE Bindings
+:PROPERTIES:
+:noweb-ref: gui/pm/define/bindings
+:END:
+#+BEGIN_SRC python :noweb no
+  bind(w, 'list', '<'+'<ListboxSelect>>', f['on select new'])
+#+END_SRC
+** Rule Creation
+
+** Algorithm Assembly
+
+** Integrated Testing
+:PROPERTIES:
+:noweb-ref: gui/test
+:END:
+#+BEGIN_SRC python
+  pass # test gui
+#+END_SRC
