@@ -711,7 +711,21 @@ Perhaps we can represent arguments as tuples, LISP-style?
     more_r = ('range', 1, 10))
 #+END_EXAMPLE
 with =range= taking place of =int(...)=.
-******* TODO Tests
+***** Adding Edges
+:PROPERTIES:
+:noweb-ref: graphs/gen/random/add edges
+:ID:       36B4C2F6-1310-44CB-8936-1D282A666619
+:END:
+#+BEGIN_SRC python
+  for src, dst in itertools.combinations(G.nodes(), 2):
+      if r.random() <= edge_probability:
+          G.add_edge(src, dst)
+#+END_SRC
+****** TODO perhaps
+add switch to check for __call__(node_a, node_b) to determine
+probability
+
+**** TODO Tests
 :PROPERTIES:
 :noweb-ref: null
 :tangle:   test_graph-generator.py
@@ -784,19 +798,6 @@ with =range= taking place of =int(...)=.
           g = rg(15, weight=gen_in_range(10, 20))
           assert all(map(lambda n: 10 <= g.node[n]['weight'] <= 20, g.node))
 #+END_SRC
-***** Adding Edges
-:PROPERTIES:
-:noweb-ref: graphs/gen/random/add edges
-:ID:       36B4C2F6-1310-44CB-8936-1D282A666619
-:END:
-#+BEGIN_SRC python
-  for src, dst in itertools.combinations(G.nodes(), 2):
-      if r.random() <= edge_probability:
-          G.add_edge(src, dst)
-#+END_SRC
-****** TODO perhaps
-add switch to check for __call__(node_a, node_b) to determine
-probability
 
 *** DONE Sparse Graphs
 :PROPERTIES:
