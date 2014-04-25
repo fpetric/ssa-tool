@@ -35,7 +35,12 @@
                 bundles on-disk
 - =cli= :: Command Line Interface
 - =gui= :: Graphical User Interface
-
+** Dependencies
+#+BEGIN_SRC text :tangle "requirements.txt"
+  networkx
+  numpy
+  pyyaml
+#+END_SRC
 * File Input and Output
 :PROPERTIES:
 :noweb-ref: fio
@@ -792,6 +797,74 @@ vertex =v= in the neighborhood of =node=.
 ** Bundling
 
 ** Testing
+
+** (old)
+:PROPERTIES:
+:noweb-ref: null
+:END:
+#+BEGIN_SRC python
+  #!/usr/bin/env python3
+  import ssa
+  import networkx as nx
+
+  # ./ssa-tool.py run "independent set" from ind-set.ssax on test.gexf
+
+  def parse_args(argv):
+      if argv[1] == 'run':
+          assert (argv[1], argv[3], argv[5]) == ('run', 'from', 'on')
+          
+          algorithm = argv[2]
+          bundle    = argv[4]
+          graph     = argv[6]
+
+          graphfmt = graph.split('.')[-1]
+          if graphfmt == graph:
+              raise Exception('no graph format given')
+          if graphfmt not in ['gexf', 'gml', 'yaml']:
+              raise Exception('unrecognized graph format')
+
+          return {
+              'command'   : 'run',
+              'bundle'    : bundle,
+              'algorithm' : algorithm,
+              'graph'     : graph,
+              'graphfmt'  : graphfmt
+          }
+
+  def non_interactive(args):
+      args = parse_args(args)
+      if args['command'] == 'run':
+          print('''Running:
+    Algorithm: "{algorithm}"
+         from: "{bundle}"
+           on: "{graph}"
+      (format: "{graphfmt}")'''.format(**args))
+          b = ssa.Bundle(args['bundle'])
+          # add from_name to Bundle
+          a = list(filter(lambda e: e.name == args['algorithm'],
+                          b.entities))[0]
+
+          reader = {'gexf': nx.read_gexf, # require pyparsing
+                    'gml': nx.read_gml,
+                    'yaml': nx.read_yaml
+          }[args['graphfmt']]
+          G = reader(args['graph'])
+          from pprint import pprint
+          print('Read Graph:')
+          pprint(G.nodes(data=True))
+          print('History:')
+          pprint(a.run(G, 10))
+          print('Stable Graph:')
+          pprint(G.nodes(data=True))
+
+  print('Welcome to SSA-Tool, version 1.')
+  import sys
+  if '--non-interactive' in sys.argv:
+      non_interactive(sys.argv)
+  else:
+      import gui
+      gui.root.mainloop()
+#+END_SRC
 
 * Graphical User Interface
 :PROPERTIES:
@@ -2203,7 +2276,7 @@ It would seem that this risk is inherent in multi-threading this
 solution and the risk could be avoided by single-threading.  However,
 this has other consequences that are unacceptable.  The naïve
 single-threaded approach would look similar to the following:
-#+BEGIN_SRC python :tangle nil :noweb-ref nil
+#+BEGIN_SRC python :noweb-ref null
   while not self.should_stop:
       self.paint(do_layout=False)
       self._queue_next_graph()
@@ -2230,8 +2303,8 @@ in the slightest.
 Once this function is defined, we can simply use it with the
 appropriate values.
 #+BEGIN_SRC python
-Construct_PM_Tab(Predicate, pdw, pdv, pdf)
-Construct_PM_Tab(Move     , mvw, mvv, mvf)
+  Construct_PM_Tab(Predicate, pdw, pdv, pdf)
+  Construct_PM_Tab(Move     , mvw, mvv, mvf)
 #+END_SRC
 
 =Create_PM_Tab= completes four distinct tasks.  After setting up the

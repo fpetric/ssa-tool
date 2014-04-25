@@ -10,9 +10,9 @@
 [[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
 
 Never mind the above; I haven't been able to set it up correctly yet.
-Needing to tangle the file makes it a little complicated.  I intend to
-create a separate =testing= branch---a branch of pre-tangled
-code---that Travis will use.
+Needing to tangle the file makes it a little complicated.  The
+=master= branch contains all of the tangled code for the project.
+Travis CI will be using the =master= branch.
 
 This is a set of tools for the representation, creation, and
 evaluation of self-stabilizing algorithms.
@@ -21,33 +21,23 @@ I will add more content here soon, but please do see the documentation
 for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with
 [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text editor.
 
-
 * Introduction
 ** Directory Structure
 The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
 #+BEGIN_EXAMPLE
-  ssa-tool/
-      setup.py
-      ssa/
-          __init__.py
-          core/
-              __init__.py
-          creation/
-              __init__.py
-          simulation/
-              __init__.py
-      bin/
-      docs/
-      tests/
-          __init__.py
-          core_tests.py
-          creation_tests.py
-          simulation_tests.py
+  ./
+    setup.py
+    ssa.py
+    tests/
+      __init__.py
+      core_tests.py
+      creation_tests.py
+      simulation_tests.py
 #+END_EXAMPLE
 ** Setup
-   :PROPERTIES:
-   :ID:       42439234-46EF-4E23-99E4-CFBDFFC3562E
-   :END:
+:PROPERTIES:
+:ID:       42439234-46EF-4E23-99E4-CFBDFFC3562E
+:END:
 #+BEGIN_SRC python :tangle "setup.py"
   try:
       from setuptools import setup
@@ -69,75 +59,19 @@ The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][tr
   
   setup(**config)
 #+END_SRC
-*** TODO Fix =python setup.py install= sequence
-It's saying I need a couple files:
-#+BEGIN_EXAMPLE
-  core.py
-  creation.py
-  simulation.py
-#+END_EXAMPLE
-but what goes in them?  I opened up a [[http://stackoverflow.com/questions/21685430/when-running-setup-py-install-on-my-module-what-needs-to-be-in-submodule-p][question on StackOverflow]], but
-I'm not hopeful about getting any responses.
-* Example
-  :PROPERTIES:
-  :ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
-  :END:
+* TODO Example
+:PROPERTIES:
+:ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
+:END:
 #+BEGIN_SRC python :tangle example.py :padding no
-  from ssa.simulation.generators import random_graph
-  import ssa.core.Algorithm as Algorithm
-  from ssa.core.Algorithm import predicate
-  from ssa.core.Algorithm import move
-  
-  G = random_graph(5, marked='bool(.25)')
-  
-  @predicate(author='Sean Allred', version='1.0')
-  def node_should_unmark(node, neighborhood):
-      """Rule 1
-  
-      "marked"(n) = 1 `land `exists v `in N(n) : "marked"(v) = 1
-  
-      Returns True if the node is marked where a neighbor is also
-      marked.
-      """
-      marked = n['marked']
-      neighbor_marked = any(map(lambda v: v['marked'],
-                                neighborhood))
-      return marked and neighbor_marked
-  
-  @predicate(author='Sean Allred', version='1.0')
-  def node_should_mark(node, neighborhood):
-      """Rule 2
-  
-      "marked"(n) = 0 `land `forall v `in N(n), "marked"(v) = 0
-  
-      Returns True if the node is not marked and its entire neighborhood
-      is also unmarked.
-      """
-      marked = n['marked']
-      neighbor_marked = any(map(lambda v: v['marked'],
-                                neighborhood))
-      return not (marked or neighbor_marked)
-  
-  @move(author='Sean Allred', version='1.0')
-  def mark_node(node, neighborhood):
-      node['marked'] = True
-      return node, neighborhood
-  
-  @move(author='Sean Allred', version='1.0')
-  def unmark_node(node, neighborhood):
-      node['marked'] = False
-      return node, neighborhood
-  
-  ind_set = Algorithm({
-      node_should_mark: [mark_node],
-      node_should_unmark: [unmark_node]
-  })
+  # code example
 #+END_SRC
 
 * Installing
-  :PROPERTIES:
-  :ID:       CFE44C5A-2FBB-42A1-A783-881FA2C3BF89
-  :END:
+:PROPERTIES:
+:ID:       CFE44C5A-2FBB-42A1-A783-881FA2C3BF89
+:END:
+** Tangling
 #+BEGIN_SRC emacs-lisp :tangle "tangle.el" :shebang "#!/usr/bin/env emacs --script"
   #!/usr/bin/env emacs --script
   
@@ -210,6 +144,93 @@ I'm not hopeful about getting any responses.
     (mapcar 'org-babel-tangle-file
             (split-string (shell-command-to-string "find . -name '*.org' -type f"))))
 #+END_SRC
+** =pip= Install
+#+BEGIN_SRC python :tangle "setup.py"
+  try:
+      from setuptools import setup
+  except ImportError:
+      from distutils.core import setup
+
+  config = {
+      'description': 'A utility for the creation and evaluation of self-stabilizing algorithms',
+      'author': 'Sean Allred',
+      'url': 'http://github.com/vermiculus/ssa-tool',
+      'download_url': 'http://github.com/vermiculus/ssa-tool',
+      'author_email': 'seallred@smcm.edu',
+      'version': '0.1',
+      'install_requires': ['networkx', 'pygame'],
+      'packages': ['ssa'],
+      'scripts': [],
+      'name': 'ssa',
+  }
+
+  setup(**config)
+#+END_SRC
+** Makefile
+#+BEGIN_SRC makefile :tangle "makefile"
+  PREBUILT_EMACS="https://dl.dropboxusercontent.com/u/17471132/emacs/emacs-24.3__Ubuntu-12.04-LTS.tgz"
+
+  documentation:
+          $(info No prepared documentation yet)
+          $(info See src/ssa.org)
+          $(info $(HOME))
+
+  bootstrap:
+          sed -n '/:shebang/,/#+END_SRC/p' README.org \
+            | tail -n +2 \
+            | sed '$$ d' > tangle.el
+
+  tangle: bootstrap
+          emacs --script tangle.el
+
+  install: tangle
+          python setup.py install
+
+  install-clean:
+          rm -rf ssa.egg-info
+          rm -rf build
+          rm -rf dist
+
+  clean:
+          rm -f tangle.el temp
+          find . -name '*.py'  -type f -exec rm -rf {} \;
+          find . -name '*.pyc' -type f -exec rm -rf {} \;
+          find . -name '*~'    -type f -exec rm -rf {} \;
+
+  check:
+          $(info At least one test pops open a window with quick, discontinuous movement.)
+          $(info If this kind of thing bothers you (e.g. epileptic), do not look at this test.)
+          $(info At any rate, these tests are designed to be unattended.)
+          $(info Press enter to confirm that you have read this message, or Ctrl-C out.)
+          @read response
+          $(MAKE) _check
+
+  _check:
+          cd ssa && nosetests --verbose
+
+  travis-dependencies:
+          $(MAKE) _travis-emacs24-build
+          $(MAKE) _travis-emacs24-install
+          emacs --version
+
+  _travis-emacs24-build:
+          $(info Downloading emacs 24)
+          wget -O emacs.tgz $(PREBUILT_EMACS)
+          $(info Unzipping)
+          tar -zxf emacs.tgz
+
+  _travis-emacs24-install:
+          $(info Installing)
+          cd emacs-24.3 && make install
+#+END_SRC
+** Executable
+#+BEGIN_SRC sh
+  #!/usr/bin/env sh
+  # -*- mode: sh -*-
+
+  python3 ssa-tool.py "$@"
+#+END_SRC
+
 * Notes
 ** Dijkstra 1974
 A self-stabilizing network is seen as a graph of state machines.  Each
