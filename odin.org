@@ -2220,9 +2220,8 @@ The predicate and move tabs are extremely similar.  Luckily, the
 dictionary-based approach also permits us to go over their definition
 only once.  By giving this function the relevant class, widgets,
 variables, and functions, we are able to effectively populate these
-dictionaries without repeating ourselves or cluttering scope in the
-slightest.
-
+dictionaries without repeating ourselves or cluttering the namespace
+in the slightest.
 #+BEGIN_SRC python
   def Construct_PM_Tab(cls, w, v, f):
       <<gui/pm/define>>
