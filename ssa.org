@@ -4,6 +4,9 @@
 #+PROPERTY: noweb tangle
 
 * Introduction
+:PROPERTIES:
+:ID:       4153C750-A650-4838-BF66-4D541BF2F539
+:END:
 This is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with [[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text
 editor.  This is the only file that is properly tracked; all other
 content is generated from source blocks herein.
@@ -1443,6 +1446,7 @@ for performing the actual animation.
 *** Drawing the Animation
 :PROPERTIES:
 :noweb-ref: animating
+:ID:       B701F108-E3E8-4C77-9C34-8EA00D5DA30A
 :END:
 Just as you test the quality of the brakes before the power of an
 engine, we define a flag and setter for stopping the animation.
