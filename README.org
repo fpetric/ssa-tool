@@ -7,7 +7,7 @@
 
 #+TODO: TODO INPROGRESS WRITE_TESTS WISH_LIST | DONE
 
-[[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.png?branch=master]]
+[[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.svg]]
 
 Never mind the above; I haven't been able to set it up correctly yet.
 Needing to tangle the file makes it a little complicated.  The
