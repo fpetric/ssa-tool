@@ -1,6 +1,5 @@
 language: python
-python: "3.3"
-branches:
-  only: master
-install: echo "test install"
-script: echo "test script"
+python: "3.6"
+
+script:
+  - python3 ssa-tool.py     # run basic tests -- to be moved to tests/
