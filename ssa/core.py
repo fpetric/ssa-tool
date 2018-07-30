@@ -1,6 +1,12 @@
 import networkx as nx
 import random
 import copy
+from typing import List, Callable, NewType, Optional, Dict, Tuple, Union, cast, Any
+
+TNode = NewType("TNode", object)
+TNodeData = NewType("TNodeData", object)
+TPred = Callable[[TNodeData, List[TNodeData]], bool]
+TMove = Callable[[TNodeData], TNodeData]
 
 # A Executable (and particular types Predicate and Move) are runnable
 # objects read from disk.
@@ -8,7 +14,15 @@ class Executable:
     """Generic container for callables read from disk."""
     CODE_INDENT = 4
 
-    def __init__(self, name, source_file, parameters, code_transform=None):
+    name: str
+    source_file: str
+    parameters: List[str]
+
+    _code_transform: Optional[Callable[[List[str]], List[str]]]
+    _func: Optional[Callable]
+    _code_lines: Optional[List[str]]
+
+    def __init__(self, name: str, source_file: str, parameters: List[str], code_transform: Optional[Callable[[List[str]], List[str]]] = None) -> None:
         """Create a new Executable.
 
         - `source_file`: a canonicalized file containing code
@@ -53,6 +67,7 @@ class Executable:
         with open(self.source_file) as f:
             self._code_lines = f.readlines()
 
+        lines: List[str]
         lines = self._code_lines
 
         # run transform (e.g., add a return statement for Move objects)
@@ -64,6 +79,7 @@ class Executable:
         lines = [(" " * Executable.CODE_INDENT) + l for l in lines]
 
         # add the definition line
+        params_signature: str
         params_signature = ",".join(self.parameters)
         lines = ["def indirect_executable(" + params_signature + "):\n"] + lines
 
@@ -80,7 +96,7 @@ class Predicate(Executable):
     - `N`: neighborhood of `v`
 
     """
-    def __init__(self, name, definition):
+    def __init__(self, name: str, definition: str) -> None:
         super().__init__(name, definition, ["v", "N"])
 
 class Move(Executable):
@@ -90,12 +106,16 @@ class Move(Executable):
     attributes of the privileged node.
 
     """
-    def __init__(self, name, definition):
+    def __init__(self, name: str, definition: str) -> None:
         super().__init__(name, definition, ["v"], lambda lines: lines + ["return v"])
 
 class Rule:
     """A predicate-move pair."""
-    def __init__(self, predicate, move):
+
+    predicate: TPred
+    move: TMove
+
+    def __init__(self, predicate: TPred, move: TMove) -> None:
         """Create a new rule.
 
         - `predicate`: a boolean-valued callable of two arguments: a
@@ -107,16 +127,17 @@ class Rule:
         a node passed in (i.e., a new dictionary).
 
         """
-        self.predicate = predicate
-        self.move = move
+        # ignore typing on the stuff below (see python/mypy#708)
+        self.predicate = predicate # type: ignore
+        self.move = move           # type: ignore
 
-    def applies_to(self, node, neighbors):
+    def applies_to(self, node: TNodeData, neighbors: List[TNodeData]):
         """True if this rule applies to a node given its neighbors.
 
         This looks to the rule's predicate to make the determination.
 
         """
-        return self.predicate(node, neighbors.values())
+        return self.predicate(node, neighbors) # type: ignore
 
     def apply_to(self, node):
         """Apply this rule to a node.
@@ -124,7 +145,7 @@ class Rule:
         Uses this rule's move for effect on `node`.
 
         """
-        return self.move(node)
+        return self.move(node)  # type: ignore
 
     def __repr__(self):
         return f"<Rule at {hex(id(self))} - {repr(self.predicate)} to {repr(self.move)}>"
@@ -141,7 +162,7 @@ class GraphTimeline:
     """
     # todo: implement __iter__ to yeild graphs at steps
     class Step:
-        def __init__(self, rule, node, new_data):
+        def __init__(self, rule: Rule, node: TNode, new_data: TNodeData) -> None:
             """Create a new 'step'.
 
             - `rule`: the `Rule` object that applied to `node`
@@ -159,13 +180,13 @@ class GraphTimeline:
         def __str__(self):
             return f"<Step {self.rule} on {self.node} yeilds {self.new_data}>"
 
-    def __init__(self, base):
+    def __init__(self, base: nx.Graph) -> None:
         self._base = base
-        self._end = None
-        self._steps = list()
+        self._end: Optional[nx.Graph] = None
+        self._steps: List[GraphTimeline.Step] = list()
         self._stable = False
 
-    def add_step(self, rule, node, new_data):
+    def add_step(self, rule: Rule, node: TNode, new_data: TNodeData) -> None:
         self._steps.append(GraphTimeline.Step(rule, node, new_data))
 
     def report(self):
@@ -175,11 +196,10 @@ class GraphTimeline:
         print(f"Steps: {len(self._steps)}")
 
 class Algorithm:
-    def __init__(self, rules):
-        for r in rules: assert(isinstance(r, Rule))
+    def __init__(self, rules: List[Rule]) -> None:
         self.rules = rules
 
-    def run(self, graph, max_steps=None):
+    def run(self, graph: nx.Graph, max_steps: int = None) -> Tuple[bool, GraphTimeline]:
         """Run an algorithm on a graph.
 
         Returns a tuple of
@@ -193,6 +213,9 @@ class Algorithm:
         stable = False
         current_step = 0
 
+        privileged_node: Optional[TNode]
+        rule: Optional[Rule]
+
         while not stable and (max_steps is None or current_step < max_steps):
             (privileged_node, rule) = self.pick_node_under_rule(working_graph)
             if privileged_node is None:
@@ -200,6 +223,11 @@ class Algorithm:
                 stable = True
             else:
                 current_step += 1
+
+                # we know there are values here now
+                # related: python/mypy#4805
+                privileged_node = cast(TNode, privileged_node)
+                rule = cast(Rule, rule)
 
                 # get the new data for the node by applying the rule
                 new_data = rule.apply_to(working_graph.node[privileged_node])
@@ -209,7 +237,7 @@ class Algorithm:
 
         return (stable, timeline)
 
-    def find_privileged_nodes(self, graph):
+    def find_privileged_nodes(self, graph: nx.Graph) -> Dict[TNode, Tuple[List[TNodeData], List[Rule]]]:
         """Find and return the 'privileged' nodes in `graph`.
 
         Privileged nodes are those nodes in the graph that satisfy one
@@ -227,7 +255,8 @@ class Algorithm:
             applicable_rules = []
 
             # collect neighbor data for the predicate
-            neighbors = {v: graph.node[v] for v in graph.neighbors(node)}
+            neighbors = cast(List[TNodeData], # satisfy type-checker
+                             {v: graph.node[v] for v in graph.neighbors(node)}.values())
 
             # search for applicable rules
             for rule in self.rules:
@@ -236,10 +265,10 @@ class Algorithm:
 
             # record any applicable rules in the dictionary
             if applicable_rules:
-                privileged[node] = (neighbors, applicable_rules)
+                privileged[cast(TNode, node)] = (neighbors, applicable_rules)
         return privileged
 
-    def pick_node_under_rule(self, graph):
+    def pick_node_under_rule(self, graph: nx.Graph) -> Tuple[Optional[TNode], Optional[Rule]]:
         """Find one node in `graph` to which a rule applies.
 
         Return a tuple (node, rule).
