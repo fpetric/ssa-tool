@@ -1,9 +1,0 @@
-* Overview
-:PROPERTIES:
-:ID:       357488E3-B0DD-40DF-A5CE-8FF551665B9A
-:END:
-Everything!
-#+BEGIN_SRC python :tangle "__init__.py"
-  from . import core
-  from . import simulation
-#+END_SRC
