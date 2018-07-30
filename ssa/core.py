@@ -287,64 +287,6 @@ class Algorithm:
 
         return (lucky_node, lucky_rule)
 
-### Poor man's tests ###
-
-# algorithms should be creatable from any callable object,
-# so try just plain ole' functions
-def mark(node):
-    node['marked'] = True
-    return node
-def unmark(node):
-    node['marked'] = False
-    return node
-def _mark_info(node, neighbors):
-    marked = node['marked']
-    neighbor_marked = any(map(lambda n: n['marked'], neighbors))
-    return (marked, neighbor_marked)
-def can_mark(node, neighbors):
-    (marked, neighbor_marked) = _mark_info(node, neighbors)
-    return not (marked or neighbor_marked)
-def must_unmark(node, neighbors):
-    (marked, neighbor_marked) = _mark_info(node, neighbors)
-    return marked and neighbor_marked
-
-# helper function to generate a random graph with the appropriate
-# attributes
-def rand_graph():
-    graph = nx.grid_2d_graph(3, 3)
-    for node in graph.nodes:
-        graph.node[node]['marked'] = random.choice([False, True])
-    return graph
-
-if __name__ == "__main__":
-    def run_test(algorithm):
-        (stable, timeline) = algorithm.run(rand_graph(), 1000)
-        timeline.report()
-        print(f"Stable? {stable}")
-
-    # functions load from file correctly
-    p_unmark = Predicate("unmark", "examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py")
-    assert(    p_unmark({'marked': True},  [{'marked': True}]))
-    assert(not p_unmark({'marked': False}, [{'marked': False}]))
-
-    # test __repr__ and __str__
-    assert("at 0x" in repr(p_unmark))
-    assert("at 0x" not in str(p_unmark))
-
-    p_mark = Predicate("mark", "examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py")
-    m_unmark = Move("unmark", "examples/ind-set.ssax/moves/unmark.py")
-    m_mark = Move("mark", "examples/ind-set.ssax/moves/mark.py")
-
-    # test with predicates defined in code
-    print("from memory")
-    run_test(Algorithm([Rule(can_mark, mark), Rule(must_unmark, unmark)]))
-
-    print()
-
-    # test with predicates/moves loaded from disk into memory with `Executable`
-    print("from disk")
-    run_test(Algorithm([Rule(p_mark, m_mark), Rule(p_unmark, m_unmark)]))
-
 # Local Variables:
 # python-shell-interpreter: "python3"
 # python-indent-offset: 4
