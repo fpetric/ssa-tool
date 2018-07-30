@@ -1,0 +1,2 @@
+It all starts with =Executable=.  This allows code to be read from disk
+and run on-demand.

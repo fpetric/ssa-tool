@@ -1,5 +1,5 @@
 language: python
 python: "3.6"
 
-script:
-  - python3 ssa-tool.py     # run basic tests -- to be moved to tests/
+install: make install
+script: make test
