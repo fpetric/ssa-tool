@@ -1,6 +1,8 @@
 PIP ?= pip
 PYTHON ?= python
 
+.PHONY: install test
+
 install:
 	$(PIP) install -r requirements.txt
 
