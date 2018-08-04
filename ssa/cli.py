@@ -1,6 +1,5 @@
 import ssa
 
-import os
 import argparse
 from collections import OrderedDict
 
@@ -71,40 +70,52 @@ def new_algorithm(bundle, name, **kwargs):
     print("new '{}' algorithm name: {}".format(bundle, name))
     _load_bundle(bundle).add_algorithm(name).save()
 
-def _new_component(bundle_path, component_dir, component_path, method, **kwargs):
+def _new_component(bundle_path, component_dir, file, new_name, method, **kwargs):
     """Copy a bundle component (predicate/move) to the bundle.
 
       - bundle_path :: this bundle (*.ssax)
       - component_dir :: the target component directory
-      - component_path :: the source component path (*.py)
+      - file :: the file descriptor to read for the code
       - method :: what method on Bundle to use to add the component (e.g., Bundle.add_move)
 
     """
-    import shutil
+    import sys, os
     bundle = _load_bundle(bundle_path)
-    newpath = os.path.join(bundle_path, component_dir)
-    shutil.copy(component_path, newpath)
-    path_components = os.path.split(newpath)
-    newpath_relative_to_bundle = os.path.join(*path_components[1:])
-    newpath_relative_to_bundle = os.path.join(newpath_relative_to_bundle, os.path.basename(component_path))
-    method(bundle, filename=newpath_relative_to_bundle)
+
+    if file is sys.stdin:
+        lines = sys.stdin.readlines()
+    else:
+        with open(file, 'r') as f:
+            lines = f.readlines()
+
+    newpath = os.path.join(bundle_path, component_dir, new_name)
+
+    # ensure parent directories exist
+    os.makedirs(os.path.dirname(os.path.realpath(newpath)), exist_ok=True)
+
+    with open(newpath, 'w') as f:
+        f.writelines(lines)
+
+    method(bundle, filename=os.path.relpath(newpath, bundle._path))
     bundle.save()
 
-def new_predicate(bundle, path, **kwargs):
+def new_predicate(bundle, name, **kwargs):
     """Add the predicate at the given path to the bundle."""
-    print(f"In bundle '{bundle}', adding predicate '{path}'.")
-    _new_component(bundle, 'predicate', path, ssa.Bundle.add_predicate, **kwargs)
+    print(f"In bundle '{bundle}', saving predicate code from standard input to {name} (relative to the bundle).")
+    import sys
+    _new_component(bundle, 'predicate', sys.stdin, name, ssa.Bundle.add_predicate, **kwargs)
 
-def new_move(bundle, path, **kwargs):
+def new_move(bundle, name, **kwargs):
     """Add the move at the given path to the bundle."""
-    print(f"In bundle '{bundle}', adding move '{path}'.")
-    _new_component(bundle, 'move', path, ssa.Bundle.add_move, **kwargs)
+    print(f"In bundle '{bundle}', saving move code from standard input to {name} (relative to the bundle).")
+    import sys
+    _new_component(bundle, 'move', sys.stdin, name, ssa.Bundle.add_move, **kwargs)
 
 def add_rule_to(bundle, algorithm_name, predicate, move, **kwargs):
     """Add a rule to an algorithm."""
     print(f"In bundle '{bundle}', adding a new rule ({predicate} => {move}) to {algorithm_name}.")
+    import os
     _load_bundle(bundle).add_rule_to_algorithm(algorithm_name, os.path.join('predicate', predicate), os.path.join('move', move)).save()
-
 
 def rand_graph(dimen): ## from test suite, won't be necessary once graphs are loading from files
     """Generate an arbitrary graph with 'marked' attributes."""
@@ -137,11 +148,11 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
                 },
                 "predicate": {
                     "$handler": new_predicate,
-                    "$positional": OrderedDict([ ("path", None) ]),
+                    "$positional": OrderedDict([ ("name", None) ]),
                 },
                 "move": {
                     "$handler": new_move,
-                    "$positional": OrderedDict([ ("path", None) ]),
+                    "$positional": OrderedDict([ ("name", None) ]),
                 },
             },
         },

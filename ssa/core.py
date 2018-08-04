@@ -64,7 +64,9 @@ class Executable:
     def _define(self):
         """Read `self.source_file` and load it into memory."""
         with open(self.source_file) as f:
-            self._code_lines = f.readlines()
+            # we can't reliably depend on a terminating newline,
+            # so strip them all and add them back later
+            self._code_lines = [s.rstrip() for s in f.readlines()]
 
         lines: List[str]
         lines = self._code_lines
@@ -80,10 +82,10 @@ class Executable:
         # add the definition line
         params_signature: str
         params_signature = ",".join(self.parameters)
-        lines = ["def indirect_executable(" + params_signature + "):\n"] + lines
+        lines = ["def indirect_executable(" + params_signature + "):"] + lines
 
         # evalute the code and maintain a reference to the function in memory
-        exec("".join(lines), locals())
+        exec("\n".join(lines), locals())
         self._func = locals()["indirect_executable"]
 
 class Predicate(Executable):

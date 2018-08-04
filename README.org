@@ -46,19 +46,43 @@ legitimate state after a finite number of moves.
 
 * Examples
 #+BEGIN_SRC sh
-  # move predefined code to the bundle
-  python3 ssa.py test.ssax new predicate examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py
-  python3 ssa.py test.ssax new move examples/ind-set.ssax/moves/mark.py
+  # define your predicates/moves
+  # predicates have access to node (v) and neighborhood (N) attributes
+  cat <<DONE > unmarked-and-neighbors-unmarked.py
+  marked = v['marked']
+  neighbor_marked = any(map(lambda n: n['marked'], N))
+  return not (marked or neighbor_marked)
+  DONE
 
-  python3 ssa.py test.ssax new predicate examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py
-  python3 ssa.py test.ssax new move examples/ind-set.ssax/moves/unmark.py
+  cat <<DONE > marked-and-neighbor-marked.py
+  marked = v['marked']
+  neighbor_marked = any(map(lambda n: n['marked'], N))
+  return marked and neighbor_marked
+  DONE
+
+  # moves can set node state
+  cat <<DONE > mark.py
+  v['marked'] = True
+  DONE
+
+  cat <<DONE > unmark.py
+  v['marked'] = False
+  DONE
+
+
+  # move predefined code to the bundle
+  python3 ssa.py test.ssax new predicate can-mark < unmarked-and-neighbors-unmarked.py
+  python3 ssa.py test.ssax new move mark < mark.py
+
+  python3 ssa.py test.ssax new predicate must-unmark < marked-and-neighbor-marked.py
+  python3 ssa.py test.ssax new move unmark < unmark.py
 
   # create a new algorithm
   python3 ssa.py test.ssax new algorithm 'Independent Set'
 
   # define rules for that algorithm
-  python3 ssa.py test.ssax add-rule-to 'Independent Set' unmarked-and-neighbors-unmarked.py mark.py
-  python3 ssa.py test.ssax add-rule-to 'Independent Set' marked-and-neighbor-marked.py unmark.py
+  python3 ssa.py test.ssax add-rule-to 'Independent Set' can-mark mark
+  python3 ssa.py test.ssax add-rule-to 'Independent Set' must-unmark unmark
 
   # run the algorithm
   python3 ssa.py test.ssax run 'Independent Set'
