@@ -1,5 +1,5 @@
 language: python
-python: 3.6
+python: 3.6                     # type annotations introduced in this version
 
 before_install: make dependencies
 install: make install
