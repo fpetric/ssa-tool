@@ -42,7 +42,7 @@ def run_test(algorithm):
 
 
 # functions load from file correctly
-p_unmark = Predicate("unmark", "examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py")
+p_unmark = Predicate("examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py")
 assert(    p_unmark({'marked': True},  [{'marked': True}]))
 assert(not p_unmark({'marked': False}, [{'marked': False}]))
 
@@ -51,9 +51,9 @@ assert(not p_unmark({'marked': False}, [{'marked': False}]))
 assert("at 0x" in repr(p_unmark))
 assert("at 0x" not in str(p_unmark))
 
-p_mark = Predicate("mark", "examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py")
-m_unmark = Move("unmark", "examples/ind-set.ssax/moves/unmark.py")
-m_mark = Move("mark", "examples/ind-set.ssax/moves/mark.py")
+p_mark = Predicate("examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py")
+m_unmark = Move("examples/ind-set.ssax/moves/unmark.py")
+m_mark = Move("examples/ind-set.ssax/moves/mark.py")
 
 
 # test with predicates defined in code

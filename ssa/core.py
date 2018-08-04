@@ -22,14 +22,13 @@ class Executable:
     _func: Optional[Callable]
     _code_lines: Optional[List[str]]
 
-    def __init__(self, name: str, source_file: str, parameters: List[str], code_transform: Optional[Callable[[List[str]], List[str]]] = None) -> None:
+    def __init__(self, source_file: str, parameters: List[str], code_transform: Optional[Callable[[List[str]], List[str]]] = None) -> None:
         """Create a new Executable.
 
         - `source_file`: a canonicalized file containing code
         - `parameters`: a list of parameter names assumable by `source_file`
 
         """
-        self.name = name
         self.parameters = parameters
         self.source_file = source_file
         self._code_transform = code_transform
@@ -57,10 +56,10 @@ class Executable:
         - self.name
         - self.source_file (source file)
         """
-        return f"<{self.__class__.__name__} at {hex(id(self))} - \'{self.name}\' from \"{self.source_file}\">"
+        return f"<{self.__class__.__name__} at {hex(id(self))} - \"{self.source_file}\">"
 
     def __str__(self):
-        return f"<{self.__class__.__name__} '{self.name}'>"
+        return f"<{self.__class__.__name__} '{self.source_file}'>"
 
     def _define(self):
         """Read `self.source_file` and load it into memory."""
@@ -96,8 +95,8 @@ class Predicate(Executable):
     - `N`: neighborhood of `v`
 
     """
-    def __init__(self, name: str, definition: str) -> None:
-        super().__init__(name, definition, ["v", "N"])
+    def __init__(self, definition: str) -> None:
+        super().__init__(definition, ["v", "N"])
 
 class Move(Executable):
     """A function called for effect on a node.
@@ -106,8 +105,8 @@ class Move(Executable):
     attributes of the privileged node.
 
     """
-    def __init__(self, name: str, definition: str) -> None:
-        super().__init__(name, definition, ["v"], lambda lines: lines + ["return v"])
+    def __init__(self, definition: str) -> None:
+        super().__init__(definition, ["v"], lambda lines: lines + ["return v"])
 
 class Rule:
     """A predicate-move pair."""
@@ -152,7 +151,6 @@ class Rule:
 
     def __str__(self):
         return f"<Rule {self.predicate} to {self.move}>"
-
 
 class GraphTimeline:
     """A graph over time.
