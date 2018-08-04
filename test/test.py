@@ -40,26 +40,6 @@ def run_test(algorithm):
     timeline.report()
     print(f"Stable? {stable}")
 
-
-# functions load from file correctly
-p_unmark = Predicate("examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py")
-assert(    p_unmark({'marked': True},  [{'marked': True}]))
-assert(not p_unmark({'marked': False}, [{'marked': False}]))
-
-
-# test __repr__ and __str__
-assert("at 0x" in repr(p_unmark))
-assert("at 0x" not in str(p_unmark))
-
-p_mark = Predicate("examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py")
-m_unmark = Move("examples/ind-set.ssax/moves/unmark.py")
-m_mark = Move("examples/ind-set.ssax/moves/mark.py")
-
-
 # test with predicates defined in code
 print("from memory")
 run_test(Algorithm([Rule(can_mark, mark), Rule(must_unmark, unmark)]))
-
-# test with predicates/moves loaded from disk into memory with `Executable`
-print("from disk")
-run_test(Algorithm([Rule(p_mark, m_mark), Rule(p_unmark, m_unmark)]))

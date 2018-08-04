@@ -71,21 +71,21 @@ legitimate state after a finite number of moves.
 
 
   # move predefined code to the bundle
-  python3 ssa.py test.ssax new predicate can-mark < unmarked-and-neighbors-unmarked.py
-  python3 ssa.py test.ssax new move mark < mark.py
+  python3 ssa.py indset.ssax new predicate can-mark < unmarked-and-neighbors-unmarked.py
+  python3 ssa.py indset.ssax new move mark < mark.py
 
-  python3 ssa.py test.ssax new predicate must-unmark < marked-and-neighbor-marked.py
-  python3 ssa.py test.ssax new move unmark < unmark.py
+  python3 ssa.py indset.ssax new predicate must-unmark < marked-and-neighbor-marked.py
+  python3 ssa.py indset.ssax new move unmark < unmark.py
 
   # create a new algorithm
-  python3 ssa.py test.ssax new algorithm 'Independent Set'
+  python3 ssa.py indset.ssax new algorithm 'Independent Set'
 
   # define rules for that algorithm
-  python3 ssa.py test.ssax add-rule-to 'Independent Set' can-mark mark
-  python3 ssa.py test.ssax add-rule-to 'Independent Set' must-unmark unmark
+  python3 ssa.py indset.ssax add-rule-to 'Independent Set' can-mark mark
+  python3 ssa.py indset.ssax add-rule-to 'Independent Set' must-unmark unmark
 
   # run the algorithm
-  python3 ssa.py test.ssax run 'Independent Set'
+  python3 ssa.py indset.ssax run 'Independent Set'
 #+END_SRC
 
 Soon, =run= will be able to read graphs from a file.  For now, it
