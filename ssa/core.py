@@ -190,7 +190,7 @@ class GraphTimeline:
         self._steps.append(GraphTimeline.Step(rule, node, new_data))
 
     def report(self):
-        print(f"Initial state: {self._base.nodes.data()}")
+        print(f"Initial state: {dict(self._base.nodes.data())}")
         for step in self._steps:
             print(f"{step.rule.move} {step.node}")
         print(f"Steps: {len(self._steps)}")
