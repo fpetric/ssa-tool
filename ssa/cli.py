@@ -47,6 +47,10 @@ def populate_parser(parser: argparse.ArgumentParser, options: dict) -> argparse.
         for argument, argument_config in options["$positional"].items():
             if argument_config: parser.add_argument(argument, **argument_config)
             else: parser.add_argument(argument)
+    if "$options" in options:
+        for argument, argument_config in options["$options"].items():
+            if argument_config: parser.add_argument(argument, **argument_config)
+            else: parser.add_argument(argument, default="")
     if "$subparsers" in options:
         # create a subparser-created
         subparser_creator = parser.add_subparsers(dest=options["$subparsers"]["$destination"])
@@ -117,21 +121,60 @@ def add_rule_to(bundle, algorithm_name, predicate, move, **kwargs):
     import os
     _load_bundle(bundle).add_rule_to_algorithm(algorithm_name, os.path.join('predicate', predicate), os.path.join('move', move)).save()
 
-def rand_graph(dimen): ## from test suite, won't be necessary once graphs are loading from files
-    """Generate an arbitrary graph with 'marked' attributes."""
-    import networkx as nx
-    import random
-    graph = nx.grid_2d_graph(dimen, dimen)
-    for node in graph.nodes:
-        graph.node[node]['marked'] = random.choice([False, True])
-    return graph
-
-def run_algorithm(bundle, algorithm_name, **kwargs):
+def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations, num_graphs, **kwargs):
     """Run an algorithm from a bundle."""
-    print(f"In bundle '{bundle}', running algorithm '{algorithm_name}'.")
-    (stable, timeline) = ssa.Bundle.load(bundle).load_algorithm(algorithm_name).run(rand_graph(5))
-    timeline.report()
-    print("Stable? {}".format(stable))
+    import ssa.trial
+    print(f"Algorithm: {algorithm_name} ({bundle})")
+    print(f"Graph generation spec: {graph_generator_spec}")
+    print(f"Iterations: {iterations}")
+    print(f"Graphs: {num_graphs}")
+
+    # the spec tells us how to generate random graphs
+    graph_gen_spec, *property_specs = graph_generator_spec.split(':')
+    graph_gen_descriptor, *graph_gen_args = graph_gen_spec.split(',')
+    # generator,arg,...:prop=generator,arg,...:...
+
+    # try to get the right graph-generator-generator using a standard prefix
+    graph_gen_parser = ssa.trial.get_graph_generator_parser(graph_gen_descriptor)
+    if graph_gen_parser is None:
+        raise Exception(f"unknown graph type '{graph_gen_descriptor}'")
+
+    # resolve the graph-generator-generator to a graph-generator
+    # by calling it with the arguments we were given (unpacked)
+    graphgen = graph_gen_parser(*graph_gen_args)
+
+    # build up the properties dictionary for apply_properties
+    properties = dict()
+    props = [p.split("=", 1) for p in property_specs]
+    for prop, genspec in props:
+        gen, *genargs = genspec.split(',')
+        # note the solution above has no understanding of 'escaping' commas
+        resolved = ssa.trial.get_property_generator(gen)
+        if not resolved:
+            raise Exception("unknown property randomizer")
+        properties[prop] = resolved(*genargs)
+
+    # convert our command-line arguments to the names used by ssa.trial.run
+    kwargs_to_run_args = {
+        "timeout": "timeout_seconds",
+        "workers": "workers",
+    }
+    runargs = {kwargs_to_run_args[arg]: kwargs[arg] \
+               for arg in kwargs.keys() if arg in kwargs_to_run_args}
+
+    # load and run the algorithm
+    algorithm = ssa.Bundle.load(bundle).load_algorithm(algorithm_name)
+    results = ssa.trial.run(algorithm, lambda: ssa.trial.apply_properties(graphgen(), properties),\
+                            iterations, num_graphs, **runargs)
+
+    # report failures
+    if results[False]:
+        for timeline in results[False]:
+            print("---")
+            timeline.report()
+        print(f"{len(results[False])} graph(s) above remain unstable.")
+    else:
+        print("All graphs converged.")
 
 # Now that all our handler functions have been defined, we can define
 # the CLI as an 'options' object for populate_parser.
@@ -168,11 +211,15 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
             "$handler": run_algorithm,
             "$positional": OrderedDict([
                 ("algorithm_name", None),
+                ("graph_generator_spec", None),
+                ("num_graphs", { 'type': int }),
+                ("iterations", { 'type': int }),
             ]),
             "$options": {
+               "--timeout": { 'type': int },
+               "--workers": { 'type': int },
                 # todo:
                 # --graph-file=graph.gml --format=gml
-                # --graph-generate=tree|k-5|...
             },
         }
         # todo: "delete", "list"
