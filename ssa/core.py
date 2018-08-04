@@ -12,7 +12,7 @@ TMove = Callable[[TNodeData], TNodeData]
 # objects read from disk.
 class Executable:
     """Generic container for callables read from disk."""
-    CODE_INDENT = 4
+    CODE_INDENT = "    "
 
     name: str
     source_file: str
@@ -77,7 +77,7 @@ class Executable:
             lines = self._code_transform(lines)
 
         # indent the definition to prepare to evaluate
-        lines = [(" " * Executable.CODE_INDENT) + l for l in lines]
+        lines = [Executable.CODE_INDENT + l for l in lines]
 
         # add the definition line
         params_signature: str
