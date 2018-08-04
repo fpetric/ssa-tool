@@ -1,0 +1,174 @@
+import ssa
+
+import os
+import argparse
+from collections import OrderedDict
+
+# todo: what to do if bundle.ssax does not exist?  a new verb, albiet backwards, called 'create'?
+
+# ssa path/to/bundle.ssax new move relative/path/to/move.py [--copy | --hard-link | --soft-link]
+# ssa path/to/bundle.ssax new algorithm 'Independent Set'
+# ssa path/to/bundle.ssax add algorithm 'Independent Set' predicate.py move.py [--options]
+# ssa path/to/bundle.ssax run 'Independent Set' path/to/graph.gml [--iterations=1000|n|inf]
+# ssa path/to/bundle.ssax delete algorithm 'Independent Set'
+# ssa path/to/bundle.ssax list predicates|moves|algorithms
+
+def populate_parser(parser: argparse.ArgumentParser, options: dict) -> argparse.ArgumentParser:
+    """Populate an ArgumentParser according to a recursive data structure.
+
+    Special fields are prefixed with '$' (since this is a relatively
+    unreasonable character to use in an expanded shell command).
+
+    $handler: a function to handle this parser.  The ultimate value of
+    this function is determined at argument-parsing-time and can be
+    called with `args.run_handler(...)`.  A bit of magic can be
+    achieved with the expression `args.run_handler(**vars(args))`,
+    defining each of your handlers as
+
+        def my_handler(positional_arg, positional_arg2, optional_arg=3, **kwargs)
+
+    if you have `positional_arg`, etc. as the names of your arguments
+    in the options dictionary.
+
+    $positional: an ordered dictionary of arguments.  Right now, they
+    should map to None -- in the future, argument configuration can be
+    added here.
+
+    $subparsers: declare a set of subparsers to dispatch to different
+    argument parsers.  Each entry in this dictionary is a new parser
+    options dictionary (i.e., this is the recursive bit).  The
+    specific subparser used can be stored in a property determined by
+    $destination.
+
+    """
+    if "$handler" in options:
+        parser.set_defaults(run_handler=options["$handler"])
+    if "$positional" in options:
+        # parse out positional arguments and their configurations
+        for argument, argument_config in options["$positional"].items():
+            if argument_config: parser.add_argument(argument, **argument_config)
+            else: parser.add_argument(argument)
+    if "$subparsers" in options:
+        # create a subparser-created
+        subparser_creator = parser.add_subparsers(dest=options["$subparsers"]["$destination"])
+        # for every subparser keyword,
+        for sub, suboptions in options["$subparsers"].items():
+            if sub.startswith("$"): continue # ignore $destination
+            # create a subparser from the root
+            # and recurse on that subparser's options
+            populate_parser(subparser_creator.add_parser(sub), suboptions)
+    return parser
+
+def _load_bundle(bundle_path):
+    """Convenience function to create/load a bundle."""
+    if ssa.Bundle.exists(bundle_path):
+        return ssa.Bundle.load(bundle_path)
+    else:
+        return ssa.Bundle.create(bundle_path)
+
+def new_algorithm(bundle, name, **kwargs):
+    """Add a new algorithm called `name` to `bundle`."""
+    print("new '{}' algorithm name: {}".format(bundle, name))
+    _load_bundle(bundle).add_algorithm(name).save()
+
+def _new_component(bundle_path, component_dir, component_path, method, **kwargs):
+    """Copy a bundle component (predicate/move) to the bundle.
+
+      - bundle_path :: this bundle (*.ssax)
+      - component_dir :: the target component directory
+      - component_path :: the source component path (*.py)
+      - method :: what method on Bundle to use to add the component (e.g., Bundle.add_move)
+
+    """
+    import shutil
+    bundle = _load_bundle(bundle_path)
+    newpath = os.path.join(bundle_path, component_dir)
+    shutil.copy(component_path, newpath)
+    path_components = os.path.split(newpath)
+    newpath_relative_to_bundle = os.path.join(*path_components[1:])
+    newpath_relative_to_bundle = os.path.join(newpath_relative_to_bundle, os.path.basename(component_path))
+    method(bundle, filename=newpath_relative_to_bundle)
+    bundle.save()
+
+def new_predicate(bundle, path, **kwargs):
+    """Add the predicate at the given path to the bundle."""
+    print(f"In bundle '{bundle}', adding predicate '{path}'.")
+    _new_component(bundle, 'predicate', path, ssa.Bundle.add_predicate, **kwargs)
+
+def new_move(bundle, path, **kwargs):
+    """Add the move at the given path to the bundle."""
+    print(f"In bundle '{bundle}', adding move '{path}'.")
+    _new_component(bundle, 'move', path, ssa.Bundle.add_move, **kwargs)
+
+def add_rule_to(bundle, algorithm_name, predicate, move, **kwargs):
+    """Add a rule to an algorithm."""
+    print(f"In bundle '{bundle}', adding a new rule ({predicate} => {move}) to {algorithm_name}.")
+    _load_bundle(bundle).add_rule_to_algorithm(algorithm_name, os.path.join('predicate', predicate), os.path.join('move', move)).save()
+
+
+def rand_graph(dimen): ## from test suite, won't be necessary once graphs are loading from files
+    """Generate an arbitrary graph with 'marked' attributes."""
+    import networkx as nx
+    import random
+    graph = nx.grid_2d_graph(dimen, dimen)
+    for node in graph.nodes:
+        graph.node[node]['marked'] = random.choice([False, True])
+    return graph
+
+def run_algorithm(bundle, algorithm_name, **kwargs):
+    """Run an algorithm from a bundle."""
+    print(f"In bundle '{bundle}', running algorithm '{algorithm_name}'.")
+    (stable, timeline) = ssa.Bundle.load(bundle).load_algorithm(algorithm_name).run(rand_graph(5))
+    timeline.report()
+    print("Stable? {}".format(stable))
+
+# Now that all our handler functions have been defined, we can define
+# the CLI as an 'options' object for populate_parser.
+CLIParser = populate_parser(argparse.ArgumentParser(), {
+    "$positional": { "bundle": None },
+    "$subparsers": {
+        "$destination": "command",
+        "new": {
+            "$subparsers": {
+                "$destination": "entity",
+                "algorithm": {
+                    "$handler": new_algorithm,
+                    "$positional": OrderedDict([ ("name", None) ]),
+                },
+                "predicate": {
+                    "$handler": new_predicate,
+                    "$positional": OrderedDict([ ("path", None) ]),
+                },
+                "move": {
+                    "$handler": new_move,
+                    "$positional": OrderedDict([ ("path", None) ]),
+                },
+            },
+        },
+        "add-rule-to": {
+            "$handler": add_rule_to,
+            "$positional": OrderedDict([
+                ("algorithm_name", None),
+                ("predicate", None),
+                ("move", None),
+            ]),
+        },
+        "run": {
+            "$handler": run_algorithm,
+            "$positional": OrderedDict([
+                ("algorithm_name", None),
+            ]),
+            "$options": {
+                # todo:
+                # --graph-file=graph.gml --format=gml
+                # --graph-generate=tree|k-5|...
+            },
+        }
+        # todo: "delete", "list"
+    },
+})
+
+def run():
+    """Parse and handle command line arguments."""
+    args = CLIParser.parse_args()
+    args.run_handler(**vars(args))

@@ -1,4 +1,4 @@
-from ssa import Predicate, Move, Rule, Algorithm
+from ssa import Predicate, Move, Rule, Algorithm, CLIParser
 import networkx as nx
 import random
 
@@ -63,3 +63,22 @@ run_test(Algorithm([Rule(can_mark, mark), Rule(must_unmark, unmark)]))
 # test with predicates/moves loaded from disk into memory with `Executable`
 print("from disk")
 run_test(Algorithm([Rule(p_mark, m_mark), Rule(p_unmark, m_unmark)]))
+
+
+
+TESTFILE = 'temp.ssax'
+import shlex
+examples = [
+    TESTFILE + " new algorithm 'Independent Set'",
+    TESTFILE + " new predicate examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py",
+    TESTFILE + " new move examples/ind-set.ssax/moves/mark.py",
+    TESTFILE + " new predicate examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py",
+    TESTFILE + " new move examples/ind-set.ssax/moves/unmark.py",
+    TESTFILE + " add-rule-to 'Independent Set' unmarked-and-neighbors-unmarked.py mark.py",
+    TESTFILE + " add-rule-to 'Independent Set' marked-and-neighbor-marked.py unmark.py",
+    TESTFILE + " run 'Independent Set'"
+]
+
+for example in examples:
+    args = CLIParser.parse_args(shlex.split(example))
+    args.run_handler(**vars(args))
