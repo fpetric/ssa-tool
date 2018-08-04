@@ -1,14 +1,18 @@
 PIP ?= pip
 PYTHON ?= python
 
-.PHONY: install test
+.PHONY: dependencies install check test
+
+dependencies: requirements.txt
+	$(PIP) install -qr requirements.txt
 
 install:
-	$(PIP) install -r requirements.txt
-
-test:
 	$(PIP) install .
+
+test: install
+	rm -rf temp.ssax
 	$(PYTHON) test/test.py
-#	type-check
-	mypy -p ssa \
-	  --ignore-missing-imports # stubs don't exist for networkx and that's ok
+
+check:
+#	ignore-missing-imports: stubs don't exist for networkx and that's ok
+	mypy -p ssa --ignore-missing-imports
