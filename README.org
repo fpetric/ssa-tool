@@ -1,264 +1,79 @@
-#+Title: SSA-Tool: Working with Self-Stabilizing Algorithms in Python
+#+Title: SSA-Tool: Working with Self-Stabilizing Algorithms
 #+Author: Sean Allred
-#+Date: [2014-03-11 Tue]
-
-#+PROPERTY: noweb tangle
-#+PROPERTY: mkdirp no
-
-#+TODO: TODO INPROGRESS WRITE_TESTS WISH_LIST | DONE
 
 [[https://travis-ci.org/vermiculus/ssa-tool][https://travis-ci.org/vermiculus/ssa-tool.svg]]
-
-Never mind the above; I haven't been able to set it up correctly yet.
-Needing to tangle the file makes it a little complicated.  The
-=master= branch contains all of the tangled code for the project.
-Travis CI will be using the =master= branch.
 
 This is a set of tools for the representation, creation, and
 evaluation of self-stabilizing algorithms.
 
-I will add more content here soon, but please do see the documentation
-for the project in [[file:src/ssa.org][src/ssa.org]].  It is a [[http://www-cs-faculty.stanford.edu/~uno/lp.html][literate program]] written with
-[[http://orgmode.org/worg/org-contrib/babel][Org-Babel]] using the [[http://www.gnu.org/s/emacs][Emacs]] text editor.
-
 * Introduction
-** Directory Structure
-The project is set up as a [[http://learnpythonthehardway.org/book/ex46.html][traditional Python module]]:
-#+BEGIN_EXAMPLE
-  ./
-    setup.py
-    ssa.py
-    tests/
-      __init__.py
-      core_tests.py
-      creation_tests.py
-      simulation_tests.py
-#+END_EXAMPLE
-** Setup
-:PROPERTIES:
-:ID:       42439234-46EF-4E23-99E4-CFBDFFC3562E
-:END:
-#+BEGIN_SRC python :tangle "setup.py"
-  try:
-      from setuptools import setup
-  except ImportError:
-      from distutils.core import setup
-  
-  config = {
-      'description': 'A utility for the creation and evaluation of self-stabilizing algorithms',
-      'author': 'Sean Allred',
-      'url': 'http://github.com/vermiculus/ssa-tool',
-      'download_url': 'http://github.com/vermiculus/ssa-tool',
-      'author_email': 'seallred@smcm.edu',
-      'version': '0.1',
-      'install_requires': ['networkx'],
-      'packages': ['ssa'],
-      'scripts': [],
-      'name': 'ssa',
-  }
-  
-  setup(**config)
-#+END_SRC
-* TODO Example
-:PROPERTIES:
-:ID:       5D06B26D-A0A4-4FA2-8A29-BEF32962BFA9
-:END:
-#+BEGIN_SRC python :tangle example.py :padding no
-  # code example
-#+END_SRC
-
-* Installing
-:PROPERTIES:
-:ID:       CFE44C5A-2FBB-42A1-A783-881FA2C3BF89
-:END:
-** Tangling
-#+BEGIN_SRC emacs-lisp :tangle "tangle.el" :shebang "#!/usr/bin/env emacs --script"
-  #!/usr/bin/env emacs --script
-  
-  (ignore-errors
-    (let ((old-dir default-directory))
-      (cd "~/.emacs.d")
-      (normal-top-level-add-subdirs-to-load-path)
-      (cd old-dir)))
-  
-  (setq python-indent-guess-indent-offset nil)
-  
-  ; (package-install 'org)
-  
-  (require 'org)
-  (require 'ob)
-  (require 'ob-tangle)
-  
-  ;; http://www.emacswiki.org/emacs/ElispCookbook
-  (defun string/ends-with (s ending)
-        "return non-nil if string S ends with ENDING."
-        (cond ((>= (length s) (length ending))
-               (let ((elength (length ending)))
-                 (string= (substring s (- 0 elength)) ending)))
-              (t nil)))
-  
-  ;; http://turingmachine.org/bl/2013-05-29-recursively-listing-directories-in-elisp.html
-  (defun directory-files-recursive (directory match maxdepth ignore)
-    "List files in DIRECTORY and in its sub-directories.  Return
-     files that match the regular expression MATCH but ignore files
-     and directories that match IGNORE (IGNORE is tested before
-     MATCH).  Recurse only to depth MAXDEPTH.  If zero or negative,
-     then do not recurse"
-    (let* ((files-list '())
-           (current-directory-list
-            (directory-files directory t)))
-      ;; while we are in the current directory
-       (while current-directory-list
-         (let ((f (car current-directory-list)))
-           (cond 
-            ((and
-             ignore ;; make sure it is not nil
-             (string-match ignore f))
-             ; ignore
-              nil)
-            ((and
-              (file-regular-p f)
-              (file-readable-p f)
-              (string-match match f))
-            (setq files-list (cons f files-list)))
-            ((and
-             (file-directory-p f)
-             (file-readable-p f)
-             (not (string-equal ".." (substring f -2)))
-             (not (string-equal "." (substring f -1)))
-             (> maxdepth 0))
-             ;; recurse only if necessary
-             (setq files-list (append files-list (directory-files-recursive f match (- maxdepth -1) ignore)))
-             (setq files-list (cons f files-list)))
-            (t)))
-         (setq current-directory-list (cdr current-directory-list)))
-         files-list))
-  
-  (if nil
-      (delq nil
-            (mapcar
-             (lambda (file-path)
-               (if (string/ends-with file-path "org")
-                   (org-babel-tangle-file (message file-path))))
-             (directory-files-recursive "." "" 10 "\\(build\\|dist\\)")))
-    (mapcar 'org-babel-tangle-file
-            (split-string (shell-command-to-string "find . -name '*.org' -type f"))))
-#+END_SRC
-** =pip= Install
-#+BEGIN_SRC python :tangle "setup.py"
-  try:
-      from setuptools import setup
-  except ImportError:
-      from distutils.core import setup
-
-  config = {
-      'description': 'A utility for the creation and evaluation of self-stabilizing algorithms',
-      'author': 'Sean Allred',
-      'url': 'http://github.com/vermiculus/ssa-tool',
-      'download_url': 'http://github.com/vermiculus/ssa-tool',
-      'author_email': 'seallred@smcm.edu',
-      'version': '0.1',
-      'install_requires': ['networkx', 'pygame'],
-      'packages': ['ssa'],
-      'scripts': [],
-      'name': 'ssa',
-  }
-
-  setup(**config)
-#+END_SRC
-** Makefile
-#+BEGIN_SRC makefile :tangle "makefile"
-  PREBUILT_EMACS="https://dl.dropboxusercontent.com/u/17471132/emacs/emacs-24.3__Ubuntu-12.04-LTS.tgz"
-
-  documentation:
-          $(info No prepared documentation yet)
-          $(info See src/ssa.org)
-          $(info $(HOME))
-
-  bootstrap:
-          sed -n '/:shebang/,/#+END_SRC/p' README.org \
-            | tail -n +2 \
-            | sed '$$ d' > tangle.el
-
-  tangle: bootstrap
-          emacs --script tangle.el
-
-  install: tangle
-          python setup.py install
-
-  install-clean:
-          rm -rf ssa.egg-info
-          rm -rf build
-          rm -rf dist
-
-  clean:
-          rm -f tangle.el temp
-          find . -name '*.py'  -type f -exec rm -rf {} \;
-          find . -name '*.pyc' -type f -exec rm -rf {} \;
-          find . -name '*~'    -type f -exec rm -rf {} \;
-
-  check:
-          $(info At least one test pops open a window with quick, discontinuous movement.)
-          $(info If this kind of thing bothers you (e.g. epileptic), do not look at this test.)
-          $(info At any rate, these tests are designed to be unattended.)
-          $(info Press enter to confirm that you have read this message, or Ctrl-C out.)
-          @read response
-          $(MAKE) _check
-
-  _check:
-          cd ssa && nosetests --verbose
-
-  travis-dependencies:
-          $(MAKE) _travis-emacs24-build
-          $(MAKE) _travis-emacs24-install
-          emacs --version
-
-  _travis-emacs24-build:
-          $(info Downloading emacs 24)
-          wget -O emacs.tgz $(PREBUILT_EMACS)
-          $(info Unzipping)
-          tar -zxf emacs.tgz
-
-  _travis-emacs24-install:
-          $(info Installing)
-          cd emacs-24.3 && make install
-#+END_SRC
-** Executable
-#+BEGIN_SRC sh
-  #!/usr/bin/env sh
-  # -*- mode: sh -*-
-
-  python3 ssa-tool.py "$@"
-#+END_SRC
-
-* Notes
-** Dijkstra 1974
 A self-stabilizing network is seen as a graph of state machines.  Each
 privilege is realized as a transition from the current state to
 another state.  The state of the graph is passed as input to this
 state machine.  When the input graph matches some predicate, this
-privilege is set---there is some transition out of this state.  This
+privilege is set -- there is some transition out of this state.  This
 is why the choice of predicate to act upon is arbitrary: you can only
 move to one other state!
 
 When every node of the graph is in an accepting state with no set
 predicates, then the graph has stabilized.
 
-*** privilege
-- we consider graphs of finite state machines
-- privileges are boolean functions of the FSM's state and the states
-  of its neighbors
-- when these functions are true, the privilege is 'present'
-*** system state
-- each legitimate state must have at least one privilege present
-  - even if the action is 'do nothing'
-- in each legitimate state, every possible action will maintain
-  legitimacy
-- each privilege must be present in at least one legitimate state
-- for any given pair of legitimate states, there exists a
-  transformation between them
-*** self-stabilization
-regardless of the initial state and regardless of the privilege
+** Privilege
+- We consider graphs of finite state machines.
+- Privileges are boolean functions of the FSM's state and the states
+  of its neighbors.
+- When these functions are true, the privilege is 'present'.
+
+** System State
+- Each legitimate state must have at least one privilege present, even
+  if the action is 'do nothing'
+- In each legitimate state, every possible action will maintain
+  legitimacy.
+- Each privilege must be present in at least one legitimate state.
+- For any given pair of legitimate states, there exists a
+  transformation between them.
+
+** Self-Stabilization
+Regardless of the initial state and regardless of the privilege
 selected each time for the next move, at least one privilege will
 always be present and the system is guaranteed to find itself in a
 legitimate state after a finite number of moves.
+
+** References
+- Edsger W. Dijkstra. 1974. Self-stabilizing systems in spite of
+  distributed control. Commun. ACM 17, 11 (November 1974),
+  643-644. DOI=http://dx.doi.org/10.1145/361179.361202
+
+* Examples
+#+BEGIN_SRC sh
+  # move predefined code to the bundle
+  python3 ssa.py test.ssax new predicate examples/ind-set.ssax/predicates/unmarked-and-neighbors-unmarked.py
+  python3 ssa.py test.ssax new move examples/ind-set.ssax/moves/mark.py
+
+  python3 ssa.py test.ssax new predicate examples/ind-set.ssax/predicates/marked-and-neighbor-marked.py
+  python3 ssa.py test.ssax new move examples/ind-set.ssax/moves/unmark.py
+
+  # create a new algorithm
+  python3 ssa.py test.ssax new algorithm 'Independent Set'
+
+  # define rules for that algorithm
+  python3 ssa.py test.ssax add-rule-to 'Independent Set' unmarked-and-neighbors-unmarked.py mark.py
+  python3 ssa.py test.ssax add-rule-to 'Independent Set' marked-and-neighbor-marked.py unmark.py
+
+  # run the algorithm
+  python3 ssa.py test.ssax run 'Independent Set'
+#+END_SRC
+
+Soon, =run= will be able to read graphs from a file.  For now, it
+generates a grid graph.
+
+After the CLI is featured enough to support it, a graphical interface
+is planned to manage bundles and run algorithms -- showing the
+evolution of a graph that can be explored or exported.
+
+* Installing
+This package can be installed locally using =pip install .=.  Be sure to
+install the requirements with =pip install -r requirements.txt=.
+
+Alternatively, use the targets from the Makefile: =make dependencies
+install=.
