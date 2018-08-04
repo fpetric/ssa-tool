@@ -1,3 +1,4 @@
 .dir-locals.el
 .vscode/
 .mypy_cache/
+/ssa/__pycache__/
