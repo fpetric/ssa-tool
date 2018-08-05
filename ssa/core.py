@@ -86,8 +86,7 @@ class Executable:
         lines = [Executable.CODE_INDENT + l for l in lines]
 
         # add the definition line
-        params_signature: str
-        params_signature = ",".join(self.parameters)
+        params_signature: str = ",".join(self.parameters)
         lines = ["def indirect_executable(" + params_signature + "):"] + lines
 
         # evalute the code and maintain a reference to the function in memory
