@@ -22,30 +22,23 @@ class Executable:
     _func: Optional[Callable]
     _code_lines: Optional[List[str]]
 
-    def __init__(self, source_file: str, parameters: List[str], code_transform: Optional[Callable[[List[str]], List[str]]] = None) -> None:
+    def __init__(self, source_file: str) -> None:
         """Create a new Executable.
 
         - `source_file`: a canonicalized file containing code
         - `parameters`: a list of parameter names assumable by `source_file`
 
         """
-        self.parameters = parameters
         self.source_file = source_file
-        self._code_transform = code_transform
-        self._func = None
-        self._code_lines = None
+        self._code = None
 
-    def __call__(self, *params):
+    def _run(self, symbol_table: Dict[str, Any]) -> None:
         """Run the code from `self.source_file` with `params`.
 
-        - `params`: a list of values corresponding to `self.parameters`.
-
-        Executable code may modify `params`, so it may be wise to
-        perform `copy.deepcopy` if that should not be allowed.
+        - `symbol_table`: a dictionary of symbols (and their values) made available to the called code
 
         """
-        self.ensure_resolved()
-        return self._func(*params)
+        exec(self.ensure_resolved(), symbol_table)
 
     def __repr__(self):
         """Give a reasonable representation of this `Executable`.
@@ -62,35 +55,16 @@ class Executable:
 
     def ensure_resolved(self):
         """If the source file has not been read form disk, do so."""
-        if not self._func:
+        if not self._code:
             self._define()
+        return self._code
 
     def _define(self):
         """Read `self.source_file` and load it into memory."""
         logging.debug(f"Loading {self.source_file}")
         with open(self.source_file) as f:
-            # we can't reliably depend on a terminating newline,
-            # so strip them all and add them back later
-            self._code_lines = [s.rstrip() for s in f.readlines()]
-
-        lines: List[str]
-        lines = self._code_lines
-
-        # run transform (e.g., add a return statement for Move objects)
-        # default is to do nothing
-        if self._code_transform:
-            lines = self._code_transform(lines)
-
-        # indent the definition to prepare to evaluate
-        lines = [Executable.CODE_INDENT + l for l in lines]
-
-        # add the definition line
-        params_signature: str = ",".join(self.parameters)
-        lines = ["def indirect_executable(" + params_signature + "):"] + lines
-
-        # evalute the code and maintain a reference to the function in memory
-        exec("\n".join(lines), locals())
-        self._func = locals()["indirect_executable"]
+            lines = f.readlines()
+        self._code = compile('\n'.join(lines), self.source_file, 'exec')
 
 class Predicate(Executable):
     """A Boolean-valued function of a node and its neighbors.
@@ -100,9 +74,16 @@ class Predicate(Executable):
     - `v`: attributes for a node
     - `N`: neighborhood of `v`
 
+    The result of the predicate (true or false) is retrieved from
+    the value of the variable 'RESULT' after running the code.
+
     """
-    def __init__(self, definition: str) -> None:
-        super().__init__(definition, ["v", "N"])
+    def __call__(self, node: TNode, neighbors: List[TNode]) -> bool:
+        table = {"v": node, "N": neighbors}
+        self._run(table)
+        if 'RESULT' not in table:
+            raise SyntaxError(f"Symbol 'RESULT' not defined after running '{self.source_file}''")
+        return bool(table['RESULT'])
 
 class Move(Executable):
     """A function called for effect on a node.
@@ -111,8 +92,8 @@ class Move(Executable):
     attributes of the privileged node.
 
     """
-    def __init__(self, definition: str) -> None:
-        super().__init__(definition, ["v", "N"], lambda lines: lines + ["return v"])
+    def __call__(self, node: TNode, neighbors: List[TNode]) -> None:
+        self._run({"v": node, "N": neighbors})
 
 class Rule:
     """A predicate-move pair."""

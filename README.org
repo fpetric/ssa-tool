@@ -51,13 +51,13 @@ legitimate state after a finite number of moves.
   cat <<DONE > unmarked-and-neighbors-unmarked.py
   marked = v['marked']
   neighbor_marked = any(map(lambda n: n['marked'], N))
-  return not (marked or neighbor_marked)
+  RESULT = not (marked or neighbor_marked)
   DONE
 
   cat <<DONE > marked-and-neighbor-marked.py
   marked = v['marked']
   neighbor_marked = any(map(lambda n: n['marked'], N))
-  return marked and neighbor_marked
+  RESULT = marked and neighbor_marked
   DONE
 
   # moves can set node state

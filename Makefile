@@ -14,9 +14,9 @@ test: install
 	rm -rf temp.ssax
 	$(PYTHON) test/test.py
 	$(CLI) new algorithm 'Independent Set'
-	printf "marked = v['marked'] \nneighbor_marked = any(map(lambda n: n['marked'], N)) \nreturn not (marked or neighbor_marked)" \
+	printf "marked = v['marked'] \nneighbor_marked = any(map(lambda n: n['marked'], N)) \nRESULT = not (marked or neighbor_marked)" \
 	  | $(CLI) new predicate unmarked-and-neighbors-unmarked
-	printf "marked = v['marked'] \nneighbor_marked = any(map(lambda n: n['marked'], N)) \nreturn marked and neighbor_marked" \
+	printf "marked = v['marked'] \nneighbor_marked = any(map(lambda n: n['marked'], N)) \nRESULT = marked and neighbor_marked" \
 	  | $(CLI) new predicate marked-and-neighbor-marked
 	printf "v['marked'] = True" \
 	  | $(CLI) new move mark
