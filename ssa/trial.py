@@ -2,6 +2,7 @@ import networkx as nx
 import random
 from typing import Callable, Dict, List
 import concurrent.futures
+import logging
 
 import ssa
 
@@ -75,5 +76,5 @@ def run(algorithm: ssa.Algorithm, graph_generator: Callable[[], nx.Graph], num_i
                 result = f.result(timeout_seconds)
                 results[result[0]].append(result[1])
             except TimeoutError:
-                print("one of the results timed out!")
+                logging.warning("One of the results timed out!")
     return results

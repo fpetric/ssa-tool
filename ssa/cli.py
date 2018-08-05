@@ -1,6 +1,7 @@
 import ssa
 
 import argparse
+import logging
 from collections import OrderedDict
 
 # todo: what to do if bundle.ssax does not exist?  a new verb, albiet backwards, called 'create'?
@@ -71,7 +72,7 @@ def _load_bundle(bundle_path):
 
 def new_algorithm(bundle, name, **kwargs):
     """Add a new algorithm called `name` to `bundle`."""
-    print("new '{}' algorithm name: {}".format(bundle, name))
+    logging.info(f"New '{bundle}' algorithm name: {name}")
     _load_bundle(bundle).add_algorithm(name).save()
 
 def _new_component(bundle_path, component_dir, file, new_name, method, **kwargs):
@@ -105,29 +106,29 @@ def _new_component(bundle_path, component_dir, file, new_name, method, **kwargs)
 
 def new_predicate(bundle, name, **kwargs):
     """Add the predicate at the given path to the bundle."""
-    print(f"In bundle '{bundle}', saving predicate code from standard input to {name} (relative to the bundle).")
+    logging.info(f"In bundle '{bundle}', saving predicate code from standard input to {name} (relative to the bundle).")
     import sys
     _new_component(bundle, 'predicate', sys.stdin, name, ssa.Bundle.add_predicate, **kwargs)
 
 def new_move(bundle, name, **kwargs):
     """Add the move at the given path to the bundle."""
-    print(f"In bundle '{bundle}', saving move code from standard input to {name} (relative to the bundle).")
+    logging.info(f"In bundle '{bundle}', saving move code from standard input to {name} (relative to the bundle).")
     import sys
     _new_component(bundle, 'move', sys.stdin, name, ssa.Bundle.add_move, **kwargs)
 
 def add_rule_to(bundle, algorithm_name, predicate, move, **kwargs):
     """Add a rule to an algorithm."""
-    print(f"In bundle '{bundle}', adding a new rule ({predicate} => {move}) to {algorithm_name}.")
+    logging.info(f"In bundle '{bundle}', adding a new rule ({predicate} => {move}) to {algorithm_name}.")
     import os
     _load_bundle(bundle).add_rule_to_algorithm(algorithm_name, os.path.join('predicate', predicate), os.path.join('move', move)).save()
 
 def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations, num_graphs, **kwargs):
     """Run an algorithm from a bundle."""
     import ssa.trial
-    print(f"Algorithm: {algorithm_name} ({bundle})")
-    print(f"Graph generation spec: {graph_generator_spec}")
-    print(f"Iterations: {iterations}")
-    print(f"Graphs: {num_graphs}")
+    logging.info(f"Algorithm: {algorithm_name} ({bundle})")
+    logging.info(f"Graph generation spec: {graph_generator_spec}")
+    logging.info(f"Iterations: {iterations}")
+    logging.info(f"Graphs: {num_graphs}")
 
     # the spec tells us how to generate random graphs
     graph_gen_spec, *property_specs = graph_generator_spec.split(':')
@@ -228,5 +229,8 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
 
 def run():
     """Parse and handle command line arguments."""
+    import os
+    if "LOG_LEVEL" in os.environ:
+        logging.basicConfig(level=getattr(logging, os.environ["LOG_LEVEL"]))
     args = CLIParser.parse_args()
     args.run_handler(**vars(args))

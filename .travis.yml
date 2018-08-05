@@ -1,5 +1,7 @@
 language: python
 python: 3.6                     # type annotations introduced in this version
+env:
+  - LOG_LEVEL=INFO
 
 before_install: make dependencies
 install: make install

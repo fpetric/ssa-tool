@@ -5,6 +5,7 @@ from . import core
 from pprint import pprint
 from typing import List, Optional
 from collections import OrderedDict
+import logging
 
 def _yaml_represent_OrderedDict(dumper: yaml.Dumper, data: OrderedDict):
     return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map',
@@ -47,7 +48,7 @@ class Bundle(OrderedDict):
         """Create a new bundle at a given path."""
         if Bundle.exists(path):
             raise os.error("bundle exists")
-        print(f"Creating new bundle at {path}")
+        logging.info(f"Creating new bundle at {path}")
 
         # create the directory
         os.mkdir(path)

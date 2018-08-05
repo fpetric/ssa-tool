@@ -1,6 +1,7 @@
 import networkx as nx
 import random
 import copy
+import logging
 from typing import List, Callable, NewType, Optional, Dict, Tuple, Union, cast, Any
 
 TNode = NewType("TNode", object)
@@ -67,6 +68,7 @@ class Executable:
 
     def _define(self):
         """Read `self.source_file` and load it into memory."""
+        logging.debug(f"Loading {self.source_file}")
         with open(self.source_file) as f:
             # we can't reliably depend on a terminating newline,
             # so strip them all and add them back later
