@@ -5,9 +5,8 @@ import logging
 from typing import List, Callable, NewType, Optional, Dict, Tuple, Union, cast, Any
 
 TNode = NewType("TNode", object)
-TNodeData = NewType("TNodeData", object)
-TPred = Callable[[TNodeData, List[TNodeData]], bool]
-TMove = Callable[[TNodeData], TNodeData]
+TPred = Callable[[TNode, List[TNode]], bool]
+TMove = Callable[[TNode, List[TNode]], None]
 
 # A Executable (and particular types Predicate and Move) are runnable
 # objects read from disk.
@@ -137,7 +136,7 @@ class Rule:
         self.predicate = predicate # type: ignore
         self.move = move           # type: ignore
 
-    def applies_to(self, node: TNodeData, neighbors: List[TNodeData]):
+    def applies_to(self, node: TNode, neighbors: List[TNode]) -> bool:
         """True if this rule applies to a node given its neighbors.
 
         This looks to the rule's predicate to make the determination.
@@ -145,13 +144,13 @@ class Rule:
         """
         return self.predicate(node, neighbors) # type: ignore
 
-    def apply_to(self, node: TNodeData, neighbors: List[TNodeData]):
+    def apply_to(self, node: TNode, neighbors: List[TNode]) -> None:
         """Apply this rule to a node.
 
         Uses this rule's move for effect on `node`.
 
         """
-        return self.move(node, neighbors)  # type: ignore
+        self.move(node, neighbors) # type: ignore
 
     def __repr__(self):
         return f"<Rule at {hex(id(self))} - {repr(self.predicate)} to {repr(self.move)}>"
@@ -167,7 +166,7 @@ class GraphTimeline:
     """
     # todo: implement __iter__ to yeild graphs at steps
     class Step:
-        def __init__(self, rule: Rule, node: TNode, new_data: TNodeData) -> None:
+        def __init__(self, rule: Rule, node: TNode, new_data: TNode) -> None:
             """Create a new 'step'.
 
             - `rule`: the `Rule` object that applied to `node`
@@ -191,7 +190,7 @@ class GraphTimeline:
         self._steps: List[GraphTimeline.Step] = list()
         self._stable = False
 
-    def add_step(self, rule: Rule, node: TNode, new_data: TNodeData) -> None:
+    def add_step(self, rule: Rule, node: TNode, new_data: TNode) -> None:
         self._steps.append(GraphTimeline.Step(rule, node, new_data))
 
     def report(self):
@@ -232,18 +231,18 @@ class Algorithm:
                 # we know there are values here now
                 # related: python/mypy#4805
                 privileged_node = cast(TNode, privileged_node)
-                neighbors = cast(List[TNodeData], neighbors)
+                neighbors = cast(List[TNode], neighbors)
                 rule = cast(Rule, rule)
 
                 # get the new data for the node by applying the rule
-                new_data = rule.apply_to(working_graph.node[privileged_node], neighbors)
+                rule.apply_to(working_graph.node[privileged_node], neighbors)
 
                 # record what happened in the timeline
-                timeline.add_step(rule, privileged_node, new_data)
+                timeline.add_step(rule, privileged_node, working_graph.node[privileged_node])
 
         return (stable, timeline)
 
-    def find_privileged_nodes(self, graph: nx.Graph) -> Dict[TNode, Tuple[List[TNodeData], List[Rule]]]:
+    def find_privileged_nodes(self, graph: nx.Graph) -> Dict[TNode, Tuple[List[TNode], List[Rule]]]:
         """Find and return the 'privileged' nodes in `graph`.
 
         Privileged nodes are those nodes in the graph that satisfy one
@@ -261,7 +260,7 @@ class Algorithm:
             applicable_rules = []
 
             # collect neighbor data for the predicate
-            neighbors = cast(List[TNodeData], # satisfy type-checker
+            neighbors = cast(List[TNode], # satisfy type-checker
                              {v: graph.node[v] for v in graph.neighbors(node)}.values())
 
             # search for applicable rules
@@ -274,7 +273,7 @@ class Algorithm:
                 privileged[cast(TNode, node)] = (neighbors, applicable_rules)
         return privileged
 
-    def pick_node_under_rule(self, graph: nx.Graph) -> Tuple[Optional[TNode], Optional[List[TNodeData]], Optional[Rule]]:
+    def pick_node_under_rule(self, graph: nx.Graph) -> Tuple[Optional[TNode], Optional[List[TNode]], Optional[Rule]]:
         """Find one node in `graph` to which a rule applies.
 
         Return a tuple (node, rule).
