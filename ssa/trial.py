@@ -67,6 +67,7 @@ def run(algorithm: ssa.Algorithm, graph_generator: Callable[[], nx.Graph], num_i
     """
     results: Dict[bool, List[ssa.GraphTimeline]] = {True: [], False: []}
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        algorithm.ensure_resolved()
         futures = [executor.submit(lambda: algorithm.run(graph_generator(), num_iterations)) \
                    for i in range(num_graphs)]
         for f in futures:

@@ -44,8 +44,7 @@ class Executable:
         perform `copy.deepcopy` if that should not be allowed.
 
         """
-        if not self._func:
-            self._define()
+        self.ensure_resolved()
         return self._func(*params)
 
     def __repr__(self):
@@ -60,6 +59,11 @@ class Executable:
 
     def __str__(self):
         return f"<{self.__class__.__name__} '{self.source_file}'>"
+
+    def ensure_resolved(self):
+        """If the source file has not been read form disk, do so."""
+        if not self._func:
+            self._define()
 
     def _define(self):
         """Read `self.source_file` and load it into memory."""
@@ -287,7 +291,14 @@ class Algorithm:
 
         return (lucky_node, lucky_rule)
 
-# Local Variables:
-# python-shell-interpreter: "python3"
-# python-indent-offset: 4
-# End:
+    def ensure_resolved(self):
+        """Load all rules defined from disk into memory.
+
+        When doing parallel processing with the same Algorithm instance,
+        this will avoid race conditions where a I/O may be performed twice.
+
+        """
+        for rule in self.rules:
+            for exe in [rule.predicate, rule.move]:
+                if isinstance(exe, Executable):
+                    exe.ensure_resolved()
