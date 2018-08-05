@@ -5,7 +5,7 @@ CLI=$(PYTHON) ssa.py temp.ssax
 .PHONY: dependencies install check test
 
 dependencies: requirements.txt
-	$(PIP) install -qr requirements.txt
+	$(PIP) install -r requirements.txt
 
 install:
 	$(PIP) install .
