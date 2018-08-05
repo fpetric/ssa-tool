@@ -41,5 +41,5 @@ def run_test(algorithm):
     print(f"Stable? {stable}")
 
 # test with predicates defined in code
-print("from memory")
+print("Running algorithm instance from memory")
 run_test(Algorithm([Rule(can_mark, mark), Rule(must_unmark, unmark)]))
