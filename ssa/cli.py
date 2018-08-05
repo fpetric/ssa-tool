@@ -126,7 +126,7 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
     """Run an algorithm from a bundle."""
     import ssa.trial
     logging.info(f"Algorithm: {algorithm_name} ({bundle})")
-    logging.info(f"Graph generation spec: {graph_generator_spec}")
+    logging.info(f"Generator: {graph_generator_spec}")
     logging.info(f"Iterations: {iterations}")
     logging.info(f"Graphs: {num_graphs}")
 
