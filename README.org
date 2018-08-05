@@ -85,15 +85,32 @@ legitimate state after a finite number of moves.
   python3 ssa.py indset.ssax add-rule-to 'Independent Set' must-unmark unmark
 
   # run the algorithm
-  python3 ssa.py indset.ssax run 'Independent Set'
+  python3 ssa.py indset.ssax run 'Independent Set' 'gn,5:marked=bool' 1000 100
 #+END_SRC
 
-Soon, =run= will be able to read graphs from a file.  For now, it
-generates a grid graph.
-
-After the CLI is featured enough to support it, a graphical interface
-is planned to manage bundles and run algorithms -- showing the
-evolution of a graph that can be explored or exported.
+The above =run= command generates 1000 graphs and iterates the algorithm
+100 times on each.  The properties of the graph are determined by the
+special string you see after the algorithm name:
+#+BEGIN_EXAMPLE
+gn,5:marked=bool
+#+END_EXAMPLE
+Let's break this down.
+- =gn= :: This is the graph-generation descriptor.  Use this descriptor
+          to generate different graph /structures/ -- how many nodes
+          there are, how many edges, the organization of the graph
+          (tree/path/cycle/grid/...), or different mathematical
+          properties.
+- =5= :: Each comma-delimited piece after the graph-generation
+         descriptor is an argument to the graph-generator.  In the
+         case of =gn=, the only parameter is the number of nodes to
+         create.
+- =marked=bool= :: After the first colon, each colon-separated piece is
+                   a property-generation descriptor of the form
+                   =property_name=generator,args...=.  After a graph is
+                   generated, node properties are added according to
+                   the properties listed here.
+The definitive list of graph- and property-generators (and their
+arguments) are available in =ssa.trial=.
 
 * Installing
 This package can be installed locally using =pip install .=.  Be sure to
