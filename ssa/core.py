@@ -114,7 +114,7 @@ class Move(Executable):
 
     """
     def __init__(self, definition: str) -> None:
-        super().__init__(definition, ["v"], lambda lines: lines + ["return v"])
+        super().__init__(definition, ["v", "N"], lambda lines: lines + ["return v"])
 
 class Rule:
     """A predicate-move pair."""
@@ -146,13 +146,13 @@ class Rule:
         """
         return self.predicate(node, neighbors) # type: ignore
 
-    def apply_to(self, node):
+    def apply_to(self, node: TNodeData, neighbors: List[TNodeData]):
         """Apply this rule to a node.
 
         Uses this rule's move for effect on `node`.
 
         """
-        return self.move(node)  # type: ignore
+        return self.move(node, neighbors)  # type: ignore
 
     def __repr__(self):
         return f"<Rule at {hex(id(self))} - {repr(self.predicate)} to {repr(self.move)}>"
@@ -223,7 +223,7 @@ class Algorithm:
         rule: Optional[Rule]
 
         while not stable and (max_steps is None or current_step < max_steps):
-            (privileged_node, rule) = self.pick_node_under_rule(working_graph)
+            (privileged_node, neighbors, rule) = self.pick_node_under_rule(working_graph)
             if privileged_node is None:
                 # if no nodes are privileged, we've stabilized
                 stable = True
@@ -233,10 +233,11 @@ class Algorithm:
                 # we know there are values here now
                 # related: python/mypy#4805
                 privileged_node = cast(TNode, privileged_node)
+                neighbors = cast(List[TNodeData], neighbors)
                 rule = cast(Rule, rule)
 
                 # get the new data for the node by applying the rule
-                new_data = rule.apply_to(working_graph.node[privileged_node])
+                new_data = rule.apply_to(working_graph.node[privileged_node], neighbors)
 
                 # record what happened in the timeline
                 timeline.add_step(rule, privileged_node, new_data)
@@ -274,7 +275,7 @@ class Algorithm:
                 privileged[cast(TNode, node)] = (neighbors, applicable_rules)
         return privileged
 
-    def pick_node_under_rule(self, graph: nx.Graph) -> Tuple[Optional[TNode], Optional[Rule]]:
+    def pick_node_under_rule(self, graph: nx.Graph) -> Tuple[Optional[TNode], Optional[List[TNodeData]], Optional[Rule]]:
         """Find one node in `graph` to which a rule applies.
 
         Return a tuple (node, rule).
@@ -282,16 +283,16 @@ class Algorithm:
         """
         privileged_nodes = self.find_privileged_nodes(graph)
         if not privileged_nodes:
-            return (None, None)
+            return (None, None, None)
 
         # pick a privileged node at random to move
         lucky_node = random.choice(list(privileged_nodes.keys()))
 
         # of the applicable rules, choose one at random
-        (_neighbors, applicable_rules) = privileged_nodes[lucky_node]
+        (neighbors, applicable_rules) = privileged_nodes[lucky_node]
         lucky_rule = random.choice(applicable_rules)
 
-        return (lucky_node, lucky_rule)
+        return (lucky_node, neighbors, lucky_rule)
 
     def ensure_resolved(self):
         """Load all rules defined from disk into memory.

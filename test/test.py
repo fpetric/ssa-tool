@@ -6,10 +6,10 @@ import random
 
 # algorithms should be creatable from any callable object,
 # so try just plain ole' functions
-def mark(node):
+def mark(node, _neighbors):
     node['marked'] = True
     return node
-def unmark(node):
+def unmark(node, _neighbors):
     node['marked'] = False
     return node
 def _mark_info(node, neighbors):
