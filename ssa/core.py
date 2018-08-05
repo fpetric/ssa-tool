@@ -177,7 +177,7 @@ class GraphTimeline:
     def report(self):
         print(f"Initial state: {dict(self._base.nodes.data())}")
         for step in self._steps:
-            print(f"{step.rule.move} {step.node}")
+            print(f"{step.node} by {step.rule}")
         print(f"Steps: {len(self._steps)}")
 
 class Algorithm:
