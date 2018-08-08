@@ -15,7 +15,7 @@ def apply_properties(graph: nx.Graph, property_generators: Dict[str, Callable[[]
             n[prop] = property_generators[prop]()
     return graph
 
-def get_property_generator(member: str):
+def get_value_generator(member: str):
     """Find a property-value generator by a given name."""
     return globals()['genp_'+member] # GENerate Property
 

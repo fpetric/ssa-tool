@@ -150,7 +150,7 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
     for prop, genspec in props:
         gen, *genargs = genspec.split(',')
         # note the solution above has no understanding of 'escaping' commas
-        resolved = ssa.trial.get_property_generator(gen)
+        resolved = ssa.trial.get_value_generator(gen)
         if not resolved:
             raise Exception("unknown property randomizer")
         properties[prop] = resolved(*genargs)
