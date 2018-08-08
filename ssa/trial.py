@@ -7,6 +7,22 @@ from collections import OrderedDict
 
 import ssa
 
+def description(description):
+    """Decorator.  Describe this generator."""
+    def decorator(func):
+        func.description = description
+        return func
+    return decorator
+
+def arg(name, description):
+    """Decorator.  Describe the arguments to this generator."""
+    def decorator(func):
+        if not hasattr(func, 'arg_description'):
+            func.arg_description = dict()
+        func.arg_description[name] = description
+        return func
+    return decorator
+
 def apply_properties(graph: nx.Graph, property_generators: Dict[str, Callable[[], Any]]) -> nx.Graph:
     """Apply properties to a graph given a dictionary of properties."""
     for node in graph.nodes:
@@ -22,6 +38,53 @@ def get_value_generator(member: str):
 def get_graph_generator_parser(member: str):
     """Find a graph generator by a given name."""
     return globals()['geng_'+member] # GENerate Graph
+
+def get_generators(prefix: str):
+    """Get a list of all known generators."""
+    # we actually return an OrderedDict from this function, but there's a bug in Python
+    # that tries to evaluate the type as a real Type, which is not subscriptable.
+    import sys, inspect
+    symbol: str
+    ret = dict()
+
+    # get all the functions in the current module
+    members = inspect.getmembers(sys.modules[__name__], inspect.isfunction)
+    for (symbol, code_object) in members:
+        if symbol.startswith(prefix+"_"):
+            # if the symbol name begins with our prefix, get the
+            # overall and argument descriptions and put a tuple in our
+            # dictionary.
+            (_, name) = symbol.split("_", 1)
+            args = OrderedDict(_get_signature_arguments(code_object))
+            fn_doc = _get_function_description(code_object)
+            ret[name] = (fn_doc, args if len(args) > 0 else None)
+    return ret
+
+def _get_function_description(function_code_object) -> str:
+    """Get a description for the function."""
+    if hasattr(function_code_object, 'description'):
+        return function_code_object.description
+    import inspect
+    return inspect.getdoc(function_code_object)
+
+def _get_signature_arguments(function_code_object) -> List[Tuple[str, Optional[str]]]:
+    """Get descriptions for all arguments of the function."""
+    import inspect
+    signature = inspect.signature(function_code_object)
+    ret = list()
+    if not hasattr(function_code_object, 'arg_description'):
+        # type-ignore because mypy thinks signature.parameters is a
+        # list of strings, but in fact it's a list of Parameter
+        # objects
+        return [(p.name, None) for p in signature.parameters] # type: ignore
+
+    param: inspect.Parameter
+    for param in signature.parameters.values():
+        name = param.name
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            name += "..."
+        ret.append((name, function_code_object.arg_description[param.name] if param.name in function_code_object.arg_description else None))
+    return ret
 
 # define functions that consume the argument piece in the spec
 # and return a function that returns a random graph.

@@ -177,6 +177,36 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
     else:
         print("All graphs converged.")
 
+def yaml_print_all(l: list):
+    import sys, yaml
+    yaml.dump_all(l, sys.stdout, default_flow_style=False)
+
+def list_algorithms(bundle, **kwargs):
+    _list_components(bundle, 'algorithms')
+
+def _list_components(bundle, component, **kwargs):
+    yaml_print_all(_load_bundle(bundle).get(component))
+
+def _list_generators_with_prefix(bundle, prefix, **kwargs):
+    import ssa.trial
+    all_desc = list()
+    for generator, (fn_doc, args) in ssa.trial.get_generators(prefix).items():
+        pieces = [generator]
+        if args: pieces += list(args.keys())
+        desc = OrderedDict([
+            ("calling pattern", ",".join(pieces)),
+            ("description", fn_doc),
+        ])
+        if args:
+            desc["arguments"] = [OrderedDict([
+                ("name", arg),
+                ("description", doc),
+            ]) for arg, doc in args.items()]
+        all_desc.append(desc)
+    yaml_print_all(all_desc)
+
+from functools import partial
+
 # Now that all our handler functions have been defined, we can define
 # the CLI as an 'options' object for populate_parser.
 CLIParser = populate_parser(argparse.ArgumentParser(), {
@@ -222,8 +252,28 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
                 # todo:
                 # --graph-file=graph.gml --format=gml
             },
-        }
-        # todo: "delete", "list"
+        },
+        "list": {
+            "$subparsers": {
+                "$destination": "entity",
+                "algorithms": {
+                    "$handler": list_algorithms,
+                },
+                "predicates": {
+                    "$handler": partial(_list_components, component='predicates'),
+                },
+                "moves": {
+                    "$handler": partial(_list_components, component='moves'),
+                },
+                "graph-generators": {
+                    "$handler": partial(_list_generators_with_prefix, prefix='geng'),
+                },
+                "property-value-generators": {
+                    "$handler": partial(_list_generators_with_prefix, prefix='genp'),
+                },
+            },
+        },
+        # todo: "delete"
     },
 })
 
