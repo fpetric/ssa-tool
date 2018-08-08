@@ -91,22 +91,33 @@ def _get_signature_arguments(function_code_object) -> List[Tuple[str, Optional[s
 # (we need this layer of indirection to avoid creating the graph
 # too early).  only required and optional-named parameters are
 # supported (i.e., no keyword arguments).
+@description("Generate a random graph with a set number of nodes")
+@arg("number_of_nodes", "The graph generated will have this many nodes")
 def geng_gn(number_of_nodes: str):
     """Return a graph-generator that gives a graph of a set number of nodes."""
     return lambda: nx.generators.gn_graph(int(number_of_nodes))
 
+@description("Generate a random graph with a set number of nodes and edges")
+@arg("number_of_nodes", "The graph generated will have this many nodes")
+@arg("number_of_edges", "The graph generated will have this many edges")
 def geng_gnm(number_of_nodes: str, number_of_edges: str):
     """Return a graph-generator that gives a graph of a set number of nodes and edges."""
     return lambda: nx.generators.gnm_random_graph(int(number_of_nodes), int(number_of_edges))
 
+@description("A random boolean")
 def genp_bool() -> Callable[[], bool]:
     """Random boolean generator."""
     return lambda: random.random() <= 0.5
 
+@description("A random choice")
+@arg("choices", "a list of choices")
 def genp_choice(*choices: list):
     """Random element from choices."""
     return lambda: random.choice(choices)
 
+@description("A random real number")
+@arg("min", "the minimum possible value, inclusive")
+@arg("max", "the maximum possible value, exclusive")
 def genp_rangef(min: str, max: str) -> Callable[[], float]:
     """Random real in range [min, max)."""
     if min == '0' and max == '1':
@@ -114,6 +125,9 @@ def genp_rangef(min: str, max: str) -> Callable[[], float]:
     minf = float(min)
     return lambda: random.random() * (float(max) - minf) + minf
 
+@description("A random integer")
+@arg("min", "the minimum possible value, inclusive")
+@arg("max", "the maximum possible value, exclusive")
 def genp_range(min: str, max: str) -> Callable[[], int]:
     """Random integer in range [min, max]."""
     return lambda: random.randint(int(min), int(max))
