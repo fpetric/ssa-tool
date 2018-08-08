@@ -1,12 +1,14 @@
 import networkx as nx
 import random
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple, Any, Optional
 import concurrent.futures
 import logging
+from collections import OrderedDict
 
 import ssa
 
-def apply_properties(graph: nx.Graph, property_generators):
+def apply_properties(graph: nx.Graph, property_generators: Dict[str, Callable[[], Any]]) -> nx.Graph:
+    """Apply properties to a graph given a dictionary of properties."""
     for node in graph.nodes:
         n = graph.node[node]
         for prop in property_generators:
@@ -14,9 +16,11 @@ def apply_properties(graph: nx.Graph, property_generators):
     return graph
 
 def get_property_generator(member: str):
+    """Find a property-value generator by a given name."""
     return globals()['genp_'+member] # GENerate Property
 
 def get_graph_generator_parser(member: str):
+    """Find a graph generator by a given name."""
     return globals()['geng_'+member] # GENerate Graph
 
 # define functions that consume the argument piece in the spec
