@@ -151,8 +151,10 @@ class Bundle(OrderedDict):
         rules = list()
         if 'rules' in alg:
             for rule in alg['rules']:
-                pred = core.Predicate(self._canonicalize_path(rule['predicate']['filename']))
-                move = core.Move(self._canonicalize_path(rule['move']['filename']))
+                for d in [rule['predicate'], rule['move']]:
+                    d['filename'] = self._canonicalize_path(d['filename'])
+                pred = core.Predicate(**rule['predicate'])
+                move = core.Move(**rule['move'])
                 rules.append(core.Rule(pred, move))
         return core.Algorithm(rules)
 

@@ -22,14 +22,14 @@ class Executable:
     _func: Optional[Callable]
     _code_lines: Optional[List[str]]
 
-    def __init__(self, source_file: str) -> None:
+    def __init__(self, filename: str, **kwargs) -> None:
         """Create a new Executable.
 
         - `source_file`: a canonicalized file containing code
         - `parameters`: a list of parameter names assumable by `source_file`
 
         """
-        self.source_file = source_file
+        self.source_file = filename
         self._code = None
 
     def _run(self, symbol_table: Dict[str, Any]) -> None:
