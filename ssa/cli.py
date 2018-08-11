@@ -50,8 +50,9 @@ def populate_parser(parser: argparse.ArgumentParser, options: dict) -> argparse.
             else: parser.add_argument(argument)
     if "$options" in options:
         for argument, argument_config in options["$options"].items():
-            if argument_config: parser.add_argument(argument, **argument_config)
-            else: parser.add_argument(argument, default="")
+            if isinstance(argument, str): argument = (argument,)
+            if argument_config: parser.add_argument(*argument, **argument_config)
+            else: parser.add_argument(*argument, default="")
     if "$subparsers" in options:
         # create a subparser-created
         subparser_creator = parser.add_subparsers(dest=options["$subparsers"]["$destination"])
