@@ -227,6 +227,8 @@ def _list_generators_with_prefix(bundle, prefix, **kwargs):
 
 from functools import partial
 
+PROPSPEC = { 'type': str, 'nargs': 2, 'action': 'append', 'metavar': ("name", "type") }
+
 # Now that all our handler functions have been defined, we can define
 # the CLI as an 'options' object for populate_parser.
 CLIParser = populate_parser(argparse.ArgumentParser(), {
@@ -244,14 +246,14 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
                     "$handler": new_predicate,
                     "$positional": OrderedDict([ ("name", None) ]),
                     "$options": {
-                        ("-p", "--property"): { 'type': str, 'nargs': 2, 'action': 'append', 'metavar': ("name", "type") }
+                        ("-p", "--property"): PROPSPEC
                     }
                 },
                 "move": {
                     "$handler": new_move,
                     "$positional": OrderedDict([ ("name", None) ]),
                     "$options": {
-                        ("-p", "--property"): { 'type': str, 'nargs': 2, 'action': 'append', 'metavar': ("name", "type") }
+                        ("-p", "--property"): PROPSPEC
                     }
                 },
             },
@@ -306,7 +308,8 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
 def run():
     """Parse and handle command line arguments."""
     import os
-    if "LOG_LEVEL" in os.environ:
-        logging.basicConfig(level=getattr(logging, os.environ["LOG_LEVEL"]))
+    LOG_LEVEL = "LOG_LEVEL"
+    if LOG_LEVEL in os.environ:
+        logging.basicConfig(level=getattr(logging, os.environ[LOG_LEVEL]))
     args = CLIParser.parse_args()
     args.run_handler(**vars(args))
