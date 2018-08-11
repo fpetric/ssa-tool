@@ -103,6 +103,9 @@ command.  The descriptor here (=gn=) determines what mathematical
 properties the generated graph will have (tree/path/cycle/grid/...).
 Note some graph-generators can provide properties of their own.
 
+Property generators defined on predicates/moves can be overridden at
+run-time with the =--property-override= option to =run=.
+
 The definitive list of graph- and property-generators (and their
 arguments) are available in =ssa.trial=.
 

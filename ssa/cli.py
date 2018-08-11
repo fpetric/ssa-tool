@@ -166,6 +166,12 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
                 elif props[name] != gen:
                     raise Exception(f"Shared node attribute found with conflicting generators: {name} (existing '{props[name]}', new '{gen}')")
 
+    # allow overrides; does not do type-checking yet, but this could
+    # be done with the specified return type of the generator.  This
+    # would probably involve splitting the loop below into two passes.
+    if 'property_override' in kwargs and kwargs['property_override']:
+        props.update({p[0]: p[1] for p in kwargs['property_override']})
+
     # build up the properties dictionary for apply_properties
     properties = dict()
     for prop, genspec in props.items():
@@ -277,6 +283,7 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
             "$options": {
                "--timeout": { 'type': int },
                "--workers": { 'type': int },
+               ("-p", "--property-override"): PROPSPEC
                 # todo:
                 # --graph-file=graph.gml --format=gml
             },

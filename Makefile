@@ -26,7 +26,7 @@ test: install
 	$(CLI) add-rule-to 'Independent Set' marked-and-neighbor-marked unmark
 	$(CLI) run 'Independent Set' 'gn,5' 1000 100 --timeout=20
 # 	the current directory shouldn't matter
-	CURDIR=`pwd` && cd .. && $(PYTHON) $$CURDIR/ssa.py $$CURDIR/temp.ssax run 'Independent Set' 'gnm,5,7' 3 1
+	CURDIR=`pwd` && cd .. && $(PYTHON) $$CURDIR/ssa.py $$CURDIR/temp.ssax run 'Independent Set' 'gnm,5,7' 3 1 -p age range,1,120
 
 
 check:
