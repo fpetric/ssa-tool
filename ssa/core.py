@@ -31,6 +31,7 @@ class Executable:
         """
         self.source_file = filename
         self._code = None
+        self._props = kwargs['properties'] if 'properties' in kwargs else None
 
     def _run(self, symbol_table: Dict[str, Any]) -> None:
         """Run the code from `self.source_file` with `params`.

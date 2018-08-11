@@ -2,6 +2,7 @@ import ssa
 
 import argparse
 import logging
+from typing import Dict
 from collections import OrderedDict
 
 # todo: what to do if bundle.ssax does not exist?  a new verb, albiet backwards, called 'create'?
@@ -102,7 +103,12 @@ def _new_component(bundle_path, component_dir, file, new_name, method, **kwargs)
     with open(newpath, 'w') as f:
         f.writelines(lines)
 
-    method(bundle, filename=os.path.relpath(newpath, bundle._path))
+    properties = list()
+    if 'property' in kwargs:
+        for name, generator in kwargs['property']:
+            properties.append(OrderedDict([('name', name), ('generator', generator)]))
+
+    method(bundle, filename=os.path.relpath(newpath, bundle._path), properties=properties)
     bundle.save()
 
 def new_predicate(bundle, name, **kwargs):
@@ -130,10 +136,10 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
     logging.info(f"Generator: {graph_generator_spec}")
     logging.info(f"Iterations: {iterations}")
     logging.info(f"Graphs: {num_graphs}")
+    algorithm = ssa.Bundle.load(bundle).load_algorithm(algorithm_name)
 
     # the spec tells us how to generate random graphs
-    graph_gen_spec, *property_specs = graph_generator_spec.split(':')
-    graph_gen_descriptor, *graph_gen_args = graph_gen_spec.split(',')
+    graph_gen_descriptor, *graph_gen_args = graph_generator_spec.split(',')
     # generator,arg,...:prop=generator,arg,...:...
 
     # try to get the right graph-generator-generator using a standard prefix
@@ -145,10 +151,24 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
     # by calling it with the arguments we were given (unpacked)
     graphgen = graph_gen_parser(*graph_gen_args)
 
+    # collect the properties (ie, node attributes) needed by the
+    # components of this algorithm (checking for conflicts)
+    props: Dict[str, str] = dict()
+    for rule in algorithm.rules:
+        # typing -- see python/mypy#708
+        for component in (rule.predicate, rule.move): # type: ignore
+            if not isinstance(component, ssa.core.Executable):
+                continue
+            component_props = {p['name']: p['generator'] for p in component._props}
+            for name, gen in component_props.items():
+                if name not in props:
+                    props[name] = gen
+                elif props[name] != gen:
+                    raise Exception(f"Shared node attribute found with conflicting generators: {name} (existing '{props[name]}', new '{gen}')")
+
     # build up the properties dictionary for apply_properties
     properties = dict()
-    props = [p.split("=", 1) for p in property_specs]
-    for prop, genspec in props:
+    for prop, genspec in props.items():
         gen, *genargs = genspec.split(',')
         # note the solution above has no understanding of 'escaping' commas
         resolved = ssa.trial.get_value_generator(gen)
@@ -165,7 +185,6 @@ def run_algorithm(bundle, algorithm_name, graph_generator_spec: str, iterations,
                for arg in kwargs.keys() if arg in kwargs_to_run_args}
 
     # load and run the algorithm
-    algorithm = ssa.Bundle.load(bundle).load_algorithm(algorithm_name)
     results = ssa.trial.run(algorithm, lambda: ssa.trial.apply_properties(graphgen(), properties),\
                             iterations, num_graphs, **runargs)
 
@@ -224,10 +243,16 @@ CLIParser = populate_parser(argparse.ArgumentParser(), {
                 "predicate": {
                     "$handler": new_predicate,
                     "$positional": OrderedDict([ ("name", None) ]),
+                    "$options": {
+                        ("-p", "--property"): { 'type': str, 'nargs': 2, 'action': 'append', 'metavar': ("name", "type") }
+                    }
                 },
                 "move": {
                     "$handler": new_move,
                     "$positional": OrderedDict([ ("name", None) ]),
+                    "$options": {
+                        ("-p", "--property"): { 'type': str, 'nargs': 2, 'action': 'append', 'metavar': ("name", "type") }
+                    }
                 },
             },
         },

@@ -71,11 +71,11 @@ legitimate state after a finite number of moves.
 
 
   # move predefined code to the bundle
-  python3 ssa.py indset.ssax new predicate can-mark < unmarked-and-neighbors-unmarked.py
-  python3 ssa.py indset.ssax new move mark < mark.py
+  python3 ssa.py indset.ssax new predicate can-mark -p marked bool < unmarked-and-neighbors-unmarked.py
+  python3 ssa.py indset.ssax new move      mark     -p marked bool < mark.py
 
-  python3 ssa.py indset.ssax new predicate must-unmark < marked-and-neighbor-marked.py
-  python3 ssa.py indset.ssax new move unmark < unmark.py
+  python3 ssa.py indset.ssax new predicate must-unmark -p marked bool < marked-and-neighbor-marked.py
+  python3 ssa.py indset.ssax new move      unmark      -p marked bool < unmark.py
 
   # create a new algorithm
   python3 ssa.py indset.ssax new algorithm 'Independent Set'
@@ -85,30 +85,24 @@ legitimate state after a finite number of moves.
   python3 ssa.py indset.ssax add-rule-to 'Independent Set' must-unmark unmark
 
   # run the algorithm
-  python3 ssa.py indset.ssax run 'Independent Set' 'gn,5:marked=bool' 1000 100
+  python3 ssa.py indset.ssax run 'Independent Set' gn,5 1000 100
 #+END_SRC
 
 The above =run= command generates 1000 graphs and iterates the algorithm
-100 times on each.  The properties of the graph are determined by the
-special string you see after the algorithm name:
+100 times on each.  The properties of nodes in the graph are
+determined by the predicates and moves composing the rules in the
+algorithm.  For example:
 #+BEGIN_EXAMPLE
-gn,5:marked=bool
+-p age range,1,120...
 #+END_EXAMPLE
-Let's break this down.
-- =gn= :: This is the graph-generation descriptor.  Use this descriptor
-          to generate different graph /structures/ -- how many nodes
-          there are, how many edges, the organization of the graph
-          (tree/path/cycle/grid/...), or different mathematical
-          properties.
-- =5= :: Each comma-delimited piece after the graph-generation
-         descriptor is an argument to the graph-generator.  In the
-         case of =gn=, the only parameter is the number of nodes to
-         create.
-- =marked=bool= :: After the first colon, each colon-separated piece is
-                   a property-generation descriptor of the form
-                   =property_name=generator,args...=.  After a graph is
-                   generated, node properties are added according to
-                   the properties listed here.
+In this example, =range= is called the /generator descriptor/ and =1,120=
+are its arguments.  This particular specification will ensure each
+node has an =age= attribute with a value between =1= and =120=.  The actual
+graph itself is determined by the =gn,5= string you see in the =run=
+command.  The descriptor here (=gn=) determines what mathematical
+properties the generated graph will have (tree/path/cycle/grid/...).
+Note some graph-generators can provide properties of their own.
+
 The definitive list of graph- and property-generators (and their
 arguments) are available in =ssa.trial=.
 
